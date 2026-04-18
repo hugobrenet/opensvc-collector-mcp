@@ -112,4 +112,3 @@ Optional argument:
 - FastMCP version is pinned in this project
 - tool definitions should stay in `tools/`
 - Collector logic should stay in `core/`
-- tool documentation should follow the standard described in `CODEX.md`
