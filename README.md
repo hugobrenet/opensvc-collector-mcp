@@ -1,31 +1,115 @@
-# opensvc-collector-mcp
+# OpenSVC Collector MCP
 
-MCP server for the OpenSVC Collector API, built with FastMCP.
+> Give AI agents a clean, typed MCP interface to the OpenSVC Collector API.
 
-## Base server
+`opensvc-collector-mcp` is a FastMCP server that exposes OpenSVC Collector data as MCP tools, so LLM clients can inspect infrastructure inventory through a controlled HTTP interface.
 
-This repository currently contains the minimal FastMCP server base:
+## What It Is
 
-- pinned to `fastmcp==3.2.4`
-- stdio entrypoint for MCP clients
-- a `ping` tool for smoke testing
+- MCP server built with `FastMCP`
+- HTTP transport served directly with `uvicorn`
+- custom health route: `/health`
+- current tool surface: `list_nodes`
+- architecture split between:
+  `tools/` for MCP tool definitions and
+  `core/` for business logic
+
+## Why It Exists
+
+The goal is to make OpenSVC Collector usable by AI assistants and agents without forcing them to call the raw Collector API directly.
+
+This repository is focused on:
+
+- clear tool contracts for MCP clients
+- predictable environment-based configuration
+- separation between MCP surface and Collector-specific logic
+
+## FastMCP
+
+This project uses `FastMCP` as the server framework that exposes Python functions as MCP tools and serves them over HTTP.
+
+If you are new to FastMCP, start with the official documentation:
+
+- FastMCP : https://gofastmcp.com
+
+## Current Structure
+
+```text
+src/opensvc_collector_mcp/
+├── client.py          # generic Collector HTTP client helpers
+├── config.py          # environment variables
+├── core/
+│   └── nodes_core.py  # business logic for nodes
+├── tools/
+│   └── nodes.py       # FastMCP tool definitions
+└── server.py          # FastMCP app + uvicorn entrypoint
+```
+
+## Environment
+
+Create a `.env` file with:
+
+```env
+OPENSVC_USER=your-opensvc-user
+OPENSVC_PASSWORD=your-opensvc-password
+OPENSVC_API_BASE_URL=https://your-collector-host/init/rest/api
+MCP_PORT=8001
+```
 
 ## Run
 
-Install dependencies:
+Activate the local virtualenv:
 
 ```bash
-pip install -e .
+. ./venv/bin/activate
 ```
 
-Run the server directly:
+Start the server:
 
 ```bash
-python -m opensvc_collector_mcp.server
+PYTHONPATH=src python -m opensvc_collector_mcp.server
 ```
 
-Or through FastMCP:
+The server listens on:
+
+```text
+http://127.0.0.1:8001
+```
+
+## Health Check
 
 ```bash
-fastmcp run src/opensvc_collector_mcp/server.py:mcp
+curl http://127.0.0.1:8001/health
 ```
+
+Expected response:
+
+```text
+OK
+```
+
+## MCP Endpoint
+
+The MCP HTTP endpoint is exposed at:
+
+```text
+http://127.0.0.1:8001/mcp
+```
+
+## Available Tool
+
+### `list_nodes`
+
+Returns nodes from the OpenSVC Collector inventory.
+
+Optional argument:
+
+- `props`: comma-separated Collector node properties, for example
+  `nodename,status,asset_env,loc_city`
+
+## Development Notes
+
+- FastMCP version is pinned in this project
+- tool definitions should stay in `tools/`
+- Collector logic should stay in `core/`
+- tool documentation should follow the standard described in `CODEX.md`
