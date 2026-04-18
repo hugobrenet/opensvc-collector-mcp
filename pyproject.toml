@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "opensvc-collector-mcp"
+version = "0.1.0"
+description = "FastMCP server for the OpenSVC Collector API"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+  { name = "Hugo Brenet" }
+]
+dependencies = [
+  "fastmcp==3.2.4",
+]
+
+[project.scripts]
+opensvc-collector-mcp = "opensvc_collector_mcp.server:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]

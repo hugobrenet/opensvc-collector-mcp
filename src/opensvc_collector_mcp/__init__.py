@@ -1,0 +1,2 @@
+"""OpenSVC Collector MCP server."""
+
