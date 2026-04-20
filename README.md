@@ -9,7 +9,7 @@
 - MCP server built with `FastMCP`
 - HTTP transport served directly with `uvicorn`
 - custom health route: `/health`
-- current tool surface: `list_nodes`
+- current tool surface: node inventory tools
 - architecture split between:
   `tools/` for MCP tool definitions and
   `core/` for business logic
@@ -96,16 +96,11 @@ The MCP HTTP endpoint is exposed at:
 http://127.0.0.1:8001/mcp
 ```
 
-## Available Tool
+## Tool Documentation
 
-### `list_nodes`
+Tool documentation is organized by Collector domain:
 
-Returns nodes from the OpenSVC Collector inventory.
-
-Optional argument:
-
-- `props`: comma-separated Collector node properties, for example
-  `nodename,status,asset_env,loc_city`
+- [Node tools](docs/tools/nodes.md)
 
 ## Development Notes
 
