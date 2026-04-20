@@ -3,7 +3,10 @@ from typing import Annotated, Any
 from fastmcp import FastMCP
 from pydantic import Field
 
-from opensvc_collector_mcp.core.nodes_core import list_nodes as core_list_nodes
+from opensvc_collector_mcp.core.nodes_core import (
+    get_node as core_get_node,
+    list_nodes as core_list_nodes,
+)
 
 
 def register_nodes_tools(mcp: FastMCP) -> None:
@@ -37,3 +40,31 @@ def register_nodes_tools(mcp: FastMCP) -> None:
     ) -> dict[str, Any]:
         """Return OpenSVC Collector nodes and their selected properties."""
         return core_list_nodes(props=props)
+
+    @mcp.tool(
+        name="get_node",
+        description=(
+            "Return all available OpenSVC Collector information for one node. "
+            "The node is selected by its exact nodename."
+        ),
+        tags={"nodes", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Node",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    def get_node(
+        nodename: Annotated[
+            str,
+            Field(
+                min_length=1,
+                description=(
+                    "Exact OpenSVC Collector nodename to inspect, "
+                ),
+            ),
+        ],
+    ) -> dict[str, Any]:
+        """Return all available properties for one OpenSVC Collector node."""
+        return core_get_node(nodename=nodename)
