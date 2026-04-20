@@ -4,8 +4,10 @@ from fastmcp import FastMCP
 from pydantic import Field
 
 from opensvc_collector_mcp.core.nodes_core import (
+    count_nodes as core_count_nodes,
     get_node as core_get_node,
     get_node_health as core_get_node_health,
+    get_nodes_inventory_stats as core_get_nodes_inventory_stats,
     list_node_props as core_list_node_props,
     list_nodes as core_list_nodes,
     search_nodes as core_search_nodes,
@@ -165,6 +167,67 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         )
 
     @mcp.tool(
+        name="count_nodes",
+        description=(
+            "Count OpenSVC Collector nodes matching exact-match inventory filters. "
+            "Use this for questions like how many nodes are down, in prod, "
+            "or warn in Paris."
+        ),
+        tags={"nodes", "inventory", "count", "read"},
+        annotations={
+            "title": "Count OpenSVC Nodes",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    def count_nodes(
+        status: Annotated[
+            str | None,
+            Field(default=None, description="Exact node status, for example 'up' or 'down'."),
+        ] = None,
+        asset_env: Annotated[
+            str | None,
+            Field(default=None, description="Exact asset environment, for example 'prod'."),
+        ] = None,
+        node_env: Annotated[
+            str | None,
+            Field(default=None, description="Exact node environment, for example 'TST'."),
+        ] = None,
+        loc_city: Annotated[
+            str | None,
+            Field(default=None, description="Exact node city, for example 'Paris'."),
+        ] = None,
+        loc_country: Annotated[
+            str | None,
+            Field(default=None, description="Exact node country, for example 'FR'."),
+        ] = None,
+        team_responsible: Annotated[
+            str | None,
+            Field(default=None, description="Exact responsible team."),
+        ] = None,
+        app: Annotated[
+            str | None,
+            Field(default=None, description="Exact application name."),
+        ] = None,
+        os_name: Annotated[
+            str | None,
+            Field(default=None, description="Exact operating system name."),
+        ] = None,
+    ) -> dict[str, Any]:
+        """Return the number of nodes matching the provided filters."""
+        return core_count_nodes(
+            status=status,
+            asset_env=asset_env,
+            node_env=node_env,
+            loc_city=loc_city,
+            loc_country=loc_country,
+            team_responsible=team_responsible,
+            app=app,
+            os_name=os_name,
+        )
+
+    @mcp.tool(
         name="get_node",
         description=(
             "Return all available OpenSVC Collector information for one node. "
@@ -220,3 +283,56 @@ def register_nodes_tools(mcp: FastMCP) -> None:
     ) -> dict[str, Any]:
         """Return health signals and interpreted issues for one node."""
         return core_get_node_health(nodename=nodename)
+
+    @mcp.tool(
+        name="get_nodes_inventory_stats",
+        description=(
+            "Return aggregate counts over OpenSVC Collector nodes. "
+            "Use this for questions about possible values or counts by status, "
+            "asset_env, node_env, location, app, or operating system."
+        ),
+        tags={"nodes", "inventory", "stats", "read"},
+        annotations={
+            "title": "Get OpenSVC Nodes Inventory Stats",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    def get_nodes_inventory_stats(
+        fields: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Comma-separated node properties to aggregate. "
+                    "Defaults to status, asset_env, node_env, loc_city, "
+                    "loc_country, app, and os_name."
+                ),
+            ),
+        ] = None,
+        page_size: Annotated[
+            int,
+            Field(
+                default=1000,
+                ge=1,
+                le=5000,
+                description="Number of nodes fetched per Collector request.",
+            ),
+        ] = 1000,
+        max_nodes: Annotated[
+            int,
+            Field(
+                default=200000,
+                ge=1,
+                le=500000,
+                description="Maximum number of nodes to scan before returning partial stats.",
+            ),
+        ] = 200000,
+    ) -> dict[str, Any]:
+        """Return aggregate node inventory counts."""
+        return core_get_nodes_inventory_stats(
+            fields=fields,
+            page_size=page_size,
+            max_nodes=max_nodes,
+        )
