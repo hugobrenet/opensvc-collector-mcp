@@ -5,6 +5,7 @@ from pydantic import Field
 
 from opensvc_collector_mcp.core.nodes_core import (
     get_node as core_get_node,
+    list_node_props as core_list_node_props,
     list_nodes as core_list_nodes,
 )
 
@@ -40,6 +41,24 @@ def register_nodes_tools(mcp: FastMCP) -> None:
     ) -> dict[str, Any]:
         """Return OpenSVC Collector nodes and their selected properties."""
         return core_list_nodes(props=props)
+
+    @mcp.tool(
+        name="list_node_props",
+        description=(
+            "List available OpenSVC Collector node properties. "
+            "Use this before list_nodes or search tools to choose valid props."
+        ),
+        tags={"nodes", "inventory", "schema", "read"},
+        annotations={
+            "title": "List OpenSVC Node Properties",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    def list_node_props() -> dict[str, Any]:
+        """Return the available node properties exposed by the Collector."""
+        return core_list_node_props()
 
     @mcp.tool(
         name="get_node",

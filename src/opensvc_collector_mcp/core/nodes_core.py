@@ -11,6 +11,22 @@ def list_nodes(props: str | None = None) -> dict[str, Any]:
     return collector_get("/nodes", params=params or None)
 
 
+def list_node_props() -> dict[str, Any]:
+    response = collector_get("/nodes", params={"props": "nodename"})
+    available_props = response.get("meta", {}).get("available_props", [])
+    node_props = [
+        prop.removeprefix("nodes.")
+        for prop in available_props
+        if isinstance(prop, str)
+    ]
+
+    return {
+        "count": len(available_props),
+        "available_props": available_props,
+        "node_props": node_props,
+    }
+
+
 def get_node(nodename: str) -> dict[str, Any]:
     nodename = nodename.strip()
     if not nodename:
