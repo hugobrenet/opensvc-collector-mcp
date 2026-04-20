@@ -7,6 +7,7 @@ from opensvc_collector_mcp.core.nodes_core import (
     get_node as core_get_node,
     list_node_props as core_list_node_props,
     list_nodes as core_list_nodes,
+    search_nodes as core_search_nodes,
 )
 
 
@@ -59,6 +60,108 @@ def register_nodes_tools(mcp: FastMCP) -> None:
     def list_node_props() -> dict[str, Any]:
         """Return the available node properties exposed by the Collector."""
         return core_list_node_props()
+
+    @mcp.tool(
+        name="search_nodes",
+        description=(
+            "Search OpenSVC Collector nodes using exact-match inventory filters. "
+            "Use nodename_contains for a case-insensitive nodename substring search."
+        ),
+        tags={"nodes", "inventory", "search", "read"},
+        annotations={
+            "title": "Search OpenSVC Nodes",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    def search_nodes(
+        nodename_contains: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description="Case-insensitive substring to find in nodenames.",
+            ),
+        ] = None,
+        status: Annotated[
+            str | None,
+            Field(default=None, description="Exact node status, for example 'up' or 'down'."),
+        ] = None,
+        asset_env: Annotated[
+            str | None,
+            Field(default=None, description="Exact asset environment, for example 'prod'."),
+        ] = None,
+        node_env: Annotated[
+            str | None,
+            Field(default=None, description="Exact node environment, for example 'TST'."),
+        ] = None,
+        loc_city: Annotated[
+            str | None,
+            Field(default=None, description="Exact node city, for example 'Paris'."),
+        ] = None,
+        loc_country: Annotated[
+            str | None,
+            Field(default=None, description="Exact node country, for example 'FR'."),
+        ] = None,
+        team_responsible: Annotated[
+            str | None,
+            Field(default=None, description="Exact responsible team."),
+        ] = None,
+        app: Annotated[
+            str | None,
+            Field(default=None, description="Exact application name."),
+        ] = None,
+        os_name: Annotated[
+            str | None,
+            Field(default=None, description="Exact operating system name."),
+        ] = None,
+        props: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Comma-separated node properties to return. "
+                    "Defaults to a compact inventory field set."
+                ),
+            ),
+        ] = None,
+        limit: Annotated[
+            int,
+            Field(default=20, ge=1, le=100, description="Maximum number of nodes to return."),
+        ] = 20,
+        offset: Annotated[
+            int,
+            Field(default=0, ge=0, description="Number of matching nodes to skip."),
+        ] = 0,
+        max_scan: Annotated[
+            int,
+            Field(
+                default=5000,
+                ge=1,
+                le=50000,
+                description=(
+                    "Maximum candidate nodes to scan when using nodename_contains. "
+                    "Exact filters are handled by the Collector."
+                ),
+            ),
+        ] = 5000,
+    ) -> dict[str, Any]:
+        """Search nodes by common inventory fields."""
+        return core_search_nodes(
+            nodename_contains=nodename_contains,
+            status=status,
+            asset_env=asset_env,
+            node_env=node_env,
+            loc_city=loc_city,
+            loc_country=loc_country,
+            team_responsible=team_responsible,
+            app=app,
+            os_name=os_name,
+            props=props,
+            limit=limit,
+            offset=offset,
+            max_scan=max_scan,
+        )
 
     @mcp.tool(
         name="get_node",
