@@ -5,6 +5,7 @@ from pydantic import Field
 
 from opensvc_collector_mcp.core.nodes_core import (
     get_node as core_get_node,
+    get_node_health as core_get_node_health,
     list_node_props as core_list_node_props,
     list_nodes as core_list_nodes,
     search_nodes as core_search_nodes,
@@ -190,3 +191,32 @@ def register_nodes_tools(mcp: FastMCP) -> None:
     ) -> dict[str, Any]:
         """Return all available properties for one OpenSVC Collector node."""
         return core_get_node(nodename=nodename)
+
+    @mcp.tool(
+        name="get_node_health",
+        description=(
+            "Return a health-oriented summary for one OpenSVC Collector node. "
+            "The result interprets status, maintenance, frozen state, alert dates, "
+            "and communication timestamps."
+        ),
+        tags={"nodes", "inventory", "health", "read"},
+        annotations={
+            "title": "Get OpenSVC Node Health",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    def get_node_health(
+        nodename: Annotated[
+            str,
+            Field(
+                min_length=1,
+                description=(
+                    "Exact OpenSVC Collector nodename to evaluate, "
+                ),
+            ),
+        ],
+    ) -> dict[str, Any]:
+        """Return health signals and interpreted issues for one node."""
+        return core_get_node_health(nodename=nodename)
