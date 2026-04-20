@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import Any
 
 import requests
@@ -12,7 +13,10 @@ from opensvc_collector_mcp.config import (
 requests.packages.urllib3.disable_warnings()
 
 
-def collector_get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+def collector_get(
+    path: str,
+    params: dict[str, Any] | Sequence[tuple[str, Any]] | None = None,
+) -> dict[str, Any]:
     if not OPENSVC_API_BASE_URL:
         raise RuntimeError("Missing environment variable: OPENSVC_API_BASE_URL")
     if not OPENSVC_USER:
