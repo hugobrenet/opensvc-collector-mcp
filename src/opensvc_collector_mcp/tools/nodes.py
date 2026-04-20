@@ -79,6 +79,17 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         },
     )
     def search_nodes(
+        filters: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Comma-separated exact-match filters using node properties, "
+                    "for example 'status=warn,loc_city=Paris,manufacturer=Dell'. "
+                    "Use list_node_props to discover valid properties."
+                ),
+            ),
+        ] = None,
         nodename_contains: Annotated[
             str | None,
             Field(
@@ -151,6 +162,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
     ) -> dict[str, Any]:
         """Search nodes by common inventory fields."""
         return core_search_nodes(
+            filters=filters,
             nodename_contains=nodename_contains,
             status=status,
             asset_env=asset_env,
@@ -182,6 +194,17 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         },
     )
     def count_nodes(
+        filters: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Comma-separated exact-match filters using node properties, "
+                    "for example 'status=warn,loc_city=Paris,manufacturer=Dell'. "
+                    "Use list_node_props to discover valid properties."
+                ),
+            ),
+        ] = None,
         status: Annotated[
             str | None,
             Field(default=None, description="Exact node status, for example 'up' or 'down'."),
@@ -217,6 +240,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
     ) -> dict[str, Any]:
         """Return the number of nodes matching the provided filters."""
         return core_count_nodes(
+            filters=filters,
             status=status,
             asset_env=asset_env,
             node_env=node_env,

@@ -44,6 +44,7 @@ def list_node_props() -> dict[str, Any]:
 
 
 def search_nodes(
+    filters: str | None = None,
     nodename_contains: str | None = None,
     status: str | None = None,
     asset_env: str | None = None,
@@ -62,7 +63,8 @@ def search_nodes(
     offset = max(0, offset)
     max_scan = max(limit + offset, min(max_scan, 50000))
     selected_props = _props_with_required(props or DEFAULT_SEARCH_NODE_PROPS, "nodename")
-    filters = _node_search_filters(
+    parsed_filters = _node_search_filters(
+        filters,
         status=status,
         asset_env=asset_env,
         node_env=node_env,
@@ -75,7 +77,7 @@ def search_nodes(
 
     if not nodename_contains:
         params = _node_search_params(
-            filters=filters,
+            filters=parsed_filters,
             props=selected_props,
             limit=limit,
             offset=offset,
@@ -96,7 +98,7 @@ def search_nodes(
         response = collector_get(
             "/nodes",
             params=_node_search_params(
-                filters=filters,
+                filters=parsed_filters,
                 props=selected_props,
                 limit=min(page_size, max_scan - scanned),
                 offset=api_offset,
@@ -131,7 +133,7 @@ def search_nodes(
             "complete": complete,
             "filters": {
                 "nodename_contains": nodename_contains,
-                **{field: value for field, value in filters},
+                **{field: value for field, value in parsed_filters},
             },
             "included_props": selected_props.split(","),
         },
@@ -140,6 +142,7 @@ def search_nodes(
 
 
 def count_nodes(
+    filters: str | None = None,
     status: str | None = None,
     asset_env: str | None = None,
     node_env: str | None = None,
@@ -149,7 +152,8 @@ def count_nodes(
     app: str | None = None,
     os_name: str | None = None,
 ) -> dict[str, Any]:
-    filters = _node_search_filters(
+    parsed_filters = _node_search_filters(
+        filters,
         status=status,
         asset_env=asset_env,
         node_env=node_env,
@@ -162,7 +166,7 @@ def count_nodes(
     response = collector_get(
         "/nodes",
         params=_node_search_params(
-            filters=filters,
+            filters=parsed_filters,
             props="nodename",
             limit=1,
             offset=0,
@@ -171,7 +175,7 @@ def count_nodes(
     meta = response.get("meta", {})
     return {
         "count": meta.get("total"),
-        "filters": {field: value for field, value in filters},
+        "filters": {field: value for field, value in parsed_filters},
     }
 
 
@@ -300,14 +304,38 @@ def _props_with_required(props: str, *required_props: str) -> str:
     return ",".join(selected)
 
 
-def _node_search_filters(**criteria: str | None) -> list[tuple[str, str]]:
+def _node_search_filters(
+    raw_filters: str | None = None,
+    **criteria: str | None,
+) -> list[tuple[str, str]]:
     filters: list[tuple[str, str]] = []
+    filters.extend(_parse_node_filters(raw_filters))
     for field, value in criteria.items():
         if value is None:
             continue
         value = value.strip()
         if value:
             filters.append((field, value))
+    return filters
+
+
+def _parse_node_filters(raw_filters: str | None) -> list[tuple[str, str]]:
+    if not raw_filters:
+        return []
+
+    filters: list[tuple[str, str]] = []
+    for item in raw_filters.split(","):
+        item = item.strip()
+        if not item:
+            continue
+        if "=" not in item:
+            raise ValueError("filters must use the format 'prop=value,prop=value'")
+        field, value = item.split("=", 1)
+        field = field.strip()
+        value = value.strip()
+        if not field or not value:
+            raise ValueError("filters must not contain empty props or values")
+        filters.append((field, value))
     return filters
 
 
