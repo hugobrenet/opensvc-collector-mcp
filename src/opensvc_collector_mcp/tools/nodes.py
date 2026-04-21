@@ -30,7 +30,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "openWorldHint": False,
         },
     )
-    def list_nodes(
+    async def list_nodes(
         props: Annotated[
             str | None,
             Field(
@@ -44,7 +44,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Return OpenSVC Collector nodes and their selected properties."""
-        return core_list_nodes(props=props)
+        return await core_list_nodes(props=props)
 
     @mcp.tool(
         name="list_node_props",
@@ -60,9 +60,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "openWorldHint": False,
         },
     )
-    def list_node_props() -> dict[str, Any]:
+    async def list_node_props() -> dict[str, Any]:
         """Return the available node properties exposed by the Collector."""
-        return core_list_node_props()
+        return await core_list_node_props()
 
     @mcp.tool(
         name="search_nodes",
@@ -78,7 +78,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "openWorldHint": False,
         },
     )
-    def search_nodes(
+    async def search_nodes(
         filters: Annotated[
             str | None,
             Field(
@@ -161,7 +161,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         ] = 5000,
     ) -> dict[str, Any]:
         """Search nodes by common inventory fields."""
-        return core_search_nodes(
+        return await core_search_nodes(
             filters=filters,
             nodename_contains=nodename_contains,
             status=status,
@@ -193,7 +193,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "openWorldHint": False,
         },
     )
-    def count_nodes(
+    async def count_nodes(
         filters: Annotated[
             str | None,
             Field(
@@ -239,7 +239,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         ] = None,
     ) -> dict[str, Any]:
         """Return the number of nodes matching the provided filters."""
-        return core_count_nodes(
+        return await core_count_nodes(
             filters=filters,
             status=status,
             asset_env=asset_env,
@@ -265,7 +265,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "openWorldHint": False,
         },
     )
-    def get_node(
+    async def get_node(
         nodename: Annotated[
             str,
             Field(
@@ -277,7 +277,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         ],
     ) -> dict[str, Any]:
         """Return all available properties for one OpenSVC Collector node."""
-        return core_get_node(nodename=nodename)
+        return await core_get_node(nodename=nodename)
 
     @mcp.tool(
         name="get_node_health",
@@ -294,7 +294,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "openWorldHint": False,
         },
     )
-    def get_node_health(
+    async def get_node_health(
         nodename: Annotated[
             str,
             Field(
@@ -306,7 +306,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         ],
     ) -> dict[str, Any]:
         """Return health signals and interpreted issues for one node."""
-        return core_get_node_health(nodename=nodename)
+        return await core_get_node_health(nodename=nodename)
 
     @mcp.tool(
         name="get_nodes_inventory_stats",
@@ -323,7 +323,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "openWorldHint": False,
         },
     )
-    def get_nodes_inventory_stats(
+    async def get_nodes_inventory_stats(
         fields: Annotated[
             str | None,
             Field(
@@ -355,7 +355,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         ] = 200000,
     ) -> dict[str, Any]:
         """Return aggregate node inventory counts."""
-        return core_get_nodes_inventory_stats(
+        return await core_get_nodes_inventory_stats(
             fields=fields,
             page_size=page_size,
             max_nodes=max_nodes,
