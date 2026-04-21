@@ -51,7 +51,7 @@ Use this when the user asks to list nodes matching criteria.
 
 Common arguments:
 
-- `filters`: comma-separated exact-match filters using node properties.
+- `filters`: exact-match filters using node properties.
 - `props`: comma-separated properties to return.
 - `limit`: maximum number of rows to return.
 - `offset`: number of matching rows to skip.
@@ -74,9 +74,15 @@ Example:
 
 ```json
 {
-  "filters": "asset_env=prod,loc_country=FR,loc_rack=A13",
-  "props": "nodename,status,asset_env,loc_country,loc_rack",
-  "limit": 10
+  "request": {
+    "filters": {
+      "asset_env": "prod",
+      "loc_country": "FR",
+      "loc_rack": "A13"
+    },
+    "props": "nodename,status,asset_env,loc_country,loc_rack",
+    "limit": 10
+  }
 }
 ```
 
@@ -91,7 +97,7 @@ Collector and reads `meta.total`.
 
 Common argument:
 
-- `filters`: comma-separated exact-match filters using node properties.
+- `filters`: exact-match filters using node properties.
 
 Shortcut filter arguments are also available:
 
@@ -110,7 +116,13 @@ Example:
 
 ```json
 {
-  "filters": "status=warn,loc_city=Paris,asset_env=prod"
+  "request": {
+    "filters": {
+      "status": "warn",
+      "loc_city": "Paris",
+      "asset_env": "prod"
+    }
+  }
 }
 ```
 
@@ -136,7 +148,9 @@ Example:
 
 ```json
 {
-  "nodename": "lab-paris-01"
+  "request": {
+    "nodename": "lab-paris-01"
+  }
 }
 ```
 
@@ -196,7 +210,9 @@ You can override them:
 
 ```json
 {
-  "fields": "team_responsible,manufacturer,loc_rack"
+  "request": {
+    "fields": "team_responsible,manufacturer,loc_rack"
+  }
 }
 ```
 
@@ -204,38 +220,80 @@ You can override them:
 
 `search_nodes` and `count_nodes` support generic filters over node properties:
 
-```text
-filters="prop=value,prop=value"
+```json
+{
+  "request": {
+    "filters": {
+      "prop": "value"
+    }
+  }
+}
 ```
 
 Discover valid props with `list_node_props`.
 
 Examples:
 
-```text
-status=warn
-asset_env=prod,loc_city=Paris
-manufacturer=Dell,loc_rack=A12
-node_env=TST,status=down,loc_country=FR
-```
-
-Filters are exact matches. For nodename substring search, use
-`nodename_contains` on `search_nodes`.
-
-The generic `filters` argument can be combined with shortcut arguments.
-
-These two calls are equivalent:
-
 ```json
 {
-  "filters": "status=warn,loc_city=Paris"
+  "filters": {
+    "status": "warn"
+  }
 }
 ```
 
 ```json
 {
-  "status": "warn",
-  "loc_city": "Paris"
+  "filters": {
+    "asset_env": "prod",
+    "loc_city": "Paris, VINCENNES"
+  }
+}
+```
+
+```json
+{
+  "filters": {
+    "manufacturer": "Dell",
+    "loc_rack": "A12"
+  }
+}
+```
+
+```json
+{
+  "filters": {
+    "node_env": "TST",
+    "status": "down",
+    "loc_country": "FR"
+  }
+}
+```
+
+Filters are exact matches. For nodename substring search, use
+`nodename_contains` on `search_nodes`.
+
+The generic `filters` object can be combined with shortcut arguments.
+
+These two calls are equivalent:
+
+```json
+{
+  "request": {
+    "filters": {
+      "status": "warn",
+      "loc_city": "Paris"
+    }
+  }
+}
+```
+
+```json
+{
+  "request": {
+    "status": "warn",
+    "loc_city": "Paris"
+  }
 }
 ```
 
