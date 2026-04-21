@@ -20,15 +20,15 @@ DEFAULT_INVENTORY_STATS_FIELDS = (
 )
 
 
-def list_nodes(props: str | None = None) -> dict[str, Any]:
+async def list_nodes(props: str | None = None) -> dict[str, Any]:
     params: dict[str, Any] = {}
     if props:
         params["props"] = props
-    return collector_get("/nodes", params=params or None)
+    return await collector_get("/nodes", params=params or None)
 
 
-def list_node_props() -> dict[str, Any]:
-    response = collector_get("/nodes", params={"props": "nodename"})
+async def list_node_props() -> dict[str, Any]:
+    response = await collector_get("/nodes", params={"props": "nodename"})
     available_props = response.get("meta", {}).get("available_props", [])
     node_props = [
         prop.removeprefix("nodes.")
@@ -43,7 +43,7 @@ def list_node_props() -> dict[str, Any]:
     }
 
 
-def search_nodes(
+async def search_nodes(
     filters: str | None = None,
     nodename_contains: str | None = None,
     status: str | None = None,
@@ -82,7 +82,7 @@ def search_nodes(
             limit=limit,
             offset=offset,
         )
-        return collector_get("/nodes", params=params)
+        return await collector_get("/nodes", params=params)
 
     needle = nodename_contains.strip().lower()
     if not needle:
@@ -95,7 +95,7 @@ def search_nodes(
     total_candidates: int | None = None
 
     while scanned < max_scan:
-        response = collector_get(
+        response = await collector_get(
             "/nodes",
             params=_node_search_params(
                 filters=parsed_filters,
@@ -141,7 +141,7 @@ def search_nodes(
     }
 
 
-def count_nodes(
+async def count_nodes(
     filters: str | None = None,
     status: str | None = None,
     asset_env: str | None = None,
@@ -163,7 +163,7 @@ def count_nodes(
         app=app,
         os_name=os_name,
     )
-    response = collector_get(
+    response = await collector_get(
         "/nodes",
         params=_node_search_params(
             filters=parsed_filters,
@@ -179,16 +179,16 @@ def count_nodes(
     }
 
 
-def get_node(nodename: str) -> dict[str, Any]:
+async def get_node(nodename: str) -> dict[str, Any]:
     nodename = nodename.strip()
     if not nodename:
         raise ValueError("nodename must not be empty")
 
-    return collector_get(f"/nodes/{quote(nodename, safe='')}")
+    return await collector_get(f"/nodes/{quote(nodename, safe='')}")
 
 
-def get_node_health(nodename: str) -> dict[str, Any]:
-    response = get_node(nodename)
+async def get_node_health(nodename: str) -> dict[str, Any]:
+    response = await get_node(nodename)
     data = response.get("data", [])
     if not data:
         return {
@@ -238,7 +238,7 @@ def get_node_health(nodename: str) -> dict[str, Any]:
     }
 
 
-def get_nodes_inventory_stats(
+async def get_nodes_inventory_stats(
     fields: str | None = None,
     page_size: int = 1000,
     max_nodes: int = 200000,
@@ -255,7 +255,7 @@ def get_nodes_inventory_stats(
     total: int | None = None
 
     while scanned < max_nodes:
-        response = collector_get(
+        response = await collector_get(
             "/nodes",
             params={
                 "props": ",".join(selected_fields),
