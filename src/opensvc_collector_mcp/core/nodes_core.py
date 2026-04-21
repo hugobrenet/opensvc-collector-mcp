@@ -44,7 +44,7 @@ async def list_node_props() -> dict[str, Any]:
 
 
 async def search_nodes(
-    filters: str | None = None,
+    filters: dict[str, str] | str | None = None,
     nodename_contains: str | None = None,
     status: str | None = None,
     asset_env: str | None = None,
@@ -142,7 +142,7 @@ async def search_nodes(
 
 
 async def count_nodes(
-    filters: str | None = None,
+    filters: dict[str, str] | str | None = None,
     status: str | None = None,
     asset_env: str | None = None,
     node_env: str | None = None,
@@ -305,7 +305,7 @@ def _props_with_required(props: str, *required_props: str) -> str:
 
 
 def _node_search_filters(
-    raw_filters: str | None = None,
+    raw_filters: dict[str, str] | str | None = None,
     **criteria: str | None,
 ) -> list[tuple[str, str]]:
     filters: list[tuple[str, str]] = []
@@ -319,9 +319,15 @@ def _node_search_filters(
     return filters
 
 
-def _parse_node_filters(raw_filters: str | None) -> list[tuple[str, str]]:
+def _parse_node_filters(raw_filters: dict[str, str] | str | None) -> list[tuple[str, str]]:
     if not raw_filters:
         return []
+    if isinstance(raw_filters, dict):
+        return [
+            (field.strip(), value.strip())
+            for field, value in raw_filters.items()
+            if field.strip() and value.strip()
+        ]
 
     filters: list[tuple[str, str]] = []
     for item in raw_filters.split(","):
