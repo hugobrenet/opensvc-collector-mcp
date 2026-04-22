@@ -164,6 +164,8 @@ class NodeLocation(BaseModel):
     room: str | None = None
     floor: str | None = None
     rack: str | None = None
+    enclosure: str | None = None
+    enclosure_slot: str | None = None
     address: str | None = None
     zip: str | None = None
 

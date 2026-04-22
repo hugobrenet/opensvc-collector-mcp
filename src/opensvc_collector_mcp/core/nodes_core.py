@@ -209,6 +209,8 @@ async def get_node_location(nodename: str) -> dict[str, Any]:
         "loc_room": node.get("loc_room"),
         "loc_floor": node.get("loc_floor"),
         "loc_rack": node.get("loc_rack"),
+        "enclosure": node.get("enclosure"),
+        "enclosureslot": node.get("enclosureslot"),
         "loc_addr": node.get("loc_addr"),
         "loc_zip": node.get("loc_zip"),
     }
@@ -221,6 +223,8 @@ async def get_node_location(nodename: str) -> dict[str, Any]:
             "room": node.get("loc_room"),
             "floor": node.get("loc_floor"),
             "rack": node.get("loc_rack"),
+            "enclosure": node.get("enclosure"),
+            "enclosure_slot": node.get("enclosureslot"),
             "address": node.get("loc_addr"),
             "zip": node.get("loc_zip"),
         },
