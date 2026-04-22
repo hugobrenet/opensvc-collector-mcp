@@ -9,6 +9,7 @@ from opensvc_collector_mcp.models.nodes_model import (
     InventoryStatsRequest,
     InventoryStatsResponse,
     ListNodesRequest,
+    NodeHardwareResponse,
     NodeHealthResponse,
     NodeLocationResponse,
     NodeNameRequest,
@@ -22,6 +23,7 @@ from opensvc_collector_mcp.models.nodes_model import (
 from opensvc_collector_mcp.core.nodes_core import (
     count_nodes as core_count_nodes,
     get_node as core_get_node,
+    get_node_hardware as core_get_node_hardware,
     get_node_health as core_get_node_health,
     get_node_location as core_get_node_location,
     get_node_organization as core_get_node_organization,
@@ -236,6 +238,30 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         """Return organization details for one OpenSVC Collector node."""
         response = await core_get_node_organization(nodename=request.nodename)
         return NodeOrganizationResponse.model_validate(response)
+
+    @mcp.tool(
+        name="get_node_hardware",
+        description=(
+            "Return hardware inventory fields for one OpenSVC Collector node: "
+            "identity, CPU, memory, power, and hardware placement."
+        ),
+        tags={"nodes", "hardware", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Node Hardware",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_node_hardware(
+        request: Annotated[
+            NodeNameRequest,
+            Field(description="Node identifier used to retrieve hardware inventory fields."),
+        ],
+    ) -> NodeHardwareResponse:
+        """Return hardware inventory details for one OpenSVC Collector node."""
+        response = await core_get_node_hardware(nodename=request.nodename)
+        return NodeHardwareResponse.model_validate(response)
 
     @mcp.tool(
         name="get_node_services",
