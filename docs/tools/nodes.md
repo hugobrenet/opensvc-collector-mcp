@@ -154,6 +154,28 @@ Example:
 }
 ```
 
+### `get_node_tags`
+
+Returns tags attached to one node selected by exact `nodename`.
+
+Example:
+
+```json
+{
+  "request": {
+    "nodename": "lab-paris-01"
+  }
+}
+```
+
+Output fields:
+
+```text
+nodename
+meta
+data
+```
+
 ### `get_node_health`
 
 Returns a health-oriented summary for one node.
