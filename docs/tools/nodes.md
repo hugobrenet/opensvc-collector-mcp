@@ -176,6 +176,34 @@ meta
 data
 ```
 
+### `get_node_services`
+
+Returns services declared on one node through Collector `services.svc_nodes`.
+
+This is an inventory relationship: the service is declared on the node. It does
+not require the service to be currently running on that node.
+
+Example:
+
+```json
+{
+  "request": {
+    "nodename": "lab-paris-02"
+  }
+}
+```
+
+Output fields:
+
+```text
+nodename
+meta
+data
+```
+
+Each service row includes `node_names`, the parsed list of nodes from
+`svc_nodes`.
+
 ### `get_node_health`
 
 Returns a health-oriented summary for one node.
