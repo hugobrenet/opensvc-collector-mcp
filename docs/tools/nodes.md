@@ -226,6 +226,32 @@ raw
 The `organization` object includes `responsible`, `integration`, `support`, and
 `app`.
 
+### `get_node_hardware`
+
+Returns hardware inventory fields for one node selected by exact `nodename`.
+
+Example:
+
+```json
+{
+  "request": {
+    "nodename": "lab-lyon-01"
+  }
+}
+```
+
+Output fields:
+
+```text
+nodename
+hardware
+cpu
+memory
+power
+placement
+raw
+```
+
 ### `get_node_services`
 
 Returns services declared on one node through Collector `services.svc_nodes`.
