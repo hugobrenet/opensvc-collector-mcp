@@ -155,6 +155,27 @@ class NodeTagsResponse(BaseModel):
     data: list[dict[str, Any]]
 
 
+class NodeLocation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    country: str | None = None
+    city: str | None = None
+    building: str | None = None
+    room: str | None = None
+    floor: str | None = None
+    rack: str | None = None
+    address: str | None = None
+    zip: str | None = None
+
+
+class NodeLocationResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    nodename: str
+    location: NodeLocation
+    raw: dict[str, Any] = Field(default_factory=dict)
+
+
 class NodeService(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

@@ -10,6 +10,7 @@ from opensvc_collector_mcp.models.nodes_model import (
     InventoryStatsResponse,
     ListNodesRequest,
     NodeHealthResponse,
+    NodeLocationResponse,
     NodeNameRequest,
     NodePropsResponse,
     NodeRowsResponse,
@@ -21,6 +22,7 @@ from opensvc_collector_mcp.core.nodes_core import (
     count_nodes as core_count_nodes,
     get_node as core_get_node,
     get_node_health as core_get_node_health,
+    get_node_location as core_get_node_location,
     get_node_services as core_get_node_services,
     get_node_tags as core_get_node_tags,
     get_nodes_inventory_stats as core_get_nodes_inventory_stats,
@@ -184,6 +186,30 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         nodename = request.nodename.strip()
         response = await core_get_node_tags(nodename=nodename)
         return NodeTagsResponse.model_validate({"nodename": nodename, **response})
+
+    @mcp.tool(
+        name="get_node_location",
+        description=(
+            "Return location fields for one OpenSVC Collector node. "
+            "The node is selected by its exact nodename."
+        ),
+        tags={"nodes", "location", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Node Location",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_node_location(
+        request: Annotated[
+            NodeNameRequest,
+            Field(description="Node identifier used to retrieve location fields."),
+        ],
+    ) -> NodeLocationResponse:
+        """Return location details for one OpenSVC Collector node."""
+        response = await core_get_node_location(nodename=request.nodename)
+        return NodeLocationResponse.model_validate(response)
 
     @mcp.tool(
         name="get_node_services",

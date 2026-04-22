@@ -199,6 +199,35 @@ async def get_node_tags(nodename: str) -> dict[str, Any]:
     return await collector_get(f"/nodes/{quote(nodename, safe='')}/tags")
 
 
+async def get_node_location(nodename: str) -> dict[str, Any]:
+    response = await get_node(nodename)
+    node = _first_node_row(response, nodename)
+    raw = {
+        "loc_country": node.get("loc_country"),
+        "loc_city": node.get("loc_city"),
+        "loc_building": node.get("loc_building"),
+        "loc_room": node.get("loc_room"),
+        "loc_floor": node.get("loc_floor"),
+        "loc_rack": node.get("loc_rack"),
+        "loc_addr": node.get("loc_addr"),
+        "loc_zip": node.get("loc_zip"),
+    }
+    return {
+        "nodename": nodename.strip(),
+        "location": {
+            "country": node.get("loc_country"),
+            "city": node.get("loc_city"),
+            "building": node.get("loc_building"),
+            "room": node.get("loc_room"),
+            "floor": node.get("loc_floor"),
+            "rack": node.get("loc_rack"),
+            "address": node.get("loc_addr"),
+            "zip": node.get("loc_zip"),
+        },
+        "raw": raw,
+    }
+
+
 async def get_node_services(
     nodename: str,
     page_size: int = 1000,
@@ -440,6 +469,13 @@ def _split_service_nodes(raw_nodes: Any) -> list[str]:
         for node in str(raw_nodes).replace("\n", ",").split(",")
         if node.strip()
     ]
+
+
+def _first_node_row(response: dict[str, Any], nodename: str) -> dict[str, Any]:
+    data = response.get("data", [])
+    if data:
+        return data[0]
+    return {"nodename": nodename.strip()}
 
 
 def _node_health_issues(node: dict[str, Any]) -> list[dict[str, str]]:
