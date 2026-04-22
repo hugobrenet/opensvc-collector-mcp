@@ -252,6 +252,29 @@ placement
 raw
 ```
 
+### `get_node_os`
+
+Returns operating system fields for one node selected by exact `nodename`.
+
+Example:
+
+```json
+{
+  "request": {
+    "nodename": "mcp-full-props-02"
+  }
+}
+```
+
+Output fields:
+
+```text
+nodename
+os
+runtime
+raw
+```
+
 ### `get_node_services`
 
 Returns services declared on one node through Collector `services.svc_nodes`.
