@@ -1,4 +1,7 @@
+from typing import Annotated
+
 from fastmcp import FastMCP
+from pydantic import Field
 
 from opensvc_collector_mcp.models.nodes_model import (
     CountNodesRequest,
@@ -39,7 +42,12 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "openWorldHint": False,
         },
     )
-    async def list_nodes(request: ListNodesRequest = ListNodesRequest()) -> NodeRowsResponse:
+    async def list_nodes(
+        request: Annotated[
+            ListNodesRequest,
+            Field(description="Optional node listing parameters."),
+        ] = ListNodesRequest(),
+    ) -> NodeRowsResponse:
         """Return OpenSVC Collector nodes and their selected properties."""
         response = await core_list_nodes(props=request.props)
         return NodeRowsResponse.model_validate(response)
@@ -77,7 +85,17 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "openWorldHint": False,
         },
     )
-    async def search_nodes(request: SearchNodesRequest) -> NodeRowsResponse:
+    async def search_nodes(
+        request: Annotated[
+            SearchNodesRequest,
+            Field(
+                description=(
+                    "Search criteria, pagination, and returned properties for "
+                    "node inventory lookup."
+                ),
+            ),
+        ],
+    ) -> NodeRowsResponse:
         """Search nodes by common inventory fields."""
         response = await core_search_nodes(
             filters=request.merged_filters(),
@@ -104,7 +122,12 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "openWorldHint": False,
         },
     )
-    async def count_nodes(request: CountNodesRequest) -> CountNodesResponse:
+    async def count_nodes(
+        request: Annotated[
+            CountNodesRequest,
+            Field(description="Exact-match filters used to count Collector nodes."),
+        ],
+    ) -> CountNodesResponse:
         """Return the number of nodes matching the provided filters."""
         response = await core_count_nodes(filters=request.merged_filters())
         return CountNodesResponse.model_validate(response)
@@ -123,7 +146,12 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "openWorldHint": False,
         },
     )
-    async def get_node(request: NodeNameRequest) -> NodeRowsResponse:
+    async def get_node(
+        request: Annotated[
+            NodeNameRequest,
+            Field(description="Node identifier used to retrieve full Collector details."),
+        ],
+    ) -> NodeRowsResponse:
         """Return all available properties for one OpenSVC Collector node."""
         response = await core_get_node(nodename=request.nodename)
         return NodeRowsResponse.model_validate(response)
@@ -143,7 +171,12 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "openWorldHint": False,
         },
     )
-    async def get_node_health(request: NodeNameRequest) -> NodeHealthResponse:
+    async def get_node_health(
+        request: Annotated[
+            NodeNameRequest,
+            Field(description="Node identifier used to evaluate node health."),
+        ],
+    ) -> NodeHealthResponse:
         """Return health signals and interpreted issues for one node."""
         response = await core_get_node_health(nodename=request.nodename)
         return NodeHealthResponse.model_validate(response)
@@ -164,7 +197,10 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         },
     )
     async def get_nodes_inventory_stats(
-        request: InventoryStatsRequest = InventoryStatsRequest(),
+        request: Annotated[
+            InventoryStatsRequest,
+            Field(description="Aggregation fields and scan bounds for node inventory stats."),
+        ] = InventoryStatsRequest(),
     ) -> InventoryStatsResponse:
         """Return aggregate node inventory counts."""
         response = await core_get_nodes_inventory_stats(
