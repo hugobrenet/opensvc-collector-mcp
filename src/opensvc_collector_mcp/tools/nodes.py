@@ -14,6 +14,7 @@ from opensvc_collector_mcp.models.nodes_model import (
     NodeLocationResponse,
     NodeNameRequest,
     NodeOrganizationResponse,
+    NodeOsResponse,
     NodePropsResponse,
     NodeRowsResponse,
     NodeServicesResponse,
@@ -27,6 +28,7 @@ from opensvc_collector_mcp.core.nodes_core import (
     get_node_health as core_get_node_health,
     get_node_location as core_get_node_location,
     get_node_organization as core_get_node_organization,
+    get_node_os as core_get_node_os,
     get_node_services as core_get_node_services,
     get_node_tags as core_get_node_tags,
     get_nodes_inventory_stats as core_get_nodes_inventory_stats,
@@ -262,6 +264,30 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         """Return hardware inventory details for one OpenSVC Collector node."""
         response = await core_get_node_hardware(nodename=request.nodename)
         return NodeHardwareResponse.model_validate(response)
+
+    @mcp.tool(
+        name="get_node_os",
+        description=(
+            "Return operating system fields for one OpenSVC Collector node: "
+            "OS name, vendor, release, kernel, architecture, and runtime metadata."
+        ),
+        tags={"nodes", "os", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Node OS",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_node_os(
+        request: Annotated[
+            NodeNameRequest,
+            Field(description="Node identifier used to retrieve operating system fields."),
+        ],
+    ) -> NodeOsResponse:
+        """Return operating system details for one OpenSVC Collector node."""
+        response = await core_get_node_os(nodename=request.nodename)
+        return NodeOsResponse.model_validate(response)
 
     @mcp.tool(
         name="get_node_services",
