@@ -13,12 +13,14 @@ from opensvc_collector_mcp.models.nodes_model import (
     NodeNameRequest,
     NodePropsResponse,
     NodeRowsResponse,
+    NodeTagsResponse,
     SearchNodesRequest,
 )
 from opensvc_collector_mcp.core.nodes_core import (
     count_nodes as core_count_nodes,
     get_node as core_get_node,
     get_node_health as core_get_node_health,
+    get_node_tags as core_get_node_tags,
     get_nodes_inventory_stats as core_get_nodes_inventory_stats,
     list_node_props as core_list_node_props,
     list_nodes as core_list_nodes,
@@ -155,6 +157,31 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         """Return all available properties for one OpenSVC Collector node."""
         response = await core_get_node(nodename=request.nodename)
         return NodeRowsResponse.model_validate(response)
+
+    @mcp.tool(
+        name="get_node_tags",
+        description=(
+            "Return tags attached to one OpenSVC Collector node. "
+            "The node is selected by its exact nodename."
+        ),
+        tags={"nodes", "tags", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Node Tags",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_node_tags(
+        request: Annotated[
+            NodeNameRequest,
+            Field(description="Node identifier used to list attached tags."),
+        ],
+    ) -> NodeTagsResponse:
+        """Return tags attached to one OpenSVC Collector node."""
+        nodename = request.nodename.strip()
+        response = await core_get_node_tags(nodename=nodename)
+        return NodeTagsResponse.model_validate({"nodename": nodename, **response})
 
     @mcp.tool(
         name="get_node_health",

@@ -147,6 +147,14 @@ class NodeRowsResponse(BaseModel):
     data: list[dict[str, Any]]
 
 
+class NodeTagsResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    nodename: str
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[dict[str, Any]]
+
+
 class CountNodesResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

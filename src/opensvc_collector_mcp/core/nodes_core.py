@@ -187,6 +187,14 @@ async def get_node(nodename: str) -> dict[str, Any]:
     return await collector_get(f"/nodes/{quote(nodename, safe='')}")
 
 
+async def get_node_tags(nodename: str) -> dict[str, Any]:
+    nodename = nodename.strip()
+    if not nodename:
+        raise ValueError("nodename must not be empty")
+
+    return await collector_get(f"/nodes/{quote(nodename, safe='')}/tags")
+
+
 async def get_node_health(nodename: str) -> dict[str, Any]:
     response = await get_node(nodename)
     data = response.get("data", [])
