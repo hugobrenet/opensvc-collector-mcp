@@ -176,6 +176,28 @@ meta
 data
 ```
 
+### `get_node_location`
+
+Returns location fields for one node selected by exact `nodename`.
+
+Example:
+
+```json
+{
+  "request": {
+    "nodename": "lab-paris-01"
+  }
+}
+```
+
+Output fields:
+
+```text
+nodename
+location
+raw
+```
+
 ### `get_node_services`
 
 Returns services declared on one node through Collector `services.svc_nodes`.
