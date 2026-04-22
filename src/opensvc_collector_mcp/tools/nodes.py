@@ -12,6 +12,7 @@ from opensvc_collector_mcp.models.nodes_model import (
     NodeHealthResponse,
     NodeLocationResponse,
     NodeNameRequest,
+    NodeOrganizationResponse,
     NodePropsResponse,
     NodeRowsResponse,
     NodeServicesResponse,
@@ -23,6 +24,7 @@ from opensvc_collector_mcp.core.nodes_core import (
     get_node as core_get_node,
     get_node_health as core_get_node_health,
     get_node_location as core_get_node_location,
+    get_node_organization as core_get_node_organization,
     get_node_services as core_get_node_services,
     get_node_tags as core_get_node_tags,
     get_nodes_inventory_stats as core_get_nodes_inventory_stats,
@@ -210,6 +212,30 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         """Return location details for one OpenSVC Collector node."""
         response = await core_get_node_location(nodename=request.nodename)
         return NodeLocationResponse.model_validate(response)
+
+    @mcp.tool(
+        name="get_node_organization",
+        description=(
+            "Return organization fields for one OpenSVC Collector node: "
+            "responsible team, integration team, support team, and application."
+        ),
+        tags={"nodes", "organization", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Node Organization",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_node_organization(
+        request: Annotated[
+            NodeNameRequest,
+            Field(description="Node identifier used to retrieve organization fields."),
+        ],
+    ) -> NodeOrganizationResponse:
+        """Return organization details for one OpenSVC Collector node."""
+        response = await core_get_node_organization(nodename=request.nodename)
+        return NodeOrganizationResponse.model_validate(response)
 
     @mcp.tool(
         name="get_node_services",
