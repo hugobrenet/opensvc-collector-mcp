@@ -155,6 +155,33 @@ class NodeTagsResponse(BaseModel):
     data: list[dict[str, Any]]
 
 
+class NodeService(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    svcname: str | None = None
+    svc_nodes: str | None = None
+    svc_status: str | None = None
+    svc_availstatus: str | None = None
+    svc_env: str | None = None
+    svc_app: str | None = None
+    svc_topology: str | None = None
+    svc_ha: int | None = None
+    svc_hostid: str | None = None
+    svc_drpnodes: str | None = None
+    svc_id: str | None = None
+    cluster_id: str | None = None
+    updated: str | None = None
+    node_names: list[str] = Field(default_factory=list)
+
+
+class NodeServicesResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    nodename: str
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[NodeService]
+
+
 class CountNodesResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

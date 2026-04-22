@@ -13,6 +13,7 @@ from opensvc_collector_mcp.models.nodes_model import (
     NodeNameRequest,
     NodePropsResponse,
     NodeRowsResponse,
+    NodeServicesResponse,
     NodeTagsResponse,
     SearchNodesRequest,
 )
@@ -20,6 +21,7 @@ from opensvc_collector_mcp.core.nodes_core import (
     count_nodes as core_count_nodes,
     get_node as core_get_node,
     get_node_health as core_get_node_health,
+    get_node_services as core_get_node_services,
     get_node_tags as core_get_node_tags,
     get_nodes_inventory_stats as core_get_nodes_inventory_stats,
     list_node_props as core_list_node_props,
@@ -182,6 +184,35 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         nodename = request.nodename.strip()
         response = await core_get_node_tags(nodename=nodename)
         return NodeTagsResponse.model_validate({"nodename": nodename, **response})
+
+    @mcp.tool(
+        name="get_node_services",
+        description=(
+            "Return services declared on one OpenSVC Collector node. "
+            "The tool matches the exact nodename in services.svc_nodes."
+        ),
+        tags={"nodes", "services", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Node Services",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_node_services(
+        request: Annotated[
+            NodeNameRequest,
+            Field(
+                description=(
+                    "Node identifier used to list services declared on this node "
+                    "through Collector services.svc_nodes."
+                ),
+            ),
+        ],
+    ) -> NodeServicesResponse:
+        """Return services declared on one OpenSVC Collector node."""
+        response = await core_get_node_services(nodename=request.nodename)
+        return NodeServicesResponse.model_validate(response)
 
     @mcp.tool(
         name="get_node_health",
