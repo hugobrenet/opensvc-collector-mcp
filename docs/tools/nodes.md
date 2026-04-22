@@ -201,6 +201,31 @@ raw
 The `location` object includes datacenter placement fields such as `rack`,
 `enclosure`, and `enclosure_slot` when the Collector has them.
 
+### `get_node_organization`
+
+Returns organization fields for one node selected by exact `nodename`.
+
+Example:
+
+```json
+{
+  "request": {
+    "nodename": "lab-paris-01"
+  }
+}
+```
+
+Output fields:
+
+```text
+nodename
+organization
+raw
+```
+
+The `organization` object includes `responsible`, `integration`, `support`, and
+`app`.
+
 ### `get_node_services`
 
 Returns services declared on one node through Collector `services.svc_nodes`.
