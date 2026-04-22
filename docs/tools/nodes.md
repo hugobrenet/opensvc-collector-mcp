@@ -198,6 +198,9 @@ location
 raw
 ```
 
+The `location` object includes datacenter placement fields such as `rack`,
+`enclosure`, and `enclosure_slot` when the Collector has them.
+
 ### `get_node_services`
 
 Returns services declared on one node through Collector `services.svc_nodes`.
