@@ -275,6 +275,34 @@ runtime
 raw
 ```
 
+### `get_node_cluster`
+
+Returns the cluster associated with one node selected by exact `nodename`.
+
+The tool uses the Collector `/nodes` join props:
+
+```text
+nodename,nodes.cluster_id:cluster_id,clusters.cluster_name:cluster_name
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "nodename": "mcp-full-props-02"
+  }
+}
+```
+
+Output fields:
+
+```text
+nodename
+cluster
+raw
+```
+
 ### `get_node_services`
 
 Returns services declared on one node through Collector `services.svc_nodes`.
