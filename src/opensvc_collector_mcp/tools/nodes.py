@@ -319,8 +319,8 @@ def register_nodes_tools(mcp: FastMCP) -> None:
     @mcp.tool(
         name="get_node_services",
         description=(
-            "Return services declared on one OpenSVC Collector node. "
-            "The tool matches the exact nodename in services.svc_nodes."
+            "Return service instances hosted on one OpenSVC Collector node. "
+            "The tool reads /services_instances filtered by nodes.nodename."
         ),
         tags={"nodes", "services", "inventory", "read"},
         annotations={
@@ -335,13 +335,13 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             NodeNameRequest,
             Field(
                 description=(
-                    "Node identifier used to list services declared on this node "
-                    "through Collector services.svc_nodes."
+                    "Node identifier used to list service instances hosted on this node "
+                    "through Collector /services_instances."
                 ),
             ),
         ],
     ) -> NodeServicesResponse:
-        """Return services declared on one OpenSVC Collector node."""
+        """Return service instances hosted on one OpenSVC Collector node."""
         response = await core_get_node_services(nodename=request.nodename)
         return NodeServicesResponse.model_validate(response)
 

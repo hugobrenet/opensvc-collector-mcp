@@ -18,9 +18,11 @@ DEFAULT_INVENTORY_STATS_FIELDS = (
     "app",
     "os_name",
 )
-DEFAULT_NODE_SERVICE_PROPS = (
-    "svcname,svc_nodes,svc_status,svc_availstatus,svc_env,svc_app,"
-    "svc_topology,svc_ha,svc_hostid,svc_drpnodes,svc_id,cluster_id,updated"
+NODE_SERVICES_INSTANCE_PROPS = (
+    "services.svcname:svcname,services.svc_status:svc_status,"
+    "services.svc_env:svc_env,services.svc_app:svc_app,"
+    "services.svc_topology:svc_topology,svcmon.mon_vmname:mon_vmname,"
+    "svcmon.mon_availstatus:mon_availstatus,nodes.nodename:nodename"
 )
 NODE_CLUSTER_PROPS = "nodename,nodes.cluster_id:cluster_id,clusters.cluster_name:cluster_name"
 
@@ -396,37 +398,35 @@ async def get_node_cluster(nodename: str) -> dict[str, Any]:
 async def get_node_services(
     nodename: str,
     page_size: int = 1000,
-    max_services: int = 100000,
+    max_instances: int = 100000,
 ) -> dict[str, Any]:
     nodename = nodename.strip()
     if not nodename:
         raise ValueError("nodename must not be empty")
 
     page_size = max(1, min(page_size, 5000))
-    max_services = max(1, min(max_services, 500000))
+    max_instances = max(1, min(max_instances, 500000))
     matches: list[dict[str, Any]] = []
     scanned = 0
     offset = 0
     total: int | None = None
 
-    while scanned < max_services:
+    while scanned < max_instances:
         response = await collector_get(
-            "/services",
-            params={
-                "props": DEFAULT_NODE_SERVICE_PROPS,
-                "limit": min(page_size, max_services - scanned),
-                "offset": offset,
-            },
+            "/services_instances",
+            params=[
+                ("props", NODE_SERVICES_INSTANCE_PROPS),
+                ("filters", f"nodes.nodename={nodename}"),
+                ("limit", min(page_size, max_instances - scanned)),
+                ("offset", offset),
+            ],
         )
         meta = response.get("meta", {})
         data = response.get("data", [])
         if total is None:
             total = meta.get("total")
 
-        for service in data:
-            node_names = _split_service_nodes(service.get("svc_nodes"))
-            if nodename in node_names:
-                matches.append({**service, "node_names": node_names})
+        matches.extend(data)
 
         count = len(data)
         scanned += count
@@ -444,9 +444,10 @@ async def get_node_services(
             "collector_total": total,
             "complete": complete,
             "page_size": page_size,
-            "max_services": max_services,
-            "source": "services.svc_nodes",
-            "included_props": DEFAULT_NODE_SERVICE_PROPS.split(","),
+            "max_instances": max_instances,
+            "source": "services_instances",
+            "filter": {"nodes.nodename": nodename},
+            "included_props": NODE_SERVICES_INSTANCE_PROPS.split(","),
         },
         "data": matches,
     }
