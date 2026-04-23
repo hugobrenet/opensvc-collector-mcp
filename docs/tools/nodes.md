@@ -305,17 +305,19 @@ raw
 
 ### `get_node_services`
 
-Returns services declared on one node through Collector `services.svc_nodes`.
+Returns service instances hosted on one node through Collector
+`/services_instances`.
 
-This is an inventory relationship: the service is declared on the node. It does
-not require the service to be currently running on that node.
+The tool filters on `nodes.nodename` and returns joined service and monitor
+fields such as `svcname`, `svc_status`, `svc_env`, `svc_app`, `svc_topology`,
+`mon_vmname`, and `mon_availstatus`.
 
 Example:
 
 ```json
 {
   "request": {
-    "nodename": "lab-paris-02"
+    "nodename": "lab-sandbox-01"
   }
 }
 ```
