@@ -101,6 +101,7 @@ http://127.0.0.1:8001/mcp
 Tool documentation is organized by Collector domain:
 
 - [Node tools](docs/tools/nodes.md)
+- [Cluster tools](docs/tools/clusters.md)
 
 ## Development Notes
 
