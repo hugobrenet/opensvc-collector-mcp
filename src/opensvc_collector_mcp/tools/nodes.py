@@ -9,6 +9,7 @@ from opensvc_collector_mcp.models.nodes_model import (
     InventoryStatsRequest,
     InventoryStatsResponse,
     ListNodesRequest,
+    NodeClusterResponse,
     NodeHardwareResponse,
     NodeHealthResponse,
     NodeLocationResponse,
@@ -24,6 +25,7 @@ from opensvc_collector_mcp.models.nodes_model import (
 from opensvc_collector_mcp.core.nodes_core import (
     count_nodes as core_count_nodes,
     get_node as core_get_node,
+    get_node_cluster as core_get_node_cluster,
     get_node_hardware as core_get_node_hardware,
     get_node_health as core_get_node_health,
     get_node_location as core_get_node_location,
@@ -288,6 +290,31 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         """Return operating system details for one OpenSVC Collector node."""
         response = await core_get_node_os(nodename=request.nodename)
         return NodeOsResponse.model_validate(response)
+
+    @mcp.tool(
+        name="get_node_cluster",
+        description=(
+            "Return the cluster associated with one OpenSVC Collector node. "
+            "The tool reads nodes.cluster_id and joins clusters.cluster_name "
+            "through the Collector /nodes endpoint."
+        ),
+        tags={"nodes", "clusters", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Node Cluster",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_node_cluster(
+        request: Annotated[
+            NodeNameRequest,
+            Field(description="Node identifier used to retrieve the associated cluster."),
+        ],
+    ) -> NodeClusterResponse:
+        """Return cluster id and name for one OpenSVC Collector node."""
+        response = await core_get_node_cluster(nodename=request.nodename)
+        return NodeClusterResponse.model_validate(response)
 
     @mcp.tool(
         name="get_node_services",

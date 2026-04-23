@@ -284,6 +284,21 @@ class NodeOsResponse(BaseModel):
     raw: dict[str, Any] = Field(default_factory=dict)
 
 
+class NodeCluster(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str | None = None
+    name: str | None = None
+
+
+class NodeClusterResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    nodename: str
+    cluster: NodeCluster | None = None
+    raw: dict[str, Any] = Field(default_factory=dict)
+
+
 class NodeService(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
