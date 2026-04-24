@@ -14,6 +14,7 @@ from opensvc_collector_mcp.models.nodes_model import (
     NodeHealthResponse,
     NodeLocationResponse,
     NodeNameRequest,
+    NodeNetworkResponse,
     NodeOrganizationResponse,
     NodeOsResponse,
     NodePropsResponse,
@@ -29,6 +30,7 @@ from opensvc_collector_mcp.core.nodes_core import (
     get_node_hardware as core_get_node_hardware,
     get_node_health as core_get_node_health,
     get_node_location as core_get_node_location,
+    get_node_network as core_get_node_network,
     get_node_organization as core_get_node_organization,
     get_node_os as core_get_node_os,
     get_node_services as core_get_node_services,
@@ -290,6 +292,30 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         """Return operating system details for one OpenSVC Collector node."""
         response = await core_get_node_os(nodename=request.nodename)
         return NodeOsResponse.model_validate(response)
+
+    @mcp.tool(
+        name="get_node_network",
+        description=(
+            "Return network addresses and attached network properties for one "
+            "OpenSVC Collector node."
+        ),
+        tags={"nodes", "network", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Node Network",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_node_network(
+        request: Annotated[
+            NodeNameRequest,
+            Field(description="Node identifier used to retrieve network addresses."),
+        ],
+    ) -> NodeNetworkResponse:
+        """Return network addresses for one OpenSVC Collector node."""
+        response = await core_get_node_network(nodename=request.nodename)
+        return NodeNetworkResponse.model_validate(response)
 
     @mcp.tool(
         name="get_node_cluster",

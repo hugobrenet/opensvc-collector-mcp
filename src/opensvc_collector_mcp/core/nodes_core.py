@@ -25,6 +25,11 @@ NODE_SERVICES_INSTANCE_PROPS = (
     "svcmon.mon_availstatus:mon_availstatus,nodes.nodename:nodename"
 )
 NODE_CLUSTER_PROPS = "nodename,nodes.cluster_id:cluster_id,clusters.cluster_name:cluster_name"
+NODE_NETWORK_PROPS = (
+    "mac,net_team_responsible,intf,addr,prio,net_gateway,net_comment,"
+    "net_end,net_netmask,mask,net_network,addr_type,net_broadcast,"
+    "net_pvid,net_begin,flag_deprecated,addr_updated,net_id,net_name"
+)
 
 
 async def list_nodes(props: str | None = None) -> dict[str, Any]:
@@ -392,6 +397,22 @@ async def get_node_cluster(nodename: str) -> dict[str, Any]:
             "cluster_id": row.get("cluster_id"),
             "cluster_name": row.get("cluster_name"),
         },
+    }
+
+
+async def get_node_network(nodename: str) -> dict[str, Any]:
+    nodename = nodename.strip()
+    if not nodename:
+        raise ValueError("nodename must not be empty")
+
+    response = await collector_get(
+        f"/nodes/{quote(nodename, safe='')}/ips",
+        params={"props": NODE_NETWORK_PROPS},
+    )
+    return {
+        "nodename": nodename,
+        "meta": response.get("meta", {}),
+        "data": response.get("data", []),
     }
 
 
