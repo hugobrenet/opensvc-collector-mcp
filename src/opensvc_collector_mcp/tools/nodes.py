@@ -10,6 +10,7 @@ from opensvc_collector_mcp.models.nodes_model import (
     InventoryStatsResponse,
     ListNodesRequest,
     NodeClusterResponse,
+    NodeChecksResponse,
     NodeComplianceResponse,
     NodeHardwareComponentsResponse,
     NodeHardwareResponse,
@@ -32,6 +33,7 @@ from opensvc_collector_mcp.core.nodes_core import (
     count_nodes as core_count_nodes,
     get_node as core_get_node,
     get_node_cluster as core_get_node_cluster,
+    get_node_checks as core_get_node_checks,
     get_node_compliance as core_get_node_compliance,
     get_node_hardware_components as core_get_node_hardware_components,
     get_node_hardware as core_get_node_hardware,
@@ -423,6 +425,31 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         """Return compliance status rows for one OpenSVC Collector node."""
         response = await core_get_node_compliance(nodename=request.nodename)
         return NodeComplianceResponse.model_validate(response)
+
+    @mcp.tool(
+        name="get_node_checks",
+        description=(
+            "Return live check result rows for one OpenSVC Collector node. "
+            "Use this for threshold-based checks such as values, errors, and "
+            "high or low limits reported on the node."
+        ),
+        tags={"nodes", "checks", "health", "read"},
+        annotations={
+            "title": "Get OpenSVC Node Checks",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_node_checks(
+        request: Annotated[
+            NodeNameRequest,
+            Field(description="Node identifier used to retrieve live check result rows."),
+        ],
+    ) -> NodeChecksResponse:
+        """Return live check result rows for one OpenSVC Collector node."""
+        response = await core_get_node_checks(nodename=request.nodename)
+        return NodeChecksResponse.model_validate(response)
 
     @mcp.tool(
         name="get_node_cluster",
