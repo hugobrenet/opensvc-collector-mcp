@@ -416,6 +416,34 @@ meta
 data
 ```
 
+### `get_node_checks`
+
+Returns live check result rows for one node selected by exact `nodename`.
+
+The Collector endpoint used is:
+
+```text
+/nodes/<nodename>/checks
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "nodename": "lab-paris-01"
+  }
+}
+```
+
+Output fields:
+
+```text
+nodename
+meta
+data
+```
+
 ### `get_node_cluster`
 
 Returns the cluster associated with one node selected by exact `nodename`.
