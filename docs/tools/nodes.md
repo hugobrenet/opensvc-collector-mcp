@@ -205,6 +205,32 @@ meta
 data
 ```
 
+### `search_nodes_without_tag`
+
+Returns nodes that do not have one tag attached.
+
+The tool resolves the tag id through `/tags`, lists nodes attached to the tag
+through `/tags/<tag_id>/nodes`, then subtracts them from `/nodes?props=nodename`.
+
+Example:
+
+```json
+{
+  "request": {
+    "tag_name": "test"
+  }
+}
+```
+
+Output fields:
+
+```text
+tag_name
+tag_id
+meta
+data
+```
+
 ### `get_node_location`
 
 Returns location fields for one node selected by exact `nodename`.
