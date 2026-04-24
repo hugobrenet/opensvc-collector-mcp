@@ -350,6 +350,15 @@ class NodesByTagResponse(BaseModel):
     data: list[dict[str, Any]]
 
 
+class NodesWithoutTagResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    tag_name: str
+    tag_id: str | None = None
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[dict[str, Any]]
+
+
 class NodeService(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

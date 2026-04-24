@@ -16,6 +16,7 @@ from opensvc_collector_mcp.models.nodes_model import (
     NodeNameRequest,
     NodeNetworkResponse,
     NodesByTagResponse,
+    NodesWithoutTagResponse,
     NodeOrganizationResponse,
     NodeOsResponse,
     NodePropsResponse,
@@ -41,6 +42,7 @@ from opensvc_collector_mcp.core.nodes_core import (
     list_node_props as core_list_node_props,
     list_nodes as core_list_nodes,
     search_node_by_tag as core_search_node_by_tag,
+    search_nodes_without_tag as core_search_nodes_without_tag,
     search_nodes as core_search_nodes,
 )
 
@@ -224,6 +226,31 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         """Return nodes attached to one OpenSVC Collector tag."""
         response = await core_search_node_by_tag(tag_name=request.tag_name)
         return NodesByTagResponse.model_validate(response)
+
+    @mcp.tool(
+        name="search_nodes_without_tag",
+        description=(
+            "Return nodes that do not have one OpenSVC Collector tag attached. "
+            "The tool resolves the tag id, lists tagged nodes, then returns the "
+            "difference against all Collector nodes."
+        ),
+        tags={"nodes", "tags", "search", "read"},
+        annotations={
+            "title": "Search Nodes Without Tag",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def search_nodes_without_tag(
+        request: Annotated[
+            TagNameRequest,
+            Field(description="Exact tag name used to exclude tagged nodes."),
+        ],
+    ) -> NodesWithoutTagResponse:
+        """Return nodes that do not have one OpenSVC Collector tag attached."""
+        response = await core_search_nodes_without_tag(tag_name=request.tag_name)
+        return NodesWithoutTagResponse.model_validate(response)
 
     @mcp.tool(
         name="get_node_location",

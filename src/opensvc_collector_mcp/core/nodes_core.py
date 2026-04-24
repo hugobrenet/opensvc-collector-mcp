@@ -248,6 +248,42 @@ async def search_node_by_tag(tag_name: str) -> dict[str, Any]:
     }
 
 
+async def search_nodes_without_tag(tag_name: str) -> dict[str, Any]:
+    tag_name = tag_name.strip()
+    if not tag_name:
+        raise ValueError("tag_name must not be empty")
+
+    tagged = await search_node_by_tag(tag_name)
+    tagged_names = {
+        str(row.get("nodename")).strip()
+        for row in tagged.get("data", [])
+        if str(row.get("nodename", "")).strip()
+    }
+
+    all_nodes = await collector_get(
+        "/nodes",
+        params={"props": "nodename", "limit": 0, "offset": 0},
+    )
+    all_rows = all_nodes.get("data", [])
+    data = [
+        row
+        for row in all_rows
+        if str(row.get("nodename", "")).strip() not in tagged_names
+    ]
+    meta = all_nodes.get("meta", {})
+    return {
+        "tag_name": tag_name,
+        "tag_id": tagged.get("tag_id"),
+        "meta": {
+            "count": len(data),
+            "tagged_count": len(tagged_names),
+            "total_nodes": meta.get("total", len(all_rows)),
+            "source": "nodes - tags/<tag_id>/nodes",
+        },
+        "data": data,
+    }
+
+
 async def get_node_location(nodename: str) -> dict[str, Any]:
     response = await get_node(nodename)
     node = _first_node_row(response, nodename)
