@@ -331,6 +331,25 @@ class NodeNetworkResponse(BaseModel):
     data: list[NodeNetworkEntry]
 
 
+class TagNameRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    tag_name: str = Field(
+        min_length=1,
+        description="Exact OpenSVC Collector tag name.",
+        examples=["test"],
+    )
+
+
+class NodesByTagResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    tag_name: str
+    tag_id: str | None = None
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[dict[str, Any]]
+
+
 class NodeService(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

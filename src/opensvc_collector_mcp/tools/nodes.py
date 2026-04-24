@@ -15,6 +15,7 @@ from opensvc_collector_mcp.models.nodes_model import (
     NodeLocationResponse,
     NodeNameRequest,
     NodeNetworkResponse,
+    NodesByTagResponse,
     NodeOrganizationResponse,
     NodeOsResponse,
     NodePropsResponse,
@@ -22,6 +23,7 @@ from opensvc_collector_mcp.models.nodes_model import (
     NodeServicesResponse,
     NodeTagsResponse,
     SearchNodesRequest,
+    TagNameRequest,
 )
 from opensvc_collector_mcp.core.nodes_core import (
     count_nodes as core_count_nodes,
@@ -38,6 +40,7 @@ from opensvc_collector_mcp.core.nodes_core import (
     get_nodes_inventory_stats as core_get_nodes_inventory_stats,
     list_node_props as core_list_node_props,
     list_nodes as core_list_nodes,
+    search_node_by_tag as core_search_node_by_tag,
     search_nodes as core_search_nodes,
 )
 
@@ -196,6 +199,31 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         nodename = request.nodename.strip()
         response = await core_get_node_tags(nodename=nodename)
         return NodeTagsResponse.model_validate({"nodename": nodename, **response})
+
+    @mcp.tool(
+        name="search_node_by_tag",
+        description=(
+            "Return nodes attached to one OpenSVC Collector tag. "
+            "The tool resolves the tag id from the exact tag name, then calls "
+            "/tags/<tag_id>/nodes."
+        ),
+        tags={"nodes", "tags", "search", "read"},
+        annotations={
+            "title": "Search Nodes By Tag",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def search_node_by_tag(
+        request: Annotated[
+            TagNameRequest,
+            Field(description="Exact tag name used to list attached nodes."),
+        ],
+    ) -> NodesByTagResponse:
+        """Return nodes attached to one OpenSVC Collector tag."""
+        response = await core_search_node_by_tag(tag_name=request.tag_name)
+        return NodesByTagResponse.model_validate(response)
 
     @mcp.tool(
         name="get_node_location",
