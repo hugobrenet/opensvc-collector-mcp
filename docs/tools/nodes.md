@@ -176,6 +176,35 @@ meta
 data
 ```
 
+### `search_node_by_tag`
+
+Returns nodes attached to one tag selected by exact `tag_name`.
+
+The tool resolves the tag id through `/tags`, then calls:
+
+```text
+/tags/<tag_id>/nodes
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "tag_name": "test"
+  }
+}
+```
+
+Output fields:
+
+```text
+tag_name
+tag_id
+meta
+data
+```
+
 ### `get_node_location`
 
 Returns location fields for one node selected by exact `nodename`.
