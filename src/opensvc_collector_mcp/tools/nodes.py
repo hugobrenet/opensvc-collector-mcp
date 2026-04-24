@@ -12,6 +12,7 @@ from opensvc_collector_mcp.models.nodes_model import (
     NodeClusterResponse,
     NodeChecksResponse,
     NodeComplianceResponse,
+    NodeDisksResponse,
     NodeHardwareComponentsResponse,
     NodeHardwareResponse,
     NodeHealthResponse,
@@ -35,6 +36,7 @@ from opensvc_collector_mcp.core.nodes_core import (
     get_node_cluster as core_get_node_cluster,
     get_node_checks as core_get_node_checks,
     get_node_compliance as core_get_node_compliance,
+    get_node_disks as core_get_node_disks,
     get_node_hardware_components as core_get_node_hardware_components,
     get_node_hardware as core_get_node_hardware,
     get_node_health as core_get_node_health,
@@ -450,6 +452,31 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         """Return live check result rows for one OpenSVC Collector node."""
         response = await core_get_node_checks(nodename=request.nodename)
         return NodeChecksResponse.model_validate(response)
+
+    @mcp.tool(
+        name="get_node_disks",
+        description=(
+            "Return disk inventory rows for one OpenSVC Collector node. "
+            "Use this for storage inventory, allocation, RAID, and backing array "
+            "information exposed by the Collector."
+        ),
+        tags={"nodes", "storage", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Node Disks",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_node_disks(
+        request: Annotated[
+            NodeNameRequest,
+            Field(description="Node identifier used to retrieve disk inventory rows."),
+        ],
+    ) -> NodeDisksResponse:
+        """Return disk inventory rows for one OpenSVC Collector node."""
+        response = await core_get_node_disks(nodename=request.nodename)
+        return NodeDisksResponse.model_validate(response)
 
     @mcp.tool(
         name="get_node_cluster",

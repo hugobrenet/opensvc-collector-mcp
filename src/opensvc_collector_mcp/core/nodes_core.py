@@ -532,6 +532,19 @@ async def get_node_checks(nodename: str) -> dict[str, Any]:
     }
 
 
+async def get_node_disks(nodename: str) -> dict[str, Any]:
+    nodename = nodename.strip()
+    if not nodename:
+        raise ValueError("nodename must not be empty")
+
+    response = await collector_get(f"/nodes/{quote(nodename, safe='')}/disks")
+    return {
+        "nodename": nodename,
+        "meta": response.get("meta", {}),
+        "data": response.get("data", []),
+    }
+
+
 async def get_node_services(
     nodename: str,
     page_size: int = 1000,
