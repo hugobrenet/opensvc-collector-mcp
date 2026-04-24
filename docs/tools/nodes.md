@@ -275,6 +275,34 @@ runtime
 raw
 ```
 
+### `get_node_network`
+
+Returns network addresses for one node selected by exact `nodename`.
+
+The Collector endpoint used is:
+
+```text
+/nodes/<nodename>/ips
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "nodename": "lab-lyon-01"
+  }
+}
+```
+
+Output fields:
+
+```text
+nodename
+meta
+data
+```
+
 ### `get_node_cluster`
 
 Returns the cluster associated with one node selected by exact `nodename`.
