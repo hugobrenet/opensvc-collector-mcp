@@ -10,6 +10,7 @@ from opensvc_collector_mcp.models.nodes_model import (
     InventoryStatsResponse,
     ListNodesRequest,
     NodeClusterResponse,
+    NodeComplianceResponse,
     NodeHardwareResponse,
     NodeHealthResponse,
     NodeLocationResponse,
@@ -30,6 +31,7 @@ from opensvc_collector_mcp.core.nodes_core import (
     count_nodes as core_count_nodes,
     get_node as core_get_node,
     get_node_cluster as core_get_node_cluster,
+    get_node_compliance as core_get_node_compliance,
     get_node_hardware as core_get_node_hardware,
     get_node_health as core_get_node_health,
     get_node_location as core_get_node_location,
@@ -371,6 +373,29 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         """Return network addresses for one OpenSVC Collector node."""
         response = await core_get_node_network(nodename=request.nodename)
         return NodeNetworkResponse.model_validate(response)
+
+    @mcp.tool(
+        name="get_node_compliance",
+        description=(
+            "Return compliance execution status rows for one OpenSVC Collector node."
+        ),
+        tags={"nodes", "compliance", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Node Compliance",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_node_compliance(
+        request: Annotated[
+            NodeNameRequest,
+            Field(description="Node identifier used to retrieve compliance status rows."),
+        ],
+    ) -> NodeComplianceResponse:
+        """Return compliance status rows for one OpenSVC Collector node."""
+        response = await core_get_node_compliance(nodename=request.nodename)
+        return NodeComplianceResponse.model_validate(response)
 
     @mcp.tool(
         name="get_node_cluster",
