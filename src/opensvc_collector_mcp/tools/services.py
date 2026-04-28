@@ -7,6 +7,7 @@ from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.services_core import (
     count_services as core_count_services,
     get_service as core_get_service,
+    get_service_instances as core_get_service_instances,
     list_service_props as core_list_service_props,
     list_services as core_list_services,
     search_services as core_search_services,
@@ -16,6 +17,7 @@ from opensvc_collector_mcp.models.services_model import (
     CountServicesResponse,
     ListServicesRequest,
     SearchServicesRequest,
+    ServiceInstancesResponse,
     ServiceNameRequest,
     ServicePropsResponse,
     ServiceRowsResponse,
@@ -156,3 +158,34 @@ def register_services_tools(mcp: FastMCP) -> None:
         """Return all available properties for one OpenSVC Collector service."""
         response = await core_get_service(svcname=request.svcname)
         return ServiceRowsResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_service_instances",
+        description=(
+            "Return node-level OpenSVC Collector instances for one service selected "
+            "by exact svcname. Use this to see where a service runs and its monitor "
+            "state per node."
+        ),
+        tags={"services", "instances", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Service Instances",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_service_instances(
+        request: Annotated[
+            ServiceNameRequest,
+            Field(
+                description=(
+                    "Exact service name used to list node-level instances through "
+                    "Collector /services_instances."
+                ),
+            ),
+        ],
+    ) -> ServiceInstancesResponse:
+        """Return node-level service instances for one OpenSVC Collector service."""
+        response = await core_get_service_instances(svcname=request.svcname)
+        return ServiceInstancesResponse.model_validate(response)

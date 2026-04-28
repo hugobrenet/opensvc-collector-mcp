@@ -8,6 +8,15 @@ DEFAULT_LIST_SERVICE_PROPS = (
     "svcname,svc_app,svc_env,svc_status,svc_availstatus,svc_topology,"
     "svc_nodes,svc_drpnodes,svc_frozen,svc_ha,svc_created,updated"
 )
+SERVICE_INSTANCES_PROPS = (
+    "services.svcname:svcname,services.svc_status:svc_status,"
+    "services.svc_env:svc_env,services.svc_app:svc_app,"
+    "services.svc_availstatus:svc_availstatus,"
+    "services.svc_topology:svc_topology,nodes.nodename:nodename,"
+    "svcmon.mon_vmname:mon_vmname,svcmon.mon_availstatus:mon_availstatus,"
+    "svcmon.mon_frozen:mon_frozen,svcmon.mon_frozen_at:mon_frozen_at,"
+    "svcmon.mon_encap_frozen_at:mon_encap_frozen_at"
+)
 
 
 async def list_services(props: str | None = None) -> dict[str, Any]:
@@ -98,6 +107,40 @@ async def get_service(svcname: str) -> dict[str, Any]:
         raise ValueError("svcname must not be empty")
 
     return await collector_get(f"/services/{quote(svcname, safe='')}")
+
+
+async def get_service_instances(
+    svcname: str,
+    page_size: int = 1000,
+    max_instances: int = 100000,
+) -> dict[str, Any]:
+    svcname = svcname.strip()
+    if not svcname:
+        raise ValueError("svcname must not be empty")
+
+    response = await collector_get_all(
+        "/services_instances",
+        params=[
+            ("props", SERVICE_INSTANCES_PROPS),
+            ("filters", f"services.svcname={svcname}"),
+        ],
+        strategy="paged",
+        page_size=page_size,
+        max_items=max_instances,
+    )
+    meta = dict(response.get("meta", {}))
+    meta.update(
+        {
+            "source": "services_instances",
+            "filter": {"services.svcname": svcname},
+            "included_props": SERVICE_INSTANCES_PROPS.split(","),
+        }
+    )
+    return {
+        "svcname": svcname,
+        "meta": meta,
+        "data": response.get("data", []),
+    }
 
 
 async def list_service_props() -> dict[str, Any]:

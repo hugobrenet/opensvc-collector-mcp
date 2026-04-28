@@ -22,6 +22,10 @@ returns Collector `meta.total`.
 `get_service` does not paginate. It reads the single object endpoint
 `/services/<svcname>` and returns the Collector response for that service.
 
+`get_service_instances` uses `prefer_pagination`: it calls
+`/services_instances` through the shared `collector_get_all(...,
+strategy="paged")` helper and filters on `services.svcname`.
+
 `list_service_props` does not paginate. It performs one Collector GET on
 `/services` with `props=svcname` and reads `meta.available_props`; the returned
 service row is not used as inventory data.
@@ -51,6 +55,10 @@ exact filters and does not need service rows.
 Use `get_service` when the client already knows the exact `svcname` and needs
 the full detail payload for that single service. If the exact `svcname` is not
 known, use `search_services` first.
+
+Use `get_service_instances` when the client already knows the exact `svcname`
+and needs the node-level instances for that service, including monitor state per
+node.
 
 ## Tools
 
@@ -158,6 +166,35 @@ Output fields:
 count
 available_props
 service_props
+```
+
+### `get_service_instances`
+
+Returns node-level OpenSVC Collector instances for one service selected by exact
+`svcname`.
+
+Use this after `search_services` or `get_service` to answer where a service is
+running and what its monitor state is on each node.
+
+The tool filters Collector `/services_instances` on `services.svcname` and
+returns joined service, node, and monitor fields.
+
+Example:
+
+```json
+{
+  "request": {
+    "svcname": "tst-lab-service"
+  }
+}
+```
+
+Output fields:
+
+```text
+svcname
+meta
+data
 ```
 
 ### `search_services`

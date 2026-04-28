@@ -221,12 +221,85 @@ class ServiceRow(BaseModel):
         exclude_if=_is_none,
     )
 
+
 class ServiceRowsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     meta: dict[str, Any] = Field(default_factory=dict)
     data: list[ServiceRow]
 
+
+class ServiceInstanceRow(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    svcname: str | None = Field(
+        default=None,
+        description="OpenSVC service name.",
+        exclude_if=_is_none,
+    )
+    nodename: str | None = Field(
+        default=None,
+        description="Node hosting this service instance.",
+        exclude_if=_is_none,
+    )
+    svc_app: str | None = Field(
+        default=None,
+        description="Service application.",
+        exclude_if=_is_none,
+    )
+    svc_env: str | None = Field(
+        default=None,
+        description="Service environment.",
+        exclude_if=_is_none,
+    )
+    svc_status: str | None = Field(
+        default=None,
+        description="Service status.",
+        exclude_if=_is_none,
+    )
+    svc_availstatus: str | None = Field(
+        default=None,
+        description="Service availability status.",
+        exclude_if=_is_none,
+    )
+    svc_topology: str | None = Field(
+        default=None,
+        description="Service topology.",
+        exclude_if=_is_none,
+    )
+    mon_vmname: str | None = Field(
+        default=None,
+        description="Monitor VM or encapsulated instance name.",
+        exclude_if=_is_none,
+    )
+    mon_availstatus: str | None = Field(
+        default=None,
+        description="Monitor availability status for this instance.",
+        exclude_if=_is_none,
+    )
+    mon_frozen: bool | str | None = Field(
+        default=None,
+        description="Monitor frozen state for this instance.",
+        exclude_if=_is_none,
+    )
+    mon_frozen_at: str | None = Field(
+        default=None,
+        description="Monitor frozen timestamp for this instance.",
+        exclude_if=_is_none,
+    )
+    mon_encap_frozen_at: str | None = Field(
+        default=None,
+        description="Encapsulated monitor frozen timestamp for this instance.",
+        exclude_if=_is_none,
+    )
+
+
+class ServiceInstancesResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    svcname: str
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ServiceInstanceRow]
 
 
 class CountServicesResponse(BaseModel):
