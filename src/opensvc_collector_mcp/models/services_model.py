@@ -117,6 +117,73 @@ class ServiceNameRequest(BaseModel):
     )
 
 
+class ServiceAlertsRequest(ServiceNameRequest):
+    filters: dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            "Exact-match service alert filters. Keys can be alert or Collector "
+            "dashboard fields such as dash_type, dash_severity, node_id, or "
+            "their dashboard.<field> form."
+        ),
+        examples=[{"dash_type": "action errors"}],
+    )
+    dash_type: str | None = Field(default=None, description="Exact alert type filter.")
+    dash_severity: int | None = Field(
+        default=None,
+        ge=0,
+        description="Exact dashboard alert severity filter.",
+    )
+    node_id: str | None = Field(default=None, description="Exact Collector node uuid filter.")
+    props: str | None = Field(
+        default=None,
+        description=(
+            "Comma-separated alert properties to return. Defaults to a compact "
+            "alert view without large dashboard payload fields."
+        ),
+    )
+    limit: int = Field(
+        default=20,
+        ge=1,
+        le=100,
+        description="Maximum number of service alert rows to return.",
+    )
+    offset: int = Field(
+        default=0,
+        ge=0,
+        description="Number of matching service alert rows to skip.",
+    )
+
+    @model_validator(mode="after")
+    def normalize_filters(self) -> "ServiceAlertsRequest":
+        self.filters = {
+            key.strip(): value.strip()
+            for key, value in self.filters.items()
+            if key.strip() and value.strip()
+        }
+        return self
+
+    def merged_filters(self) -> dict[str, str]:
+        merged = dict(self.filters)
+        for field in ("dash_type", "node_id"):
+            value = getattr(self, field)
+            if value is None:
+                continue
+            value = value.strip()
+            if not value:
+                continue
+            existing = merged.get(field)
+            if existing is not None and existing != value:
+                raise ValueError(f"Conflicting filter values for {field!r}")
+            merged[field] = value
+        if self.dash_severity is not None:
+            value = str(self.dash_severity)
+            existing = merged.get("dash_severity")
+            if existing is not None and existing != value:
+                raise ValueError("Conflicting filter values for 'dash_severity'")
+            merged["dash_severity"] = value
+        return merged
+
+
 class ServiceConfigRequest(ServiceNameRequest):
     include_raw_config: bool = Field(
         default=True,
@@ -410,6 +477,64 @@ class ServiceRowsResponse(BaseModel):
 
     meta: dict[str, Any] = Field(default_factory=dict)
     data: list[ServiceRow]
+
+
+class ServiceAlertRow(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    id: int | None = Field(
+        default=None,
+        description="Collector dashboard alert id.",
+        exclude_if=_is_none,
+    )
+    alert: str | None = Field(
+        default=None,
+        description="Human-readable alert message.",
+        exclude_if=_is_none,
+    )
+    dash_type: str | None = Field(
+        default=None,
+        description="Dashboard alert type.",
+        exclude_if=_is_none,
+    )
+    dash_severity: int | str | None = Field(
+        default=None,
+        description="Dashboard alert severity.",
+        exclude_if=_is_none,
+    )
+    dash_created: str | None = Field(
+        default=None,
+        description="Alert creation timestamp.",
+        exclude_if=_is_none,
+    )
+    dash_updated: str | None = Field(
+        default=None,
+        description="Alert update timestamp.",
+        exclude_if=_is_none,
+    )
+    node_id: str | None = Field(
+        default=None,
+        description="Collector node uuid when the alert is node-specific.",
+        exclude_if=_is_none,
+    )
+    dash_env: str | None = Field(
+        default=None,
+        description="Dashboard alert environment when returned.",
+        exclude_if=_is_none,
+    )
+    dash_instance: str | None = Field(
+        default=None,
+        description="Dashboard alert instance when returned.",
+        exclude_if=_is_none,
+    )
+
+
+class ServiceAlertsResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    svcname: str
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ServiceAlertRow]
 
 
 class ServiceConfigSection(BaseModel):

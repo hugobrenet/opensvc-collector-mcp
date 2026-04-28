@@ -8,6 +8,7 @@ from opensvc_collector_mcp.core.services_core import (
     count_services as core_count_services,
     get_service as core_get_service,
     get_service_actions as core_get_service_actions,
+    get_service_alerts as core_get_service_alerts,
     get_service_config as core_get_service_config,
     get_service_unacknowledged_errors as core_get_service_unacknowledged_errors,
     get_service_health as core_get_service_health,
@@ -27,6 +28,8 @@ from opensvc_collector_mcp.models.services_model import (
     SearchServicesRequest,
     ServiceActionsRequest,
     ServiceActionsResponse,
+    ServiceAlertsRequest,
+    ServiceAlertsResponse,
     ServiceConfigRequest,
     ServiceConfigResponse,
     ServiceUnacknowledgedErrorsRequest,
@@ -308,6 +311,44 @@ def register_services_tools(mcp: FastMCP) -> None:
         """Return grouped resource information for one OpenSVC Collector service."""
         response = await core_get_service_resources(svcname=request.svcname)
         return ServiceResourcesResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_service_alerts",
+        description=(
+            "Return current OpenSVC Collector dashboard alerts for one service "
+            "selected by exact svcname. Use this for active service alerts, not "
+            "historical action logs or interpreted health summaries."
+        ),
+        tags={"services", "alerts", "health", "read"},
+        annotations={
+            "title": "Get OpenSVC Service Alerts",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_service_alerts(
+        request: Annotated[
+            ServiceAlertsRequest,
+            Field(
+                description=(
+                    "Exact service name, optional exact-match alert filters, "
+                    "pagination, and returned properties."
+                ),
+            ),
+        ],
+    ) -> ServiceAlertsResponse:
+        'Return current dashboard alerts for one OpenSVC Collector service.'
+        response = await core_get_service_alerts(
+            svcname=request.svcname,
+            filters=request.merged_filters(),
+            props=request.props,
+            limit=request.limit,
+            offset=request.offset,
+        )
+        return ServiceAlertsResponse.model_validate(response)
+
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

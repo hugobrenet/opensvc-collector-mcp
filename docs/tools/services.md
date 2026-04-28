@@ -165,6 +165,43 @@ meta
 services
 ```
 
+### `get_service_alerts`
+
+Returns current OpenSVC Collector dashboard alerts for one service selected by
+exact `svcname`.
+
+Use this tool to inspect active service alerts. For historical action execution
+logs use `get_service_actions`; for unacknowledged action errors use
+`get_service_unacknowledged_errors`; for interpreted status use
+`get_service_health`.
+
+The tool reads Collector `/services/<svcname>/alerts` with compact alert
+properties by default. Use exact filters such as `dash_type`, `dash_severity`,
+or `node_id` to narrow the result. Pagination is explicit with `limit` and
+`offset`.
+
+Example:
+
+```json
+{
+  "request": {
+    "svcname": "tst-lab-service",
+    "dash_type": "action errors",
+    "limit": 10,
+    "offset": 0
+  }
+}
+```
+
+Output fields:
+
+```text
+svcname
+meta
+data
+```
+
+
 ### `get_service_actions`
 
 Returns recent or paginated OpenSVC action history for one service selected by

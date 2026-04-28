@@ -25,6 +25,11 @@ SERVICE_RESOURCES_PROPS = (
     "nodes.nodename:nodename,rid,res_key,res_value,updated"
 )
 SERVICE_CONFIG_PROPS = "svcname,svc_config,svc_config_updated,updated"
+SERVICE_ALERTS_PROPS = (
+    "alert,dashboard.dash_type,dashboard.dash_severity,dashboard.dash_created,"
+    "dashboard.dash_updated,dashboard.node_id,dashboard.id,"
+    "dashboard.dash_env,dashboard.dash_instance"
+)
 SERVICE_ACTIONS_PROPS = (
     "action,status,begin,end,time,ack,acked_by,acked_date,acked_comment,"
     "rid,subset,hostid,node_id"
@@ -246,6 +251,58 @@ async def get_service_resources(
         "svcname": svcname,
         "meta": meta,
         "resources": resources,
+    }
+
+
+async def get_service_alerts(
+    svcname: str,
+    filters: dict[str, str] | str | None = None,
+    dash_type: str | None = None,
+    dash_severity: int | str | None = None,
+    node_id: str | None = None,
+    props: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> dict[str, Any]:
+    svcname = svcname.strip()
+    if not svcname:
+        raise ValueError("svcname must not be empty")
+
+    limit = max(1, min(limit, 100))
+    offset = max(0, offset)
+    selected_props = props or SERVICE_ALERTS_PROPS
+    parsed_filters = _service_alert_filters(
+        filters,
+        dash_type=dash_type,
+        dash_severity=str(dash_severity) if dash_severity is not None else None,
+        node_id=node_id,
+    )
+    response = await collector_get(
+        f"/services/{quote(svcname, safe='')}/alerts",
+        params=_service_alert_params(
+            filters=parsed_filters,
+            props=selected_props,
+            limit=limit,
+            offset=offset,
+        ),
+    )
+    rows = response.get("data", [])
+    meta = dict(response.get("meta", {}))
+    meta.update(
+        {
+            "source": "service_alerts",
+            "filter": {
+                "svcname": svcname,
+                **{field: value for field, value in parsed_filters},
+            },
+            "included_props": selected_props.split(","),
+            "output_count": len(rows),
+        }
+    )
+    return {
+        "svcname": svcname,
+        "meta": meta,
+        "data": rows,
     }
 
 
@@ -621,6 +678,55 @@ def _group_service_resources(rows: list[dict[str, Any]]) -> list[dict[str, Any]]
 
 def _resource_type_from_rid(rid: str) -> str:
     return rid.split("#", 1)[0] if "#" in rid else rid
+
+
+def _service_alert_filters(
+    raw_filters: dict[str, str] | str | None = None,
+    **criteria: str | None,
+) -> list[tuple[str, str]]:
+    filters = [
+        (_service_alert_filter_field(field), value)
+        for field, value in _parse_service_filters(raw_filters)
+    ]
+    for field, value in criteria.items():
+        if value is None:
+            continue
+        value = value.strip()
+        if value:
+            filters.append((_service_alert_filter_field(field), value))
+    return filters
+
+
+def _service_alert_filter_field(field: str) -> str:
+    if "." in field:
+        return field
+    return {
+        "id": "dashboard.id",
+        "dash_type": "dashboard.dash_type",
+        "dash_severity": "dashboard.dash_severity",
+        "dash_created": "dashboard.dash_created",
+        "dash_updated": "dashboard.dash_updated",
+        "dash_env": "dashboard.dash_env",
+        "dash_instance": "dashboard.dash_instance",
+        "node_id": "dashboard.node_id",
+        "svc_id": "dashboard.svc_id",
+    }.get(field, field)
+
+
+def _service_alert_params(
+    filters: list[tuple[str, str]],
+    props: str,
+    limit: int,
+    offset: int,
+) -> list[tuple[str, Any]]:
+    params: list[tuple[str, Any]] = [
+        ("props", props),
+        ("limit", limit),
+        ("offset", offset),
+    ]
+    for field, value in filters:
+        params.append(("filters", f"{field}={value}"))
+    return params
 
 
 def _service_action_props(
