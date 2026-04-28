@@ -76,6 +76,7 @@ Current MCP service tool surface:
 - `count_services`
 - `get_service`
 - `get_service_instances`
+- `get_service_resources`
 
 Tool implementation standard:
 
