@@ -413,22 +413,6 @@ async def get_node_hardware(nodename: str) -> dict[str, Any]:
     }
 
 
-async def get_node_hardware_components(nodename: str) -> dict[str, Any]:
-    nodename = nodename.strip()
-    if not nodename:
-        raise ValueError("nodename must not be empty")
-
-    response = await collector_get_all(
-        f"/nodes/{quote(nodename, safe='')}/hardware",
-        strategy="paged",
-    )
-    return {
-        "nodename": nodename,
-        "meta": response.get("meta", {}),
-        "data": response.get("data", []),
-    }
-
-
 async def get_node_os(nodename: str) -> dict[str, Any]:
     response = await get_node(nodename)
     node = _first_node_row(response, nodename)

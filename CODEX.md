@@ -54,7 +54,6 @@ Current MCP node tool surface:
 - `get_node_location`
 - `get_node_organization`
 - `get_node_hardware`
-- `get_node_hardware_components`
 - `get_node_os`
 - `get_node_network`
 - `get_node_compliance`

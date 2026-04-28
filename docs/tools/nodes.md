@@ -307,35 +307,6 @@ placement
 raw
 ```
 
-### `get_node_hardware_components`
-
-Returns detailed hardware component rows for one node selected by exact
-`nodename`.
-
-The Collector endpoint used is:
-
-```text
-/nodes/<nodename>/hardware
-```
-
-Example:
-
-```json
-{
-  "request": {
-    "nodename": "lab-lyon-01"
-  }
-}
-```
-
-Output fields:
-
-```text
-nodename
-meta
-data
-```
-
 ### `get_node_os`
 
 Returns operating system fields for one node selected by exact `nodename`.
