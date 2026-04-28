@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any
 from urllib.parse import quote
 
-from opensvc_collector_mcp.client import collector_get
+from opensvc_collector_mcp.client import collector_get, collector_get_all
 
 
 DEFAULT_SEARCH_NODE_PROPS = (
@@ -36,7 +36,7 @@ async def list_nodes(props: str | None = None) -> dict[str, Any]:
     params: dict[str, Any] = {}
     if props:
         params["props"] = props
-    return await collector_get("/nodes", params=params or None)
+    return await collector_get_all("/nodes", params=params or None, strategy="paged")
 
 
 async def list_node_props() -> dict[str, Any]:
@@ -204,7 +204,10 @@ async def get_node_tags(nodename: str) -> dict[str, Any]:
     if not nodename:
         raise ValueError("nodename must not be empty")
 
-    return await collector_get(f"/nodes/{quote(nodename, safe='')}/tags")
+    return await collector_get_all(
+        f"/nodes/{quote(nodename, safe='')}/tags",
+        strategy="limit_zero",
+    )
 
 
 async def search_node_by_tag(tag_name: str) -> dict[str, Any]:
@@ -239,9 +242,9 @@ async def search_node_by_tag(tag_name: str) -> dict[str, Any]:
             "data": [],
         }
 
-    response = await collector_get(
+    response = await collector_get_all(
         f"/tags/{quote(str(tag_id), safe='')}/nodes",
-        params={"limit": 0},
+        strategy="paged",
     )
     data = response.get("data", [])
     return {
@@ -264,9 +267,10 @@ async def search_nodes_without_tag(tag_name: str) -> dict[str, Any]:
         if str(row.get("nodename", "")).strip()
     }
 
-    all_nodes = await collector_get(
+    all_nodes = await collector_get_all(
         "/nodes",
-        params={"props": "nodename", "limit": 0, "offset": 0},
+        params={"props": "nodename"},
+        strategy="paged",
     )
     all_rows = all_nodes.get("data", [])
     data = [
@@ -414,7 +418,10 @@ async def get_node_hardware_components(nodename: str) -> dict[str, Any]:
     if not nodename:
         raise ValueError("nodename must not be empty")
 
-    response = await collector_get(f"/nodes/{quote(nodename, safe='')}/hardware")
+    response = await collector_get_all(
+        f"/nodes/{quote(nodename, safe='')}/hardware",
+        strategy="paged",
+    )
     return {
         "nodename": nodename,
         "meta": response.get("meta", {}),
@@ -499,9 +506,10 @@ async def get_node_network(nodename: str) -> dict[str, Any]:
     if not nodename:
         raise ValueError("nodename must not be empty")
 
-    response = await collector_get(
+    response = await collector_get_all(
         f"/nodes/{quote(nodename, safe='')}/ips",
         params={"props": NODE_NETWORK_PROPS},
+        strategy="paged",
     )
     return {
         "nodename": nodename,
@@ -515,7 +523,10 @@ async def get_node_compliance(nodename: str) -> dict[str, Any]:
     if not nodename:
         raise ValueError("nodename must not be empty")
 
-    response = await collector_get(f"/nodes/{quote(nodename, safe='')}/compliance/status")
+    response = await collector_get_all(
+        f"/nodes/{quote(nodename, safe='')}/compliance/status",
+        strategy="paged",
+    )
     return {
         "nodename": nodename,
         "meta": response.get("meta", {}),
@@ -528,7 +539,10 @@ async def get_node_checks(nodename: str) -> dict[str, Any]:
     if not nodename:
         raise ValueError("nodename must not be empty")
 
-    response = await collector_get(f"/nodes/{quote(nodename, safe='')}/checks")
+    response = await collector_get_all(
+        f"/nodes/{quote(nodename, safe='')}/checks",
+        strategy="paged",
+    )
     return {
         "nodename": nodename,
         "meta": response.get("meta", {}),
@@ -541,7 +555,10 @@ async def get_node_disks(nodename: str) -> dict[str, Any]:
     if not nodename:
         raise ValueError("nodename must not be empty")
 
-    response = await collector_get(f"/nodes/{quote(nodename, safe='')}/disks")
+    response = await collector_get_all(
+        f"/nodes/{quote(nodename, safe='')}/disks",
+        strategy="paged",
+    )
     return {
         "nodename": nodename,
         "meta": response.get("meta", {}),
