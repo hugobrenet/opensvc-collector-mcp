@@ -3,6 +3,7 @@ from typing import Annotated
 from fastmcp import FastMCP
 from pydantic import Field
 
+from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.clusters_core import (
     get_cluster_nodes as core_get_cluster_nodes,
 )
@@ -14,6 +15,7 @@ from opensvc_collector_mcp.models.clusters_model import (
 
 def register_clusters_tools(mcp: FastMCP) -> None:
     @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="get_cluster_nodes",
         description=(
             "Return OpenSVC Collector nodes that belong to a cluster. "

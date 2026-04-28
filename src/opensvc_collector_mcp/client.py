@@ -4,6 +4,7 @@ from typing import Any
 import httpx
 
 from opensvc_collector_mcp.config import (
+    HTTP_REQUEST_TIMEOUT_SECONDS,
     OPENSVC_API_BASE_URL,
     OPENSVC_PASSWORD,
     OPENSVC_USER,
@@ -22,7 +23,10 @@ async def collector_get(
         raise RuntimeError("Missing environment variable: OPENSVC_PASSWORD")
 
     url = f"{OPENSVC_API_BASE_URL.rstrip('/')}/{path.lstrip('/')}"
-    async with httpx.AsyncClient(verify=False, timeout=30) as client:
+    async with httpx.AsyncClient(
+        verify=False,
+        timeout=HTTP_REQUEST_TIMEOUT_SECONDS,
+    ) as client:
         response = await client.get(
             url,
             params=params,

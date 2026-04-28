@@ -3,6 +3,7 @@ from typing import Annotated
 from fastmcp import FastMCP
 from pydantic import Field
 
+from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.models.nodes_model import (
     CountNodesRequest,
     CountNodesResponse,
@@ -57,6 +58,7 @@ from opensvc_collector_mcp.core.nodes_core import (
 
 def register_nodes_tools(mcp: FastMCP) -> None:
     @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="list_nodes",
         description=(
             "List nodes from the OpenSVC Collector inventory. "
@@ -82,6 +84,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         return NodeRowsResponse.model_validate(response)
 
     @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="list_node_props",
         description=(
             "List available OpenSVC Collector node properties. "
@@ -101,6 +104,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         return NodePropsResponse.model_validate(response)
 
     @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="search_nodes",
         description=(
             "Search OpenSVC Collector nodes using exact-match inventory filters. "
@@ -137,6 +141,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         return NodeRowsResponse.model_validate(response)
 
     @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="count_nodes",
         description=(
             "Count OpenSVC Collector nodes matching exact-match inventory filters. "
@@ -162,6 +167,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         return CountNodesResponse.model_validate(response)
 
     @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="get_node",
         description=(
             "Return all available OpenSVC Collector information for one node. "
@@ -186,6 +192,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         return NodeRowsResponse.model_validate(response)
 
     @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="get_node_tags",
         description=(
             "Return tags attached to one OpenSVC Collector node. "
@@ -211,6 +218,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         return NodeTagsResponse.model_validate({"nodename": nodename, **response})
 
     @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="search_node_by_tag",
         description=(
             "Return nodes attached to one OpenSVC Collector tag. "
@@ -236,6 +244,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         return NodesByTagResponse.model_validate(response)
 
     @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="search_nodes_without_tag",
         description=(
             "Return nodes that do not have one OpenSVC Collector tag attached. "
@@ -261,6 +270,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         return NodesWithoutTagResponse.model_validate(response)
 
     @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="get_node_location",
         description=(
             "Return location fields for one OpenSVC Collector node. "
@@ -285,6 +295,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         return NodeLocationResponse.model_validate(response)
 
     @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="get_node_organization",
         description=(
             "Return organization fields for one OpenSVC Collector node: "
@@ -309,6 +320,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         return NodeOrganizationResponse.model_validate(response)
 
     @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="get_node_hardware",
         description=(
             "Return hardware inventory fields for one OpenSVC Collector node: "
@@ -333,6 +345,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         return NodeHardwareResponse.model_validate(response)
 
     @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="get_node_hardware_components",
         description=(
             "Return detailed hardware component rows for one OpenSVC Collector node. "
@@ -358,6 +371,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         return NodeHardwareComponentsResponse.model_validate(response)
 
     @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="get_node_os",
         description=(
             "Return operating system fields for one OpenSVC Collector node: "
@@ -382,6 +396,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         return NodeOsResponse.model_validate(response)
 
     @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="get_node_network",
         description=(
             "Return network addresses and attached network properties for one "
@@ -406,6 +421,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         return NodeNetworkResponse.model_validate(response)
 
     @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="get_node_compliance",
         description=(
             "Return compliance execution status rows for one OpenSVC Collector node."
@@ -429,6 +445,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         return NodeComplianceResponse.model_validate(response)
 
     @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="get_node_checks",
         description=(
             "Return live check result rows for one OpenSVC Collector node. "
@@ -454,6 +471,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         return NodeChecksResponse.model_validate(response)
 
     @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="get_node_disks",
         description=(
             "Return disk inventory rows for one OpenSVC Collector node. "
@@ -479,6 +497,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         return NodeDisksResponse.model_validate(response)
 
     @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="get_node_cluster",
         description=(
             "Return the cluster associated with one OpenSVC Collector node. "
@@ -504,6 +523,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         return NodeClusterResponse.model_validate(response)
 
     @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="get_node_services",
         description=(
             "Return service instances hosted on one OpenSVC Collector node. "
@@ -533,6 +553,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         return NodeServicesResponse.model_validate(response)
 
     @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="get_node_health",
         description=(
             "Return a health-oriented summary for one OpenSVC Collector node. "
@@ -558,6 +579,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         return NodeHealthResponse.model_validate(response)
 
     @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="get_nodes_inventory_stats",
         description=(
             "Return aggregate counts over OpenSVC Collector nodes. "
