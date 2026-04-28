@@ -113,11 +113,120 @@ class ServicePropsResponse(BaseModel):
     service_props: list[str]
 
 
+def _is_none(value: Any) -> bool:
+    return value is None
+
+
+class ServiceRow(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    id: int | None = Field(
+        default=None,
+        description="Collector internal row id.",
+        exclude_if=_is_none,
+    )
+    svc_id: str | None = Field(
+        default=None,
+        description="Collector service uuid.",
+        exclude_if=_is_none,
+    )
+    svcname: str | None = Field(
+        default=None,
+        description="OpenSVC service name.",
+        exclude_if=_is_none,
+    )
+    svc_app: str | None = Field(
+        default=None,
+        description="Service application.",
+        exclude_if=_is_none,
+    )
+    svc_env: str | None = Field(
+        default=None,
+        description="Service environment.",
+        exclude_if=_is_none,
+    )
+    svc_status: str | None = Field(
+        default=None,
+        description="Service status.",
+        exclude_if=_is_none,
+    )
+    svc_availstatus: str | None = Field(
+        default=None,
+        description="Service availability status.",
+        exclude_if=_is_none,
+    )
+    svc_topology: str | None = Field(
+        default=None,
+        description="Service topology.",
+        exclude_if=_is_none,
+    )
+    svc_nodes: str | None = Field(
+        default=None,
+        description="Service node list.",
+        exclude_if=_is_none,
+    )
+    svc_drpnodes: str | None = Field(
+        default=None,
+        description="Service DRP node list.",
+        exclude_if=_is_none,
+    )
+    svc_frozen: str | None = Field(
+        default=None,
+        description="Service frozen state.",
+        exclude_if=_is_none,
+    )
+    svc_ha: int | None = Field(
+        default=None,
+        description="Service HA flag.",
+        exclude_if=_is_none,
+    )
+    svc_placement: str | None = Field(
+        default=None,
+        description="Service placement state.",
+        exclude_if=_is_none,
+    )
+    svc_provisioned: bool | str | None = Field(
+        default=None,
+        description="Service provisioned state as exposed by the Collector.",
+        exclude_if=_is_none,
+    )
+    svc_notifications: bool | None = Field(
+        default=None,
+        description="Whether service notifications are enabled.",
+        exclude_if=_is_none,
+    )
+    svc_created: str | None = Field(
+        default=None,
+        description="Service creation timestamp.",
+        exclude_if=_is_none,
+    )
+    updated: str | None = Field(
+        default=None,
+        description="Service update timestamp.",
+        exclude_if=_is_none,
+    )
+    svc_status_updated: str | None = Field(
+        default=None,
+        description="Service status update timestamp.",
+        exclude_if=_is_none,
+    )
+    cluster_id: str | None = Field(
+        default=None,
+        description="Collector cluster uuid.",
+        exclude_if=_is_none,
+    )
+    svc_config: str | None = Field(
+        default=None,
+        description="Full OpenSVC service configuration when returned by Collector.",
+        exclude_if=_is_none,
+    )
+
 class ServiceRowsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     meta: dict[str, Any] = Field(default_factory=dict)
-    data: list[dict[str, Any]]
+    data: list[ServiceRow]
+
 
 
 class CountServicesResponse(BaseModel):
