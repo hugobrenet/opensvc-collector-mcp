@@ -74,6 +74,7 @@ Current MCP service tool surface:
 - `list_service_props`
 - `search_services`
 - `count_services`
+- `get_service`
 
 Tool implementation standard:
 
@@ -209,9 +210,9 @@ Generic node filters:
 
 ```text
 status=warn
-{"asset_env": "prod", "loc_city": "Paris, VINCENNES"}
-{"manufacturer": "Dell", "loc_rack": "A12"}
-{"node_env": "TST", "status": "down", "loc_country": "FR"}
+{"asset_env": "lab", "loc_city": "Lab City"}
+{"manufacturer": "LabVendor", "loc_rack": "LAB-RACK-01"}
+{"node_env": "LAB", "status": "down", "loc_country": "ZZ"}
 ```
 
 - Shortcut arguments still exist for common props:
@@ -234,7 +235,7 @@ os_name
 - The Collector supports multiple filters through repeated query parameters:
 
 ```text
-filters=status=warn&filters=loc_city=Paris
+filters=status=warn&filters=loc_city=LabCity
 ```
 
 - `collector_get()` accepts either a dict or a sequence of key/value tuples so
@@ -259,7 +260,7 @@ HTTP MCP curl example:
 curl -sS -X POST http://127.0.0.1:8001/mcp \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"count_nodes","arguments":{"request":{"filters":{"asset_env":"prod","loc_country":"FR","loc_rack":"A13"}}}}}'
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"count_nodes","arguments":{"request":{"filters":{"asset_env":"lab","loc_country":"ZZ","loc_rack":"LAB-RACK-01"}}}}}'
 ```
 
 Local workflow used during tool development:
