@@ -125,6 +125,23 @@ Layering standard:
 - `client.py`: async HTTP client helpers only.
 - `docs/`: human-facing tool documentation by domain.
 
+Collection retrieval standard for `*_core.py`:
+
+- When a core function reads a Collector endpoint returning a collection, pick
+  one of two explicit strategies:
+  `safe_limit_zero` or `prefer_pagination`.
+- `safe_limit_zero`:
+  use one Collector call with `limit=0` only for object-like or small, stable
+  collections whose cardinality is expected to stay bounded in practice.
+- `prefer_pagination`:
+  use internal `limit/offset` pagination for any collection whose size can grow
+  significantly or is not reliably bounded.
+- Do not assume a `/resource/<id>/subresource` endpoint is small only because
+  it is attached to one object. Validate with real Collector data first.
+- `limit=0` is the exception, not the default.
+- Prefer centralizing pagination mechanics in `client.py` helpers and keep
+  `core/` focused on choosing the strategy and shaping the domain response.
+
 Error and production-readiness notes:
 
 - Collector HTTP errors currently bubble up from `httpx`; before production use,
