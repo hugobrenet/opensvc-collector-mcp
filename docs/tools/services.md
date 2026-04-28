@@ -161,6 +161,43 @@ meta
 data
 ```
 
+### `get_service_unacknowledged_errors`
+
+Returns recent or paginated OpenSVC action errors that are still unacknowledged
+for one service selected by exact `svcname`.
+
+Use this tool to focus directly on service action failures that still require
+attention. The Collector endpoint is already scoped to error and unacknowledged
+action rows, so the request intentionally does not expose `status` or `ack` as
+parameters. Use `action`, `rid`, `subset`, or generic action filters such as
+`hostid` and `node_id` only to narrow the result.
+
+By default, `latest` is true and full `status_log` values are excluded. The tool
+returns `status_log_preview` when a log is available, keeping responses usable
+for LLM clients while preserving enough error context.
+
+Example:
+
+```json
+{
+  "request": {
+    "svcname": "tst-lab-service",
+    "action": "start",
+    "limit": 10,
+    "latest": true
+  }
+}
+```
+
+Output fields:
+
+```text
+svcname
+meta
+data
+```
+
+
 ### `get_service_health`
 
 Returns an interpreted health summary for one service selected by exact

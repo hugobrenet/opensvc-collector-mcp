@@ -80,6 +80,7 @@ Current MCP service tool surface:
 - `get_service_instances`
 - `get_service_resources`
 - `get_service_actions`
+- `get_service_unacknowledged_errors`
 
 Tool implementation standard:
 

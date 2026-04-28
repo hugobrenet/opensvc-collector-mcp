@@ -294,6 +294,99 @@ async def get_service_actions(
     }
 
 
+async def get_service_unacknowledged_errors(
+    svcname: str,
+    filters: dict[str, str] | str | None = None,
+    action: str | None = None,
+    rid: str | None = None,
+    subset: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+    latest: bool = True,
+    latest_first: bool = True,
+    include_status_log: bool = False,
+    include_status_log_preview: bool = True,
+    status_log_max_chars: int = 500,
+) -> dict[str, Any]:
+    svcname = svcname.strip()
+    if not svcname:
+        raise ValueError("svcname must not be empty")
+
+    limit = max(1, min(limit, 100))
+    offset = max(0, offset)
+    status_log_max_chars = max(0, min(status_log_max_chars, 5000))
+    parsed_filters = _service_unacknowledged_error_filters(
+        filters,
+        action=action,
+        rid=rid,
+        subset=subset,
+    )
+    endpoint = f"/services/{quote(svcname, safe='')}/actions_unacknowledged_errors"
+    props = _service_action_props(
+        include_status_log=include_status_log,
+        include_status_log_preview=include_status_log_preview,
+    )
+
+    effective_offset = offset
+    total: int | None = None
+    if latest:
+        probe = await collector_get(
+            endpoint,
+            params=_service_action_params(
+                filters=parsed_filters,
+                props="action",
+                limit=1,
+                offset=0,
+            ),
+        )
+        total = _int_or_none(probe.get("meta", {}).get("total"))
+        if total is not None:
+            effective_offset = max(0, total - limit)
+
+    response = await collector_get(
+        endpoint,
+        params=_service_action_params(
+            filters=parsed_filters,
+            props=props,
+            limit=limit,
+            offset=effective_offset,
+        ),
+    )
+    meta = dict(response.get("meta", {}))
+    if total is None:
+        total = _int_or_none(meta.get("total"))
+    rows = _service_action_rows(
+        response.get("data", []),
+        include_status_log=include_status_log,
+        include_status_log_preview=include_status_log_preview,
+        status_log_max_chars=status_log_max_chars,
+        latest_first=latest_first,
+    )
+    meta.update(
+        {
+            "source": "service_actions_unacknowledged_errors",
+            "filter": {
+                "svcname": svcname,
+                **{field: value for field, value in parsed_filters},
+            },
+            "implicit_filter": {"status": "err", "ack": "unacknowledged"},
+            "requested_latest": latest,
+            "latest_first": latest_first,
+            "effective_offset": effective_offset,
+            "total": total,
+            "include_status_log": include_status_log,
+            "include_status_log_preview": include_status_log_preview,
+            "status_log_max_chars": status_log_max_chars,
+            "output_count": len(rows),
+        }
+    )
+    return {
+        "svcname": svcname,
+        "meta": meta,
+        "data": rows,
+    }
+
+
 async def search_frozen_services(
     filters: dict[str, str] | str | None = None,
     min_frozen_days: int = 0,
@@ -475,6 +568,21 @@ def _service_action_filters(
         value = value.strip()
         if value:
             filters.append((field, value))
+    return filters
+
+
+def _service_unacknowledged_error_filters(
+    raw_filters: dict[str, str] | str | None = None,
+    **criteria: str | None,
+) -> list[tuple[str, str]]:
+    filters = _service_action_filters(raw_filters, **criteria)
+    for field, _ in filters:
+        normalized = field.rsplit(".", 1)[-1]
+        if normalized in {"status", "ack"}:
+            raise ValueError(
+                "status and ack filters are implicit for "
+                "actions_unacknowledged_errors"
+            )
     return filters
 
 

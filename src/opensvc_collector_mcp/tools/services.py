@@ -8,6 +8,7 @@ from opensvc_collector_mcp.core.services_core import (
     count_services as core_count_services,
     get_service as core_get_service,
     get_service_actions as core_get_service_actions,
+    get_service_unacknowledged_errors as core_get_service_unacknowledged_errors,
     get_service_health as core_get_service_health,
     get_service_instances as core_get_service_instances,
     get_service_resources as core_get_service_resources,
@@ -25,6 +26,8 @@ from opensvc_collector_mcp.models.services_model import (
     SearchServicesRequest,
     ServiceActionsRequest,
     ServiceActionsResponse,
+    ServiceUnacknowledgedErrorsRequest,
+    ServiceUnacknowledgedErrorsResponse,
     ServiceHealthResponse,
     ServiceInstancesResponse,
     ServiceNameRequest,
@@ -307,6 +310,50 @@ def register_services_tools(mcp: FastMCP) -> None:
             status_log_max_chars=request.status_log_max_chars,
         )
         return ServiceActionsResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_service_unacknowledged_errors",
+        description=(
+            "Return recent or paginated unacknowledged OpenSVC action errors "
+            "for one service. The Collector endpoint is already scoped to error "
+            "actions that are not acknowledged, so use action, rid, or subset "
+            "filters only to narrow the result."
+        ),
+        tags={"services", "actions", "errors", "history", "read"},
+        annotations={
+            "title": "Get OpenSVC Service Unacknowledged Errors",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_service_unacknowledged_errors(
+        request: Annotated[
+            ServiceUnacknowledgedErrorsRequest,
+            Field(
+                description=(
+                    "Exact service name, optional action filters, pagination, "
+                    "and status_log options used to inspect unacknowledged "
+                    "service action errors."
+                ),
+            ),
+        ],
+    ) -> ServiceUnacknowledgedErrorsResponse:
+        'Return unacknowledged service action errors for one service.'
+        response = await core_get_service_unacknowledged_errors(
+            svcname=request.svcname,
+            filters=request.merged_filters(),
+            limit=request.limit,
+            offset=request.offset,
+            latest=request.latest,
+            latest_first=request.latest_first,
+            include_status_log=request.include_status_log,
+            include_status_log_preview=request.include_status_log_preview,
+            status_log_max_chars=request.status_log_max_chars,
+        )
+        return ServiceUnacknowledgedErrorsResponse.model_validate(response)
+
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
