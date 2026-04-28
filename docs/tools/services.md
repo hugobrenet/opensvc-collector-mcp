@@ -541,8 +541,8 @@ mon_changed
 Returns HBA rows attached to one service selected by exact `svcname`.
 
 Use this tool to list service storage adapters by node. The returned `hba_id` can
-be used to filter service targets through `get_service_targets` once that tool is
-available. Typical HBA types include Fibre Channel (`fc`) and iSCSI (`iscsi`).
+be used to filter service targets through `get_service_targets`. Typical HBA
+types include Fibre Channel (`fc`) and iSCSI (`iscsi`).
 
 Example:
 
@@ -569,6 +569,49 @@ nodename
 node_id
 hba_id
 hba_type
+updated
+```
+
+
+### `get_service_targets`
+
+Returns storage target rows attached to one service selected by exact `svcname`.
+
+Use this tool to inspect the storage targets reachable by service HBAs. It can be
+filtered by `hba_id`, `node_id`, `tgt_id`, or `array_name`, which makes it the
+natural follow-up to `get_service_hbas` when the user wants to understand SAN
+paths behind a specific HBA.
+
+Example:
+
+```json
+{
+  "request": {
+    "svcname": "tst-lab-service",
+    "hba_id": "LAB-HBA-01"
+  }
+}
+```
+
+Output fields:
+
+```text
+svcname
+meta
+data
+```
+
+Each `data` row commonly includes:
+
+```text
+nodename
+node_id
+hba_id
+tgt_id
+array_name
+array_model
+array_firmware
+array_comment
 updated
 ```
 

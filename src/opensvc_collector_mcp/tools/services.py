@@ -13,6 +13,7 @@ from opensvc_collector_mcp.core.services_core import (
     get_service_config as core_get_service_config,
     get_service_disks as core_get_service_disks,
     get_service_hbas as core_get_service_hbas,
+    get_service_targets as core_get_service_targets,
     get_service_unacknowledged_errors as core_get_service_unacknowledged_errors,
     get_service_health as core_get_service_health,
     get_service_instances as core_get_service_instances,
@@ -56,6 +57,8 @@ from opensvc_collector_mcp.models.services_model import (
     ServiceResourcesResponse,
     ServiceTagsRequest,
     ServiceTagsResponse,
+    ServiceTargetsRequest,
+    ServiceTargetsResponse,
     ServiceTagSearchRequest,
     ServicesByTagResponse,
     ServicesWithoutTagResponse,
@@ -374,6 +377,44 @@ def register_services_tools(mcp: FastMCP) -> None:
             max_hbas=request.max_hbas,
         )
         return ServiceHbasResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_service_targets",
+        description=(
+            "Return storage target rows attached to one OpenSVC service selected "
+            "by exact svcname. The tool reads /services/<svcname>/targets and "
+            "can filter by hba_id, node_id, tgt_id, or array_name."
+        ),
+        tags={"services", "targets", "storage", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Service Storage Targets",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_service_targets(
+        request: Annotated[
+            ServiceTargetsRequest,
+            Field(
+                description=(
+                    "Exact service name, optional exact-match target filters, "
+                    "returned properties, and internal pagination guardrails "
+                    "used to list targets through /services/<svcname>/targets."
+                ),
+            ),
+        ],
+    ) -> ServiceTargetsResponse:
+        'Return storage target rows attached to one OpenSVC Collector service.'
+        response = await core_get_service_targets(
+            svcname=request.svcname,
+            filters=request.merged_filters(),
+            props=request.props,
+            page_size=request.page_size,
+            max_targets=request.max_targets,
+        )
+        return ServiceTargetsResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

@@ -190,6 +190,64 @@ class ServiceHbasRequest(ServiceNameRequest):
     )
 
 
+class ServiceTargetsRequest(ServiceNameRequest):
+    filters: dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            "Exact-match service target filters. Keys can be hba_id, node_id, "
+            "tgt_id, array_name, or their stor_zone.<field> or stor_array.<field> form."
+        ),
+        examples=[{"hba_id": "LAB-HBA-01"}],
+    )
+    hba_id: str | None = Field(default=None, description="Exact HBA identifier filter.")
+    node_id: str | None = Field(default=None, description="Exact Collector node uuid filter.")
+    tgt_id: str | None = Field(default=None, description="Exact storage target identifier filter.")
+    array_name: str | None = Field(default=None, description="Exact storage array name filter.")
+    props: str | None = Field(
+        default=None,
+        description=(
+            "Comma-separated service target properties to return. Defaults to a "
+            "compact flat target view with node, HBA, target, and array fields."
+        ),
+    )
+    page_size: int = Field(
+        default=1000,
+        ge=1,
+        le=5000,
+        description="Internal Collector page size used to retrieve all service targets.",
+    )
+    max_targets: int = Field(
+        default=10000,
+        ge=1,
+        le=100000,
+        description="Maximum number of service target rows the tool may return.",
+    )
+
+    @model_validator(mode="after")
+    def normalize_filters(self) -> "ServiceTargetsRequest":
+        self.filters = {
+            key.strip(): value.strip()
+            for key, value in self.filters.items()
+            if key.strip() and value.strip()
+        }
+        return self
+
+    def merged_filters(self) -> dict[str, str]:
+        merged = dict(self.filters)
+        for field in ("hba_id", "node_id", "tgt_id", "array_name"):
+            value = getattr(self, field)
+            if value is None:
+                continue
+            value = value.strip()
+            if not value:
+                continue
+            existing = merged.get(field)
+            if existing is not None and existing != value:
+                raise ValueError(f"Conflicting filter values for {field!r}")
+            merged[field] = value
+        return merged
+
+
 class ServiceDisksRequest(ServiceNameRequest):
     props: str | None = Field(
         default=None,
@@ -1064,6 +1122,74 @@ class ServiceHbasResponse(BaseModel):
     svcname: str
     meta: dict[str, Any] = Field(default_factory=dict)
     data: list[ServiceHbaRow]
+
+
+class ServiceTargetRow(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    id: int | None = Field(
+        default=None,
+        description="Collector storage zone row id.",
+        exclude_if=_is_none,
+    )
+    nodename: str | None = Field(
+        default=None,
+        description="Node associated with this target row.",
+        exclude_if=_is_none,
+    )
+    node_id: str | None = Field(
+        default=None,
+        description="Collector node uuid.",
+        exclude_if=_is_none,
+    )
+    hba_id: str | None = Field(
+        default=None,
+        description="HBA identifier used to reach this target.",
+        exclude_if=_is_none,
+    )
+    tgt_id: str | None = Field(
+        default=None,
+        description="Storage target identifier.",
+        exclude_if=_is_none,
+    )
+    array_id: int | str | None = Field(
+        default=None,
+        description="Collector storage array row id.",
+        exclude_if=_is_none,
+    )
+    array_name: str | None = Field(
+        default=None,
+        description="Storage array name.",
+        exclude_if=_is_none,
+    )
+    array_model: str | None = Field(
+        default=None,
+        description="Storage array model.",
+        exclude_if=_is_none,
+    )
+    array_firmware: str | None = Field(
+        default=None,
+        description="Storage array firmware.",
+        exclude_if=_is_none,
+    )
+    array_comment: str | None = Field(
+        default=None,
+        description="Storage array comment.",
+        exclude_if=_is_none,
+    )
+    updated: str | None = Field(
+        default=None,
+        description="Collector target update timestamp.",
+        exclude_if=_is_none,
+    )
+
+
+class ServiceTargetsResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    svcname: str
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ServiceTargetRow]
 
 
 class ServiceDiskRow(BaseModel):
