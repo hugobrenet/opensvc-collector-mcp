@@ -411,6 +411,50 @@ data
 ```
 
 
+### `get_service_status_history`
+
+Returns availability status history for one service selected by exact `svcname`.
+
+Use this tool to answer when a service changed availability state, or since when
+it has been in its current state. The tool resolves the service `svc_id`, reads
+`/services_status_log`, sorts matching history rows by `svc_begin`, and returns
+`current_status_since` when it can match the current `svc_availstatus`.
+
+Example:
+
+```json
+{
+  "request": {
+    "svcname": "tst-lab-service",
+    "svc_availstatus": "down",
+    "limit": 10
+  }
+}
+```
+
+Output fields:
+
+```text
+svcname
+svc_id
+service
+current_status_since
+current_history
+meta
+data
+```
+
+Each `data` row commonly includes:
+
+```text
+id
+svc_id
+svc_begin
+svc_end
+svc_availstatus
+```
+
+
 ### `get_service_health`
 
 Returns an interpreted health summary for one service selected by exact

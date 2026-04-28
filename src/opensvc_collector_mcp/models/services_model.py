@@ -484,6 +484,79 @@ class ServiceConfigRequest(ServiceNameRequest):
     )
 
 
+class ServiceStatusHistoryRequest(ServiceNameRequest):
+    filters: dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            "Exact-match service status history filters. Keys can be "
+            "svc_availstatus, svc_begin, svc_end, id, or their v_services_log.<field> form."
+        ),
+        examples=[{"svc_availstatus": "down"}],
+    )
+    svc_availstatus: str | None = Field(
+        default=None,
+        description="Exact service availability status filter, for example up, warn, or down.",
+    )
+    props: str | None = Field(
+        default=None,
+        description=(
+            "Comma-separated status history properties to return. Defaults to "
+            "svc_id, svc_begin, svc_end, svc_availstatus, and id."
+        ),
+    )
+    limit: int = Field(
+        default=20,
+        ge=1,
+        le=100,
+        description="Maximum number of status history rows to return.",
+    )
+    offset: int = Field(
+        default=0,
+        ge=0,
+        description="Number of sorted history rows to skip when latest is false.",
+    )
+    latest: bool = Field(
+        default=True,
+        description="When true, return the newest matching status rows and ignore offset.",
+    )
+    latest_first: bool = Field(
+        default=True,
+        description="When true, sort status history newest first.",
+    )
+    page_size: int = Field(
+        default=1000,
+        ge=1,
+        le=5000,
+        description="Internal Collector page size used to retrieve matching status history.",
+    )
+    max_history: int = Field(
+        default=10000,
+        ge=1,
+        le=100000,
+        description="Maximum number of status history rows the tool may scan.",
+    )
+
+    @model_validator(mode="after")
+    def normalize_filters(self) -> "ServiceStatusHistoryRequest":
+        self.filters = {
+            key.strip(): value.strip()
+            for key, value in self.filters.items()
+            if key.strip() and value.strip()
+        }
+        return self
+
+    def merged_filters(self) -> dict[str, str]:
+        merged = dict(self.filters)
+        if self.svc_availstatus is not None:
+            value = self.svc_availstatus.strip()
+            if value:
+                existing = merged.get("svc_availstatus")
+                if existing is not None and existing != value:
+                    raise ValueError("Conflicting filter values for 'svc_availstatus'")
+                merged["svc_availstatus"] = value
+        return merged
+
+
 class ServiceActionsRequest(ServiceNameRequest):
     filters: dict[str, str] = Field(
         default_factory=dict,
@@ -757,6 +830,59 @@ class ServiceRowsResponse(BaseModel):
 
     meta: dict[str, Any] = Field(default_factory=dict)
     data: list[ServiceRow]
+
+
+class ServiceStatusHistoryRow(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    id: int | str | None = Field(
+        default=None,
+        description="Collector service status history row id.",
+        exclude_if=_is_none,
+    )
+    svc_id: str | None = Field(
+        default=None,
+        description="Collector service uuid.",
+        exclude_if=_is_none,
+    )
+    svc_begin: str | None = Field(
+        default=None,
+        description="Timestamp when this availability status period started.",
+        exclude_if=_is_none,
+    )
+    svc_end: str | None = Field(
+        default=None,
+        description="Timestamp when this availability status period ended.",
+        exclude_if=_is_none,
+    )
+    svc_availstatus: str | None = Field(
+        default=None,
+        description="Service availability status for this history period.",
+        exclude_if=_is_none,
+    )
+
+
+class ServiceStatusHistoryResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    svcname: str
+    svc_id: str | None = Field(default=None, exclude_if=_is_none)
+    service: ServiceRow = Field(
+        default_factory=ServiceRow,
+        description="Current service state used as context for the history.",
+    )
+    current_status_since: str | None = Field(
+        default=None,
+        description="Best matching start timestamp for the current service availability status.",
+        exclude_if=_is_none,
+    )
+    current_history: ServiceStatusHistoryRow | None = Field(
+        default=None,
+        description="History row matching the current service availability status.",
+        exclude_if=_is_none,
+    )
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ServiceStatusHistoryRow]
 
 
 class ServiceTagRow(BaseModel):

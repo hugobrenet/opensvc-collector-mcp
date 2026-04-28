@@ -59,6 +59,8 @@ SERVICE_RESOURCES_PROPS = (
     "nodes.nodename:nodename,rid,res_key,res_value,updated"
 )
 SERVICE_CONFIG_PROPS = "svcname,svc_config,svc_config_updated,updated"
+SERVICE_STATUS_HISTORY_SERVICE_PROPS = "svc_id,svcname,svc_status,svc_availstatus,updated"
+SERVICE_STATUS_HISTORY_PROPS = "svc_id,svc_begin,svc_end,svc_availstatus,id"
 SERVICE_ALERTS_PROPS = (
     "alert,dashboard.dash_type,dashboard.dash_severity,dashboard.dash_created,"
     "dashboard.dash_updated,dashboard.node_id,dashboard.id,"
@@ -935,6 +937,106 @@ async def get_service_unacknowledged_errors(
     }
 
 
+async def get_service_status_history(
+    svcname: str,
+    filters: dict[str, str] | str | None = None,
+    svc_availstatus: str | None = None,
+    props: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+    latest: bool = True,
+    latest_first: bool = True,
+    page_size: int = 1000,
+    max_history: int = 10000,
+) -> dict[str, Any]:
+    svcname = svcname.strip()
+    if not svcname:
+        raise ValueError("svcname must not be empty")
+
+    limit = max(1, min(limit, 100))
+    offset = max(0, offset)
+    selected_props = props or SERVICE_STATUS_HISTORY_PROPS
+    for required_prop in ("svc_id", "svc_begin", "svc_availstatus", "id"):
+        selected_props = _ensure_props_include(selected_props, required_prop)
+    service_response = await collector_get(
+        f"/services/{quote(svcname, safe='')}",
+        params={"props": SERVICE_STATUS_HISTORY_SERVICE_PROPS},
+    )
+    service_rows = service_response.get("data", [])
+    service = service_rows[0] if service_rows else {}
+    svc_id = str(service.get("svc_id") or "").strip()
+    if not svc_id:
+        return {
+            "svcname": svcname,
+            "svc_id": None,
+            "service": service,
+            "current_status_since": None,
+            "current_history": None,
+            "meta": {
+                "count": 0,
+                "source": "services_status_log",
+                "filter": {"svcname": svcname},
+                "complete": True,
+                "history_count": 0,
+                "output_count": 0,
+            },
+            "data": [],
+        }
+
+    parsed_filters = _service_status_history_filters(
+        filters,
+        svc_availstatus=svc_availstatus,
+    )
+    response = await collector_get_all(
+        "/services_status_log",
+        params=_service_status_history_params(
+            filters=[("svc_id", svc_id), *parsed_filters],
+            props=selected_props,
+        ),
+        strategy="paged",
+        page_size=page_size,
+        max_items=max_history,
+    )
+    rows = _sort_service_status_history_rows(
+        response.get("data", []),
+        latest_first=latest_first,
+    )
+    effective_offset = 0 if latest else offset
+    output_rows = rows[effective_offset : effective_offset + limit]
+    current_history = _current_service_status_history(
+        rows=response.get("data", []),
+        current_status=service.get("svc_availstatus"),
+    )
+    meta = dict(response.get("meta", {}))
+    meta.update(
+        {
+            "source": "services_status_log",
+            "filter": {
+                "svcname": svcname,
+                "svc_id": svc_id,
+                **{field: value for field, value in parsed_filters},
+            },
+            "included_props": selected_props.split(","),
+            "requested_latest": latest,
+            "latest_first": latest_first,
+            "effective_offset": effective_offset,
+            "history_count": len(rows),
+            "output_count": len(output_rows),
+        }
+    )
+    return {
+        "svcname": svcname,
+        "svc_id": svc_id,
+        "service": service,
+        "current_status_since": (
+            current_history.get("svc_begin") if current_history else None
+        ),
+        "current_history": current_history,
+        "meta": meta,
+        "data": output_rows,
+    }
+
+
 async def search_frozen_services(
     filters: dict[str, str] | str | None = None,
     min_frozen_days: int = 0,
@@ -1156,6 +1258,76 @@ def _group_service_resources(rows: list[dict[str, Any]]) -> list[dict[str, Any]]
 
 def _resource_type_from_rid(rid: str) -> str:
     return rid.split("#", 1)[0] if "#" in rid else rid
+
+
+def _service_status_history_filters(
+    raw_filters: dict[str, str] | str | None = None,
+    **criteria: str | None,
+) -> list[tuple[str, str]]:
+    filters = [
+        (_service_status_history_filter_field(field), value)
+        for field, value in _parse_service_filters(raw_filters)
+    ]
+    for field, value in criteria.items():
+        if value is None:
+            continue
+        value = value.strip()
+        if value:
+            filters.append((_service_status_history_filter_field(field), value))
+    return filters
+
+
+def _service_status_history_filter_field(field: str) -> str:
+    if "." in field:
+        return field
+    return {
+        "id": "v_services_log.id",
+        "svc_id": "v_services_log.svc_id",
+        "svc_begin": "v_services_log.svc_begin",
+        "svc_end": "v_services_log.svc_end",
+        "svc_availstatus": "v_services_log.svc_availstatus",
+    }.get(field, field)
+
+
+def _service_status_history_params(
+    filters: list[tuple[str, str]],
+    props: str,
+) -> list[tuple[str, Any]]:
+    params: list[tuple[str, Any]] = [("props", props)]
+    for field, value in filters:
+        params.append(("filters", f"{field}={value}"))
+    return params
+
+
+def _sort_service_status_history_rows(
+    rows: list[dict[str, Any]],
+    latest_first: bool,
+) -> list[dict[str, Any]]:
+    return sorted(
+        rows,
+        key=lambda row: (
+            str(row.get("svc_begin") or ""),
+            str(row.get("id") or ""),
+        ),
+        reverse=latest_first,
+    )
+
+
+def _current_service_status_history(
+    rows: list[dict[str, Any]],
+    current_status: Any,
+) -> dict[str, Any] | None:
+    current_status = str(current_status or "").strip()
+    if not current_status:
+        return None
+    matching = [
+        row
+        for row in rows
+        if str(row.get("svc_availstatus") or "").strip() == current_status
+    ]
+    if not matching:
+        return None
+    return _sort_service_status_history_rows(matching, latest_first=True)[0]
 
 
 def _service_target_filters(

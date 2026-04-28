@@ -14,6 +14,7 @@ from opensvc_collector_mcp.core.services_core import (
     get_service_disks as core_get_service_disks,
     get_service_hbas as core_get_service_hbas,
     get_service_targets as core_get_service_targets,
+    get_service_status_history as core_get_service_status_history,
     get_service_unacknowledged_errors as core_get_service_unacknowledged_errors,
     get_service_health as core_get_service_health,
     get_service_instances as core_get_service_instances,
@@ -59,6 +60,8 @@ from opensvc_collector_mcp.models.services_model import (
     ServiceTagsResponse,
     ServiceTargetsRequest,
     ServiceTargetsResponse,
+    ServiceStatusHistoryRequest,
+    ServiceStatusHistoryResponse,
     ServiceTagSearchRequest,
     ServicesByTagResponse,
     ServicesWithoutTagResponse,
@@ -757,6 +760,48 @@ def register_services_tools(mcp: FastMCP) -> None:
         )
         return ServiceUnacknowledgedErrorsResponse.model_validate(response)
 
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_service_status_history",
+        description=(
+            "Return availability status history for one OpenSVC service selected "
+            "by exact svcname. The tool resolves svc_id, reads /services_status_log, "
+            "and returns sorted status periods plus the best current_status_since."
+        ),
+        tags={"services", "status", "history", "health", "read"},
+        annotations={
+            "title": "Get OpenSVC Service Status History",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_service_status_history(
+        request: Annotated[
+            ServiceStatusHistoryRequest,
+            Field(
+                description=(
+                    "Exact service name, optional availability status filters, "
+                    "pagination, and internal scan guardrails used to inspect "
+                    "service availability status history."
+                ),
+            ),
+        ],
+    ) -> ServiceStatusHistoryResponse:
+        'Return availability status history for one OpenSVC Collector service.'
+        response = await core_get_service_status_history(
+            svcname=request.svcname,
+            filters=request.merged_filters(),
+            props=request.props,
+            limit=request.limit,
+            offset=request.offset,
+            latest=request.latest,
+            latest_first=request.latest_first,
+            page_size=request.page_size,
+            max_history=request.max_history,
+        )
+        return ServiceStatusHistoryResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
