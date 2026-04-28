@@ -102,6 +102,7 @@ Tool documentation is organized by Collector domain:
 
 - [Node tools](docs/tools/nodes.md)
 - [Cluster tools](docs/tools/clusters.md)
+- [Service tools](docs/tools/services.md)
 
 ## Development Notes
 
