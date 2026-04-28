@@ -536,6 +536,55 @@ mon_changed
 ```
 
 
+### `get_service_disks`
+
+Returns disk rows attached to one service selected by exact `svcname`.
+
+Use this tool to list service disks with their node, size, local/SAN state, disk
+identity, storage group, and array information. This is more direct than
+`get_service_resources` when the user asks which disks are attached to a service.
+
+Example:
+
+```json
+{
+  "request": {
+    "svcname": "tst-lab-service"
+  }
+}
+```
+
+Output fields:
+
+```text
+svcname
+meta
+data
+```
+
+Each `data` row commonly includes:
+
+```text
+nodename
+node_id
+disk_id
+disk_name
+disk_size
+disk_used
+disk_local
+disk_vendor
+disk_model
+disk_devid
+disk_alloc
+disk_raid
+disk_group
+disk_arrayid
+array_name
+array_model
+disk_updated
+```
+
+
 ### `get_service_resources`
 
 Returns grouped OpenSVC resource information for one service selected by exact
