@@ -9,6 +9,7 @@ from opensvc_collector_mcp.core.services_core import (
     get_service as core_get_service,
     get_service_actions as core_get_service_actions,
     get_service_alerts as core_get_service_alerts,
+    get_service_checks as core_get_service_checks,
     get_service_config as core_get_service_config,
     get_service_unacknowledged_errors as core_get_service_unacknowledged_errors,
     get_service_health as core_get_service_health,
@@ -30,6 +31,8 @@ from opensvc_collector_mcp.models.services_model import (
     ServiceActionsResponse,
     ServiceAlertsRequest,
     ServiceAlertsResponse,
+    ServiceChecksRequest,
+    ServiceChecksResponse,
     ServiceConfigRequest,
     ServiceConfigResponse,
     ServiceUnacknowledgedErrorsRequest,
@@ -311,6 +314,44 @@ def register_services_tools(mcp: FastMCP) -> None:
         """Return grouped resource information for one OpenSVC Collector service."""
         response = await core_get_service_resources(svcname=request.svcname)
         return ServiceResourcesResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_service_checks",
+        description=(
+            "Return live OpenSVC Collector checks for one service selected by exact "
+            "svcname. The tool retrieves all matching checks using internal paged "
+            "Collector reads and compact check properties by default."
+        ),
+        tags={"services", "checks", "health", "read"},
+        annotations={
+            "title": "Get OpenSVC Service Checks",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_service_checks(
+        request: Annotated[
+            ServiceChecksRequest,
+            Field(
+                description=(
+                    "Exact service name, optional exact-match check filters, "
+                    "returned properties, and internal pagination guardrails."
+                ),
+            ),
+        ],
+    ) -> ServiceChecksResponse:
+        'Return live Collector checks for one OpenSVC service.'
+        response = await core_get_service_checks(
+            svcname=request.svcname,
+            filters=request.merged_filters(),
+            props=request.props,
+            page_size=request.page_size,
+            max_checks=request.max_checks,
+        )
+        return ServiceChecksResponse.model_validate(response)
+
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

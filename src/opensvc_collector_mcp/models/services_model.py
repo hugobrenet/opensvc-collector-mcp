@@ -117,6 +117,75 @@ class ServiceNameRequest(BaseModel):
     )
 
 
+class ServiceChecksRequest(ServiceNameRequest):
+    filters: dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            "Exact-match service check filters. Keys can be Collector check "
+            "fields such as chk_type, chk_err, chk_instance, node_id, or their "
+            "checks_live.<field> form."
+        ),
+        examples=[{"chk_type": "fs_u", "chk_err": "1"}],
+    )
+    chk_type: str | None = Field(default=None, description="Exact check type filter.")
+    chk_err: int | None = Field(
+        default=None,
+        ge=0,
+        description="Exact check error flag filter, usually 0 or 1.",
+    )
+    node_id: str | None = Field(default=None, description="Exact Collector node uuid filter.")
+    chk_instance: str | None = Field(default=None, description="Exact check instance filter.")
+    props: str | None = Field(
+        default=None,
+        description=(
+            "Comma-separated check properties to return. Defaults to a compact "
+            "service check view."
+        ),
+    )
+    page_size: int = Field(
+        default=1000,
+        ge=1,
+        le=5000,
+        description="Internal Collector page size used to retrieve all matching checks.",
+    )
+    max_checks: int = Field(
+        default=10000,
+        ge=1,
+        le=100000,
+        description="Maximum number of matching checks the tool may return.",
+    )
+
+    @model_validator(mode="after")
+    def normalize_filters(self) -> "ServiceChecksRequest":
+        self.filters = {
+            key.strip(): value.strip()
+            for key, value in self.filters.items()
+            if key.strip() and value.strip()
+        }
+        return self
+
+    def merged_filters(self) -> dict[str, str]:
+        merged = dict(self.filters)
+        for field in ("chk_type", "node_id", "chk_instance"):
+            value = getattr(self, field)
+            if value is None:
+                continue
+            value = value.strip()
+            if not value:
+                continue
+            existing = merged.get(field)
+            if existing is not None and existing != value:
+                raise ValueError(f"Conflicting filter values for {field!r}")
+            merged[field] = value
+        if self.chk_err is not None:
+            value = str(self.chk_err)
+            existing = merged.get("chk_err")
+            if existing is not None and existing != value:
+                raise ValueError("Conflicting filter values for 'chk_err'")
+            merged["chk_err"] = value
+        return merged
+
+
 class ServiceAlertsRequest(ServiceNameRequest):
     filters: dict[str, str] = Field(
         default_factory=dict,
@@ -477,6 +546,30 @@ class ServiceRowsResponse(BaseModel):
 
     meta: dict[str, Any] = Field(default_factory=dict)
     data: list[ServiceRow]
+
+
+class ServiceCheckRow(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    id: int | None = Field(default=None, description="Collector check id.", exclude_if=_is_none)
+    node_id: str | None = Field(default=None, description="Collector node uuid.", exclude_if=_is_none)
+    chk_type: str | None = Field(default=None, description="Check type.", exclude_if=_is_none)
+    chk_instance: str | None = Field(default=None, description="Check instance.", exclude_if=_is_none)
+    chk_value: int | float | str | None = Field(default=None, description="Current check value.", exclude_if=_is_none)
+    chk_err: int | str | None = Field(default=None, description="Check error flag or state.", exclude_if=_is_none)
+    chk_low: int | float | str | None = Field(default=None, description="Low threshold.", exclude_if=_is_none)
+    chk_high: int | float | str | None = Field(default=None, description="High threshold.", exclude_if=_is_none)
+    chk_threshold_provider: str | None = Field(default=None, description="Threshold provider.", exclude_if=_is_none)
+    chk_created: str | None = Field(default=None, description="Check creation timestamp.", exclude_if=_is_none)
+    chk_updated: str | None = Field(default=None, description="Check update timestamp.", exclude_if=_is_none)
+
+
+class ServiceChecksResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    svcname: str
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ServiceCheckRow]
 
 
 class ServiceAlertRow(BaseModel):

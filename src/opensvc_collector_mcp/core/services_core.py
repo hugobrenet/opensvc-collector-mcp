@@ -30,6 +30,12 @@ SERVICE_ALERTS_PROPS = (
     "dashboard.dash_updated,dashboard.node_id,dashboard.id,"
     "dashboard.dash_env,dashboard.dash_instance"
 )
+SERVICE_CHECKS_PROPS = (
+    "checks_live.chk_type,checks_live.chk_instance,checks_live.chk_value,"
+    "checks_live.chk_err,checks_live.chk_low,checks_live.chk_high,"
+    "checks_live.chk_threshold_provider,checks_live.chk_created,"
+    "checks_live.chk_updated,checks_live.node_id,checks_live.id"
+)
 SERVICE_ACTIONS_PROPS = (
     "action,status,begin,end,time,ack,acked_by,acked_date,acked_comment,"
     "rid,subset,hostid,node_id"
@@ -251,6 +257,59 @@ async def get_service_resources(
         "svcname": svcname,
         "meta": meta,
         "resources": resources,
+    }
+
+
+async def get_service_checks(
+    svcname: str,
+    filters: dict[str, str] | str | None = None,
+    chk_type: str | None = None,
+    chk_err: int | str | None = None,
+    node_id: str | None = None,
+    chk_instance: str | None = None,
+    props: str | None = None,
+    page_size: int = 1000,
+    max_checks: int = 10000,
+) -> dict[str, Any]:
+    svcname = svcname.strip()
+    if not svcname:
+        raise ValueError("svcname must not be empty")
+
+    selected_props = props or SERVICE_CHECKS_PROPS
+    parsed_filters = _service_check_filters(
+        filters,
+        chk_type=chk_type,
+        chk_err=str(chk_err) if chk_err is not None else None,
+        node_id=node_id,
+        chk_instance=chk_instance,
+    )
+    response = await collector_get_all(
+        f"/services/{quote(svcname, safe='')}/checks",
+        params=_service_check_params(
+            filters=parsed_filters,
+            props=selected_props,
+        ),
+        strategy="paged",
+        page_size=page_size,
+        max_items=max_checks,
+    )
+    rows = response.get("data", [])
+    meta = dict(response.get("meta", {}))
+    meta.update(
+        {
+            "source": "service_checks",
+            "filter": {
+                "svcname": svcname,
+                **{field: value for field, value in parsed_filters},
+            },
+            "included_props": selected_props.split(","),
+            "output_count": len(rows),
+        }
+    )
+    return {
+        "svcname": svcname,
+        "meta": meta,
+        "data": rows,
     }
 
 
@@ -678,6 +737,52 @@ def _group_service_resources(rows: list[dict[str, Any]]) -> list[dict[str, Any]]
 
 def _resource_type_from_rid(rid: str) -> str:
     return rid.split("#", 1)[0] if "#" in rid else rid
+
+
+def _service_check_filters(
+    raw_filters: dict[str, str] | str | None = None,
+    **criteria: str | None,
+) -> list[tuple[str, str]]:
+    filters = [
+        (_service_check_filter_field(field), value)
+        for field, value in _parse_service_filters(raw_filters)
+    ]
+    for field, value in criteria.items():
+        if value is None:
+            continue
+        value = value.strip()
+        if value:
+            filters.append((_service_check_filter_field(field), value))
+    return filters
+
+
+def _service_check_filter_field(field: str) -> str:
+    if "." in field:
+        return field
+    return {
+        "id": "checks_live.id",
+        "svc_id": "checks_live.svc_id",
+        "node_id": "checks_live.node_id",
+        "chk_type": "checks_live.chk_type",
+        "chk_instance": "checks_live.chk_instance",
+        "chk_value": "checks_live.chk_value",
+        "chk_err": "checks_live.chk_err",
+        "chk_low": "checks_live.chk_low",
+        "chk_high": "checks_live.chk_high",
+        "chk_threshold_provider": "checks_live.chk_threshold_provider",
+        "chk_created": "checks_live.chk_created",
+        "chk_updated": "checks_live.chk_updated",
+    }.get(field, field)
+
+
+def _service_check_params(
+    filters: list[tuple[str, str]],
+    props: str,
+) -> list[tuple[str, Any]]:
+    params: list[tuple[str, Any]] = [("props", props)]
+    for field, value in filters:
+        params.append(("filters", f"{field}={value}"))
+    return params
 
 
 def _service_alert_filters(

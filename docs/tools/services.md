@@ -165,6 +165,40 @@ meta
 services
 ```
 
+### `get_service_checks`
+
+Returns live OpenSVC Collector checks for one service selected by exact
+`svcname`.
+
+Use this tool to inspect check values, thresholds, and error flags for a service.
+The tool reads Collector `/services/<svcname>/checks` using internal paged
+retrieval, so it is not limited to the first Collector page. Use exact filters
+such as `chk_type`, `chk_err`, `chk_instance`, or `node_id` to narrow the result.
+
+Default output uses compact check properties and excludes no large payload field.
+`max_checks` is a safety guardrail for unusually large services.
+
+Example:
+
+```json
+{
+  "request": {
+    "svcname": "tst-lab-service",
+    "chk_err": 1,
+    "max_checks": 10000
+  }
+}
+```
+
+Output fields:
+
+```text
+svcname
+meta
+data
+```
+
+
 ### `get_service_alerts`
 
 Returns current OpenSVC Collector dashboard alerts for one service selected by
