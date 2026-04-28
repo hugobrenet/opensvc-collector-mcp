@@ -8,6 +8,7 @@ from opensvc_collector_mcp.core.services_core import (
     count_services as core_count_services,
     get_service as core_get_service,
     get_service_actions as core_get_service_actions,
+    get_service_config as core_get_service_config,
     get_service_unacknowledged_errors as core_get_service_unacknowledged_errors,
     get_service_health as core_get_service_health,
     get_service_instances as core_get_service_instances,
@@ -26,6 +27,8 @@ from opensvc_collector_mcp.models.services_model import (
     SearchServicesRequest,
     ServiceActionsRequest,
     ServiceActionsResponse,
+    ServiceConfigRequest,
+    ServiceConfigResponse,
     ServiceUnacknowledgedErrorsRequest,
     ServiceUnacknowledgedErrorsResponse,
     ServiceHealthResponse,
@@ -206,6 +209,43 @@ def register_services_tools(mcp: FastMCP) -> None:
         """Return all available properties for one OpenSVC Collector service."""
         response = await core_get_service(svcname=request.svcname)
         return ServiceRowsResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_service_config",
+        description=(
+            "Return the OpenSVC configuration for one service selected by exact "
+            "svcname. The tool reads /services/<svcname> with props limited to "
+            "svc_config metadata, and returns raw config text plus parsed sections."
+        ),
+        tags={"services", "config", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Service Config",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_service_config(
+        request: Annotated[
+            ServiceConfigRequest,
+            Field(
+                description=(
+                    "Exact service name and output options used to retrieve the "
+                    "service configuration from Collector svc_config."
+                ),
+            ),
+        ],
+    ) -> ServiceConfigResponse:
+        'Return raw and parsed OpenSVC configuration for one service.'
+        response = await core_get_service_config(
+            svcname=request.svcname,
+            include_raw_config=request.include_raw_config,
+            include_sections=request.include_sections,
+            raw_config_max_chars=request.raw_config_max_chars,
+        )
+        return ServiceConfigResponse.model_validate(response)
+
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

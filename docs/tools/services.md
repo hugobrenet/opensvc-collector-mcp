@@ -90,6 +90,46 @@ meta
 data
 ```
 
+### `get_service_config`
+
+Returns the OpenSVC service configuration for one service selected by exact
+`svcname`.
+
+Use this tool when the question is about the declared service configuration:
+global options, section definitions, or raw configuration text. For effective
+resource key/value data grouped by resource and node, use `get_service_resources`
+instead.
+
+The tool reads Collector `/services/<svcname>` with props limited to
+`svcname,svc_config,svc_config_updated,updated`. It returns parsed INI-like
+sections by default and also returns the raw config text, bounded by
+`raw_config_max_chars`.
+
+Example:
+
+```json
+{
+  "request": {
+    "svcname": "tst-lab-service",
+    "include_raw_config": true,
+    "include_sections": true,
+    "raw_config_max_chars": 20000
+  }
+}
+```
+
+Output fields:
+
+```text
+svcname
+meta
+config_updated
+updated
+config
+sections
+```
+
+
 ### `search_frozen_services`
 
 Returns services with currently frozen monitor instances.

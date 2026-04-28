@@ -117,6 +117,26 @@ class ServiceNameRequest(BaseModel):
     )
 
 
+class ServiceConfigRequest(ServiceNameRequest):
+    include_raw_config: bool = Field(
+        default=True,
+        description=(
+            "Include the raw OpenSVC service configuration text. The text is "
+            "bounded by raw_config_max_chars."
+        ),
+    )
+    include_sections: bool = Field(
+        default=True,
+        description="Include parsed INI-like configuration sections and options.",
+    )
+    raw_config_max_chars: int = Field(
+        default=20000,
+        ge=0,
+        le=100000,
+        description="Maximum characters returned in the raw config field.",
+    )
+
+
 class ServiceActionsRequest(ServiceNameRequest):
     filters: dict[str, str] = Field(
         default_factory=dict,
@@ -390,6 +410,42 @@ class ServiceRowsResponse(BaseModel):
 
     meta: dict[str, Any] = Field(default_factory=dict)
     data: list[ServiceRow]
+
+
+class ServiceConfigSection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(description="Configuration section name, for example DEFAULT or app#0.")
+    options: dict[str, str] = Field(
+        default_factory=dict,
+        description="Configuration key/value options for this section.",
+    )
+
+
+class ServiceConfigResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    svcname: str
+    meta: dict[str, Any] = Field(default_factory=dict)
+    config_updated: str | None = Field(
+        default=None,
+        description="Collector timestamp for the service configuration update.",
+        exclude_if=_is_none,
+    )
+    updated: str | None = Field(
+        default=None,
+        description="Collector service row update timestamp.",
+        exclude_if=_is_none,
+    )
+    config: str | None = Field(
+        default=None,
+        description="Raw OpenSVC service configuration text, optionally truncated.",
+        exclude_if=_is_none,
+    )
+    sections: list[ServiceConfigSection] = Field(
+        default_factory=list,
+        description="Parsed configuration sections and key/value options.",
+    )
 
 
 class ServiceInstanceRow(BaseModel):
