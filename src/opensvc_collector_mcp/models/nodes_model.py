@@ -12,7 +12,7 @@ class NodeFilterRequest(BaseModel):
             "Exact-match node property filters. Keys must be Collector node "
             "properties returned by list_node_props."
         ),
-        examples=[{"status": "warn", "loc_city": "Paris, VINCENNES"}],
+        examples=[{"status": "warn", "loc_city": "Lab City"}],
     )
     status: str | None = Field(default=None, description="Exact node status.")
     asset_env: str | None = Field(default=None, description="Exact asset environment.")
@@ -104,7 +104,7 @@ class NodeNameRequest(BaseModel):
     nodename: str = Field(
         min_length=1,
         description="Exact OpenSVC Collector nodename.",
-        examples=["lab-paris-01"],
+        examples=["lab-node-01"],
     )
 
 

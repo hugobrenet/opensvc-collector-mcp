@@ -143,8 +143,8 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         name="count_nodes",
         description=(
             "Count OpenSVC Collector nodes matching exact-match inventory filters. "
-            "Use this for questions like how many nodes are down, in prod, "
-            "or warn in Paris."
+            "Use this for questions like how many nodes are down, in lab, "
+            "or warn in Lab City."
         ),
         tags={"nodes", "inventory", "count", "read"},
         annotations={
