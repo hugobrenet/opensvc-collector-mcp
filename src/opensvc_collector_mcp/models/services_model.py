@@ -12,7 +12,7 @@ class ServiceFilterRequest(BaseModel):
             "Exact-match service property filters. Keys must be Collector "
             "service properties returned by list_service_props."
         ),
-        examples=[{"svc_env": "PRD", "svc_status": "up"}],
+        examples=[{"svc_env": "LAB", "svc_status": "up"}],
     )
     svcname: str | None = Field(default=None, description="Exact service name.")
     svc_app: str | None = Field(default=None, description="Exact service application.")
@@ -93,6 +93,16 @@ class SearchServicesRequest(ServiceFilterRequest):
 
 class CountServicesRequest(ServiceFilterRequest):
     pass
+
+
+class ServiceNameRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    svcname: str = Field(
+        min_length=1,
+        description="Exact OpenSVC Collector service name.",
+        examples=["tst-lab-service"],
+    )
 
 
 class ServicePropsResponse(BaseModel):

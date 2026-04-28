@@ -1,4 +1,5 @@
 from typing import Any
+from urllib.parse import quote
 
 from opensvc_collector_mcp.client import collector_get, collector_get_all
 
@@ -89,6 +90,14 @@ async def count_services(
         "count": meta.get("total"),
         "filters": {field: value for field, value in parsed_filters},
     }
+
+
+async def get_service(svcname: str) -> dict[str, Any]:
+    svcname = svcname.strip()
+    if not svcname:
+        raise ValueError("svcname must not be empty")
+
+    return await collector_get(f"/services/{quote(svcname, safe='')}")
 
 
 async def list_service_props() -> dict[str, Any]:
