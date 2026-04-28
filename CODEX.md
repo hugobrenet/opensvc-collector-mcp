@@ -68,6 +68,10 @@ Current MCP cluster tool surface:
 
 - `get_cluster_nodes`
 
+Current MCP service tool surface:
+
+- `list_service_props`
+
 Tool implementation standard:
 
 - Every new FastMCP tool should define an explicit `name`
@@ -164,6 +168,8 @@ Tool documentation:
 - Put detailed tool documentation under `docs/tools/`
 - Current node tool docs:
   `docs/tools/nodes.md`
+- Current service tool docs:
+  `docs/tools/services.md`
 - If new Collector domains are added, prefer one focused doc per domain:
   `docs/tools/services.md`, `docs/tools/checks.md`, etc.
 
