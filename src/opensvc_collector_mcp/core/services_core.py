@@ -21,6 +21,15 @@ SERVICE_INSTANCES_PROPS = (
     "svcmon.mon_frozen:mon_frozen,svcmon.mon_frozen_at:mon_frozen_at,"
     "svcmon.mon_encap_frozen_at:mon_encap_frozen_at"
 )
+SERVICE_NODES_PROPS = (
+    "nodes.nodename:nodename,svcmon.node_id:node_id,svcmon.id:id,"
+    "svcmon.svc_id:svc_id,svcmon.mon_vmname:mon_vmname,"
+    "svcmon.mon_overallstatus:mon_overallstatus,"
+    "svcmon.mon_availstatus:mon_availstatus,svcmon.mon_frozen:mon_frozen,"
+    "svcmon.mon_frozen_at:mon_frozen_at,"
+    "svcmon.mon_encap_frozen_at:mon_encap_frozen_at,"
+    "svcmon.mon_updated:mon_updated,svcmon.mon_changed:mon_changed"
+)
 SERVICE_RESOURCES_PROPS = (
     "nodes.nodename:nodename,rid,res_key,res_value,updated"
 )
@@ -227,6 +236,41 @@ async def get_service_instances(
         "svcname": svcname,
         "meta": meta,
         "data": response.get("data", []),
+    }
+
+
+async def get_service_nodes(
+    svcname: str,
+    props: str | None = None,
+    page_size: int = 1000,
+    max_nodes: int = 10000,
+) -> dict[str, Any]:
+    svcname = svcname.strip()
+    if not svcname:
+        raise ValueError("svcname must not be empty")
+
+    selected_props = props or SERVICE_NODES_PROPS
+    response = await collector_get_all(
+        f"/services/{quote(svcname, safe='')}/nodes",
+        params={"props": selected_props},
+        strategy="paged",
+        page_size=page_size,
+        max_items=max_nodes,
+    )
+    rows = response.get("data", [])
+    meta = dict(response.get("meta", {}))
+    meta.update(
+        {
+            "source": "service_nodes",
+            "filter": {"svcname": svcname},
+            "included_props": selected_props.split(","),
+            "node_count": len(rows),
+        }
+    )
+    return {
+        "svcname": svcname,
+        "meta": meta,
+        "data": rows,
     }
 
 

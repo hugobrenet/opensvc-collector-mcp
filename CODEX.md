@@ -79,6 +79,7 @@ Current MCP service tool surface:
 - `get_service_config`
 - `get_service_health`
 - `get_service_instances`
+- `get_service_nodes`
 - `get_service_resources`
 - `get_service_tags`
 - `search_services_by_tag`

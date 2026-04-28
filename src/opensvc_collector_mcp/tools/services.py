@@ -14,6 +14,7 @@ from opensvc_collector_mcp.core.services_core import (
     get_service_unacknowledged_errors as core_get_service_unacknowledged_errors,
     get_service_health as core_get_service_health,
     get_service_instances as core_get_service_instances,
+    get_service_nodes as core_get_service_nodes,
     get_service_resources as core_get_service_resources,
     get_service_tags as core_get_service_tags,
     list_service_props as core_list_service_props,
@@ -43,6 +44,8 @@ from opensvc_collector_mcp.models.services_model import (
     ServiceHealthResponse,
     ServiceInstancesResponse,
     ServiceNameRequest,
+    ServiceNodesRequest,
+    ServiceNodesResponse,
     ServicePropsResponse,
     ServiceResourcesResponse,
     ServiceTagsRequest,
@@ -291,6 +294,43 @@ def register_services_tools(mcp: FastMCP) -> None:
         """Return node-level service instances for one OpenSVC Collector service."""
         response = await core_get_service_instances(svcname=request.svcname)
         return ServiceInstancesResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_service_nodes",
+        description=(
+            "Return Collector node monitor rows for one service selected by exact "
+            "svcname. Use this to see which nodes know the service and the "
+            "per-node overall, availability, frozen, and update statuses."
+        ),
+        tags={"services", "nodes", "instances", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Service Nodes",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_service_nodes(
+        request: Annotated[
+            ServiceNodesRequest,
+            Field(
+                description=(
+                    "Exact service name, optional returned properties, and "
+                    "internal pagination guardrails used to list Collector "
+                    "node monitor rows through /services/<svcname>/nodes."
+                ),
+            ),
+        ],
+    ) -> ServiceNodesResponse:
+        'Return node monitor rows for one OpenSVC Collector service.'
+        response = await core_get_service_nodes(
+            svcname=request.svcname,
+            props=request.props,
+            page_size=request.page_size,
+            max_nodes=request.max_nodes,
+        )
+        return ServiceNodesResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

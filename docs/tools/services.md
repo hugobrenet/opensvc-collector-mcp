@@ -492,6 +492,50 @@ meta
 data
 ```
 
+### `get_service_nodes`
+
+Returns Collector node monitor rows for one service selected by exact `svcname`.
+
+Use this tool to identify the nodes where Collector knows the service and inspect
+per-node monitor state such as overall status, availability status, frozen state,
+last update time, and monitor VM name. This is different from
+`get_service_instances`, which reads the global `/services_instances` collection;
+`get_service_nodes` is scoped directly through `/services/<svcname>/nodes`.
+
+Example:
+
+```json
+{
+  "request": {
+    "svcname": "tst-lab-service"
+  }
+}
+```
+
+Output fields:
+
+```text
+svcname
+meta
+data
+```
+
+Each `data` row commonly includes:
+
+```text
+nodename
+node_id
+mon_vmname
+mon_overallstatus
+mon_availstatus
+mon_frozen
+mon_frozen_at
+mon_encap_frozen_at
+mon_updated
+mon_changed
+```
+
+
 ### `get_service_resources`
 
 Returns grouped OpenSVC resource information for one service selected by exact

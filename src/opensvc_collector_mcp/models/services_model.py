@@ -146,6 +146,28 @@ class ServiceTagSearchRequest(BaseModel):
     )
 
 
+class ServiceNodesRequest(ServiceNameRequest):
+    props: str | None = Field(
+        default=None,
+        description=(
+            "Comma-separated service node properties to return. Defaults to a "
+            "compact per-node monitor view with nodename and key statuses."
+        ),
+    )
+    page_size: int = Field(
+        default=1000,
+        ge=1,
+        le=5000,
+        description="Internal Collector page size used to retrieve all service nodes.",
+    )
+    max_nodes: int = Field(
+        default=10000,
+        ge=1,
+        le=100000,
+        description="Maximum number of service node rows the tool may return.",
+    )
+
+
 class ServiceTagsRequest(ServiceNameRequest):
     filters: dict[str, str] = Field(
         default_factory=dict,
@@ -808,6 +830,79 @@ class ServiceConfigResponse(BaseModel):
         default_factory=list,
         description="Parsed configuration sections and key/value options.",
     )
+
+
+class ServiceNodeRow(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    id: int | None = Field(
+        default=None,
+        description="Collector service monitor row id.",
+        exclude_if=_is_none,
+    )
+    svc_id: str | None = Field(
+        default=None,
+        description="Collector service uuid.",
+        exclude_if=_is_none,
+    )
+    nodename: str | None = Field(
+        default=None,
+        description="Node where the service is known by Collector.",
+        exclude_if=_is_none,
+    )
+    node_id: str | None = Field(
+        default=None,
+        description="Collector node uuid.",
+        exclude_if=_is_none,
+    )
+    mon_vmname: str | None = Field(
+        default=None,
+        description="Monitor VM or encapsulated instance name.",
+        exclude_if=_is_none,
+    )
+    mon_overallstatus: str | None = Field(
+        default=None,
+        description="Overall monitor status for this service on this node.",
+        exclude_if=_is_none,
+    )
+    mon_availstatus: str | None = Field(
+        default=None,
+        description="Availability monitor status for this service on this node.",
+        exclude_if=_is_none,
+    )
+    mon_frozen: int | bool | str | None = Field(
+        default=None,
+        description="Monitor frozen state for this service on this node.",
+        exclude_if=_is_none,
+    )
+    mon_frozen_at: str | None = Field(
+        default=None,
+        description="Monitor frozen timestamp for this service on this node.",
+        exclude_if=_is_none,
+    )
+    mon_encap_frozen_at: str | None = Field(
+        default=None,
+        description="Encapsulated monitor frozen timestamp for this service on this node.",
+        exclude_if=_is_none,
+    )
+    mon_updated: str | None = Field(
+        default=None,
+        description="Monitor update timestamp for this service on this node.",
+        exclude_if=_is_none,
+    )
+    mon_changed: str | None = Field(
+        default=None,
+        description="Monitor status change timestamp for this service on this node.",
+        exclude_if=_is_none,
+    )
+
+
+class ServiceNodesResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    svcname: str
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ServiceNodeRow]
 
 
 class ServiceInstanceRow(BaseModel):
