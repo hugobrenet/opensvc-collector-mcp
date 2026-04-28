@@ -1,0 +1,292 @@
+# CODEX
+
+Local project notes for working on `opensvc-collector-mcp`.
+
+## Project
+
+- Repository: `opensvc-collector-mcp`
+- Goal: build an MCP server for the OpenSVC Collector API
+- Base server framework: `FastMCP`
+- Current pinned package version: `fastmcp==3.2.4`
+
+## Python Environment
+
+- Use the local virtualenv: `./venv`
+- Activate with:
+
+```bash
+. ./venv/bin/activate
+```
+
+- Python in the venv is Python `3.13`
+
+## Local MCP Server
+
+- Server entrypoint:
+  `src/opensvc_collector_mcp/server.py`
+- The server is served directly with `uvicorn.run()`
+- FastMCP HTTP app path:
+  `/mcp`
+- Custom health route:
+  `/health`
+
+Current package layout:
+
+- `src/opensvc_collector_mcp/config.py`
+  environment variables only
+- `src/opensvc_collector_mcp/client.py`
+  generic Collector API GET helper
+- `src/opensvc_collector_mcp/tools/`
+  FastMCP tool definitions
+- `src/opensvc_collector_mcp/core/`
+  business logic and Collector request handling
+
+Current MCP node tool surface:
+
+- `list_node_props`
+- `list_nodes`
+- `search_nodes`
+- `count_nodes`
+- `get_node`
+- `get_node_tags`
+- `search_node_by_tag`
+- `search_nodes_without_tag`
+- `get_node_location`
+- `get_node_organization`
+- `get_node_hardware`
+- `get_node_hardware_components`
+- `get_node_os`
+- `get_node_network`
+- `get_node_compliance`
+- `get_node_checks`
+- `get_node_disks`
+- `get_node_cluster`
+- `get_node_services`
+- `get_node_health`
+- `get_nodes_inventory_stats`
+
+Current MCP cluster tool surface:
+
+- `get_cluster_nodes`
+
+Tool implementation standard:
+
+- Every new FastMCP tool should define an explicit `name`
+- Every new FastMCP tool should define a clear `description`
+- Use `tags` for domain grouping such as `nodes`, `services`, `inventory`, `read`
+- Use MCP `annotations` when relevant, especially:
+  `title`, `readOnlyHint`, `idempotentHint`, `destructiveHint`, `openWorldHint`
+- Tool request parameters should use
+  `Annotated[RequestModel, Field(description="...")]`.
+- Parameter descriptions should explain both purpose and expected format
+- Prefer descriptions that help an MCP client choose the tool correctly, not just descriptions of the Python implementation
+- Treat this as the default standard for all future tools in this repository
+
+Async implementation standard:
+
+- All new MCP tools must be implemented as `async def`.
+- Core functions called by tools should also be `async def` when they perform
+  Collector I/O.
+- Collector HTTP calls should go through the async `collector_get()` helper in
+  `client.py`.
+- Do not introduce blocking HTTP clients like `requests` in new tool paths.
+- If a future tool needs multiple Collector calls, keep the implementation
+  awaitable and consider concurrent calls with `asyncio.gather()` when the calls
+  are independent.
+
+Pydantic model standard:
+
+- All new MCP tools should expose Pydantic request and response models.
+- Do not expose raw `dict` or `list` contracts directly from tool signatures.
+- Use one request model and one response model per tool by default, even when a
+  request model currently only inherits from a shared base model.
+- Node models live in:
+  `src/opensvc_collector_mcp/models/nodes_model.py`
+- Prefer a single `request` model argument for complex tools.
+- Return Pydantic response models from tool functions.
+- Use shared base request models for common behavior such as filters, but expose
+  domain/tool-specific model names in tool signatures.
+- Raw Collector payloads may be handled in `client.py` and `core/`, but the MCP
+  boundary in `tools/` should be typed with Pydantic models.
+- Raw Collector rows can stay as `dict[str, Any]` fields inside response models
+  when Collector properties are dynamic.
+- If a tool has no arguments, either keep it argument-less or introduce an empty
+  request model only if consistency is worth the extra schema noise.
+- Keep model definitions in `src/opensvc_collector_mcp/models/`, named by
+  domain, for example `nodes_model.py`.
+
+Layering standard:
+
+- `tools/`: MCP surface, Pydantic request/response models, `Annotated` request
+  parameter descriptions, and calls into core.
+- `core/`: business logic and Collector-specific behavior. Core may use simple
+  Python types and raw Collector dicts.
+- `models/`: Pydantic contracts for MCP tool input/output.
+- `client.py`: async HTTP client helpers only.
+- `docs/`: human-facing tool documentation by domain.
+
+Error and production-readiness notes:
+
+- Collector HTTP errors currently bubble up from `httpx`; before production use,
+  add clean error mapping that does not expose credentials.
+- TLS verification is currently disabled for the local lab. Before production
+  use, add `OPENSVC_VERIFY_TLS` and/or `OPENSVC_CA_BUNDLE`.
+- Add focused tests as the tool surface grows, especially for model validation,
+  filter merging, `count_nodes`, `search_nodes`, `get_node_health`, and stats.
+
+Tool documentation:
+
+- Keep `README.md` oriented toward project presentation, setup, and links
+- Put detailed tool documentation under `docs/tools/`
+- Current node tool docs:
+  `docs/tools/nodes.md`
+- If new Collector domains are added, prefer one focused doc per domain:
+  `docs/tools/services.md`, `docs/tools/checks.md`, etc.
+
+Node tool design decisions:
+
+- Do not add wrapper tools like `get_nodes_by_status`,
+  `get_nodes_by_env`, `get_nodes_by_location`, or `get_nodes_by_app`
+  unless they add domain-specific logic beyond filtering.
+- `search_nodes` lists matching rows.
+- `count_nodes` returns one optimized count using Collector `meta.total`.
+- `get_nodes_inventory_stats` returns distributions and possible values.
+- `get_node` returns raw full node detail.
+- `get_node_health` returns an interpreted health summary.
+- `list_node_props` is the schema discovery tool for node properties.
+
+Generic node filters:
+
+- `search_nodes` and `count_nodes` support generic exact-match filters over
+  Collector node properties.
+- Filter format:
+
+```json
+{
+  "request": {
+    "filters": {
+      "prop": "value"
+    }
+  }
+}
+```
+
+- Discover valid props with `list_node_props`.
+- Examples:
+
+```text
+status=warn
+{"asset_env": "prod", "loc_city": "Paris, VINCENNES"}
+{"manufacturer": "Dell", "loc_rack": "A12"}
+{"node_env": "TST", "status": "down", "loc_country": "FR"}
+```
+
+- Shortcut arguments still exist for common props:
+
+```text
+status
+asset_env
+node_env
+loc_city
+loc_country
+team_responsible
+app
+os_name
+```
+
+- Generic `filters` can be combined with shortcut arguments on the same request
+  model.
+- Filters are exact matches. For nodename substring search, use
+  `nodename_contains` on `search_nodes`.
+- The Collector supports multiple filters through repeated query parameters:
+
+```text
+filters=status=warn&filters=loc_city=Paris
+```
+
+- `collector_get()` accepts either a dict or a sequence of key/value tuples so
+  repeated query parameters can be sent.
+
+Run locally:
+
+```bash
+. ./venv/bin/activate
+PYTHONPATH=src python -m opensvc_collector_mcp.server
+```
+
+Health check:
+
+```bash
+curl http://127.0.0.1:8001/health
+```
+
+HTTP MCP curl example:
+
+```bash
+curl -sS -X POST http://127.0.0.1:8001/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"count_nodes","arguments":{"request":{"filters":{"asset_env":"prod","loc_country":"FR","loc_rack":"A13"}}}}}'
+```
+
+Local workflow used during tool development:
+
+1. Implement or adjust the tool.
+2. Run compile check:
+
+```bash
+PYTHONPATH=src python -m compileall -q src
+```
+
+3. Test core logic directly with `PYTHONPATH=src python -c ...`.
+4. Test in-memory FastMCP with `fastmcp.Client`.
+5. Start server:
+
+```bash
+PYTHONPATH=src python -m opensvc_collector_mcp.server
+```
+
+6. Validate by `curl` against `http://127.0.0.1:8001/mcp`.
+7. Stop the server before handing back if requested.
+
+Server process lookup/stop:
+
+```bash
+ps -ef | grep 'python -m opensvc_collector_mcp.server' | grep -v grep
+kill <pid>
+```
+
+## Dependencies
+
+- Dependencies are tracked in `requirements.txt` using `pip freeze`
+- After installing packages in `./venv`, regenerate with:
+
+```bash
+pip freeze > requirements.txt
+```
+
+Important runtime dependencies currently used by the code:
+
+- `fastmcp`
+- `httpx`
+- `uvicorn`
+- `python-dotenv`
+
+## Environment Variables
+
+The project currently expects these variables in `.env`:
+
+- `OPENSVC_USER`
+- `OPENSVC_PASSWORD`
+- `OPENSVC_API_BASE_URL`
+- `MCP_PORT`
+
+## Important Notes
+
+- `client.py` currently uses `verify=False` for local Collector TLS. This is
+  acceptable for the local lab but should become configurable before production
+  use.
+- `pyproject.toml` declares `fastmcp==3.2.4` and `httpx==0.28.1`.
+  Runtime imports also include `python-dotenv`, `uvicorn`, `starlette`, and
+  `pydantic` through the current FastMCP stack. Review dependency declarations
+  before packaging/release.
