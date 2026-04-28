@@ -239,12 +239,16 @@ async def search_node_by_tag(tag_name: str) -> dict[str, Any]:
             "data": [],
         }
 
-    response = await collector_get(f"/tags/{quote(str(tag_id), safe='')}/nodes")
+    response = await collector_get(
+        f"/tags/{quote(str(tag_id), safe='')}/nodes",
+        params={"limit": 0},
+    )
+    data = response.get("data", [])
     return {
         "tag_name": tag_name,
         "tag_id": str(tag_id),
         "meta": response.get("meta", {}),
-        "data": response.get("data", []),
+        "data": data,
     }
 
 

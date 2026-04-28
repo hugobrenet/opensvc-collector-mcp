@@ -318,7 +318,7 @@ class NodeNetworkEntry(BaseModel):
     net_gateway: str | None = None
     net_comment: str | None = None
     net_end: str | None = None
-    net_netmask: str | None = None
+    net_netmask: int | None = None
     mask: str | None = None
     net_network: str | None = None
     addr_type: str | None = None
@@ -377,7 +377,7 @@ class NodeComplianceEntry(BaseModel):
     node_id: str | None = None
     run_action: str | None = None
     rset_md5: str | None = None
-    run_status: str | None = None
+    run_status: int | None = None
     id: int | None = None
 
 
@@ -399,7 +399,7 @@ class NodeCheckEntry(BaseModel):
     chk_instance: str | None = None
     chk_value: Any = None
     chk_threshold_provider: str | None = None
-    chk_err: str | None = None
+    chk_err: int | None = None
     chk_high: Any = None
     chk_low: Any = None
     id: int | None = None
@@ -415,7 +415,7 @@ class NodeChecksResponse(BaseModel):
 
 
 class NodeDiskEntry(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="allow")
 
     svc_id: str | None = None
     disk_size: Any = None
