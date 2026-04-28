@@ -36,6 +36,10 @@ SERVICE_CHECKS_PROPS = (
     "checks_live.chk_threshold_provider,checks_live.chk_created,"
     "checks_live.chk_updated,checks_live.node_id,checks_live.id"
 )
+SERVICE_TAGS_PROPS = (
+    "tags.tag_name,tags.tag_id,tags.tag_data,tags.tag_exclude,"
+    "tags.tag_created"
+)
 SERVICE_ACTIONS_PROPS = (
     "action,status,begin,end,time,ack,acked_by,acked_date,acked_comment,"
     "rid,subset,hostid,node_id"
@@ -257,6 +261,57 @@ async def get_service_resources(
         "svcname": svcname,
         "meta": meta,
         "resources": resources,
+    }
+
+
+async def get_service_tags(
+    svcname: str,
+    filters: dict[str, str] | str | None = None,
+    tag_name: str | None = None,
+    tag_id: str | None = None,
+    tag_exclude: str | None = None,
+    props: str | None = None,
+    page_size: int = 1000,
+    max_tags: int = 10000,
+) -> dict[str, Any]:
+    svcname = svcname.strip()
+    if not svcname:
+        raise ValueError("svcname must not be empty")
+
+    selected_props = props or SERVICE_TAGS_PROPS
+    parsed_filters = _service_tag_filters(
+        filters,
+        tag_name=tag_name,
+        tag_id=tag_id,
+        tag_exclude=tag_exclude,
+    )
+    response = await collector_get_all(
+        f"/services/{quote(svcname, safe='')}/tags",
+        params=_service_tag_params(
+            filters=parsed_filters,
+            props=selected_props,
+        ),
+        strategy="paged",
+        page_size=page_size,
+        max_items=max_tags,
+    )
+    rows = response.get("data", [])
+    meta = dict(response.get("meta", {}))
+    meta.update(
+        {
+            "source": "service_tags",
+            "filter": {
+                "svcname": svcname,
+                **{field: value for field, value in parsed_filters},
+            },
+            "included_props": selected_props.split(","),
+            "output_count": len(rows),
+        }
+    )
+    return {
+        "svcname": svcname,
+        "meta": meta,
+        "data": rows,
     }
 
 
@@ -737,6 +792,45 @@ def _group_service_resources(rows: list[dict[str, Any]]) -> list[dict[str, Any]]
 
 def _resource_type_from_rid(rid: str) -> str:
     return rid.split("#", 1)[0] if "#" in rid else rid
+
+
+def _service_tag_filters(
+    raw_filters: dict[str, str] | str | None = None,
+    **criteria: str | None,
+) -> list[tuple[str, str]]:
+    filters = [
+        (_service_tag_filter_field(field), value)
+        for field, value in _parse_service_filters(raw_filters)
+    ]
+    for field, value in criteria.items():
+        if value is None:
+            continue
+        value = value.strip()
+        if value:
+            filters.append((_service_tag_filter_field(field), value))
+    return filters
+
+
+def _service_tag_filter_field(field: str) -> str:
+    if "." in field:
+        return field
+    return {
+        "tag_name": "tags.tag_name",
+        "tag_id": "tags.tag_id",
+        "tag_data": "tags.tag_data",
+        "tag_exclude": "tags.tag_exclude",
+        "tag_created": "tags.tag_created",
+    }.get(field, field)
+
+
+def _service_tag_params(
+    filters: list[tuple[str, str]],
+    props: str,
+) -> list[tuple[str, Any]]:
+    params: list[tuple[str, Any]] = [("props", props)]
+    for field, value in filters:
+        params.append(("filters", f"{field}={value}"))
+    return params
 
 
 def _service_check_filters(

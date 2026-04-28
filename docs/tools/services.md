@@ -165,6 +165,39 @@ meta
 services
 ```
 
+### `get_service_tags`
+
+Returns OpenSVC Collector tags attached to one service selected by exact
+`svcname`.
+
+Use this tool when the question is about service classification, ownership,
+policy markers, or other metadata represented as Collector tags. The tool reads
+Collector `/services/<svcname>/tags` using internal paged retrieval, so it is
+not limited to the first Collector page.
+
+Use exact filters such as `tag_name`, `tag_id`, or `tag_exclude` to narrow the
+result. Default output uses compact tag properties.
+
+Example:
+
+```json
+{
+  "request": {
+    "svcname": "tst-lab-service",
+    "tag_name": "LAB-TAG"
+  }
+}
+```
+
+Output fields:
+
+```text
+svcname
+meta
+data
+```
+
+
 ### `get_service_checks`
 
 Returns live OpenSVC Collector checks for one service selected by exact

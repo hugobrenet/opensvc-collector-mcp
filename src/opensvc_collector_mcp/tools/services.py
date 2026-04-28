@@ -15,6 +15,7 @@ from opensvc_collector_mcp.core.services_core import (
     get_service_health as core_get_service_health,
     get_service_instances as core_get_service_instances,
     get_service_resources as core_get_service_resources,
+    get_service_tags as core_get_service_tags,
     list_service_props as core_list_service_props,
     list_services as core_list_services,
     search_frozen_services as core_search_frozen_services,
@@ -42,6 +43,8 @@ from opensvc_collector_mcp.models.services_model import (
     ServiceNameRequest,
     ServicePropsResponse,
     ServiceResourcesResponse,
+    ServiceTagsRequest,
+    ServiceTagsResponse,
     ServiceRowsResponse,
 )
 
@@ -314,6 +317,44 @@ def register_services_tools(mcp: FastMCP) -> None:
         """Return grouped resource information for one OpenSVC Collector service."""
         response = await core_get_service_resources(svcname=request.svcname)
         return ServiceResourcesResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_service_tags",
+        description=(
+            "Return OpenSVC Collector tags attached to one service selected by "
+            "exact svcname. The tool retrieves all matching tags using internal "
+            "paged Collector reads and compact tag properties by default."
+        ),
+        tags={"services", "tags", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Service Tags",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_service_tags(
+        request: Annotated[
+            ServiceTagsRequest,
+            Field(
+                description=(
+                    "Exact service name, optional exact-match tag filters, "
+                    "returned properties, and internal pagination guardrails."
+                ),
+            ),
+        ],
+    ) -> ServiceTagsResponse:
+        'Return tags attached to one OpenSVC Collector service.'
+        response = await core_get_service_tags(
+            svcname=request.svcname,
+            filters=request.merged_filters(),
+            props=request.props,
+            page_size=request.page_size,
+            max_tags=request.max_tags,
+        )
+        return ServiceTagsResponse.model_validate(response)
+
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
