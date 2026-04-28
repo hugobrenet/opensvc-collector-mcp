@@ -33,7 +33,7 @@ Local project notes for working on `opensvc-collector-mcp`.
 Current package layout:
 
 - `src/opensvc_collector_mcp/config.py`
-  environment variables only
+  environment variables and shared global configuration constants
 - `src/opensvc_collector_mcp/client.py`
   generic Collector API GET helper
 - `src/opensvc_collector_mcp/tools/`
@@ -124,6 +124,14 @@ Layering standard:
 - `models/`: Pydantic contracts for MCP tool input/output.
 - `client.py`: async HTTP client helpers only.
 - `docs/`: human-facing tool documentation by domain.
+
+Shared configuration standard:
+
+- Put shared global configuration values in `src/opensvc_collector_mcp/config.py`.
+- This includes environment-derived settings and project-wide constants such as
+  HTTP request timeouts or MCP tool timeouts.
+- Avoid duplicating the same global constant in multiple `tools/`, `core/`, or
+  `client.py` modules. Import it from `config.py` instead.
 
 Collection retrieval standard for `*_core.py`:
 
