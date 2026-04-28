@@ -23,6 +23,11 @@ SERVICE_INSTANCES_PROPS = (
 SERVICE_RESOURCES_PROPS = (
     "nodes.nodename:nodename,rid,res_key,res_value,updated"
 )
+SERVICE_ACTIONS_PROPS = (
+    "action,status,begin,end,time,ack,acked_by,acked_date,acked_comment,"
+    "rid,subset,hostid,node_id"
+)
+SERVICE_ACTIONS_LOG_PROP = "status_log"
 FROZEN_SERVICES_PROPS = (
     "services.svcname:svcname,services.svc_status:svc_status,"
     "services.svc_availstatus:svc_availstatus,services.svc_frozen:svc_frozen,"
@@ -193,6 +198,102 @@ async def get_service_resources(
     }
 
 
+async def get_service_actions(
+    svcname: str,
+    filters: dict[str, str] | str | None = None,
+    action: str | None = None,
+    status: str | None = None,
+    ack: str | None = None,
+    rid: str | None = None,
+    subset: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+    latest: bool = True,
+    latest_first: bool = True,
+    include_status_log: bool = False,
+    include_status_log_preview: bool = True,
+    status_log_max_chars: int = 500,
+) -> dict[str, Any]:
+    svcname = svcname.strip()
+    if not svcname:
+        raise ValueError("svcname must not be empty")
+
+    limit = max(1, min(limit, 100))
+    offset = max(0, offset)
+    status_log_max_chars = max(0, min(status_log_max_chars, 5000))
+    parsed_filters = _service_action_filters(
+        filters,
+        action=action,
+        status=status,
+        ack=ack,
+        rid=rid,
+        subset=subset,
+    )
+    endpoint = f"/services/{quote(svcname, safe='')}/actions"
+    props = _service_action_props(
+        include_status_log=include_status_log,
+        include_status_log_preview=include_status_log_preview,
+    )
+
+    effective_offset = offset
+    total: int | None = None
+    if latest:
+        probe = await collector_get(
+            endpoint,
+            params=_service_action_params(
+                filters=parsed_filters,
+                props="action",
+                limit=1,
+                offset=0,
+            ),
+        )
+        total = _int_or_none(probe.get("meta", {}).get("total"))
+        if total is not None:
+            effective_offset = max(0, total - limit)
+
+    response = await collector_get(
+        endpoint,
+        params=_service_action_params(
+            filters=parsed_filters,
+            props=props,
+            limit=limit,
+            offset=effective_offset,
+        ),
+    )
+    meta = dict(response.get("meta", {}))
+    if total is None:
+        total = _int_or_none(meta.get("total"))
+    rows = _service_action_rows(
+        response.get("data", []),
+        include_status_log=include_status_log,
+        include_status_log_preview=include_status_log_preview,
+        status_log_max_chars=status_log_max_chars,
+        latest_first=latest_first,
+    )
+    meta.update(
+        {
+            "source": "service_actions",
+            "filter": {
+                "svcname": svcname,
+                **{field: value for field, value in parsed_filters},
+            },
+            "requested_latest": latest,
+            "latest_first": latest_first,
+            "effective_offset": effective_offset,
+            "total": total,
+            "include_status_log": include_status_log,
+            "include_status_log_preview": include_status_log_preview,
+            "status_log_max_chars": status_log_max_chars,
+            "output_count": len(rows),
+        }
+    )
+    return {
+        "svcname": svcname,
+        "meta": meta,
+        "data": rows,
+    }
+
+
 async def search_frozen_services(
     filters: dict[str, str] | str | None = None,
     min_frozen_days: int = 0,
@@ -350,6 +451,85 @@ def _group_service_resources(rows: list[dict[str, Any]]) -> list[dict[str, Any]]
 
 def _resource_type_from_rid(rid: str) -> str:
     return rid.split("#", 1)[0] if "#" in rid else rid
+
+
+def _service_action_props(
+    include_status_log: bool,
+    include_status_log_preview: bool,
+) -> str:
+    props = SERVICE_ACTIONS_PROPS.split(",")
+    if include_status_log or include_status_log_preview:
+        props.append(SERVICE_ACTIONS_LOG_PROP)
+    return ",".join(props)
+
+
+def _service_action_filters(
+    raw_filters: dict[str, str] | str | None = None,
+    **criteria: str | None,
+) -> list[tuple[str, str]]:
+    filters: list[tuple[str, str]] = []
+    filters.extend(_parse_service_filters(raw_filters))
+    for field, value in criteria.items():
+        if value is None:
+            continue
+        value = value.strip()
+        if value:
+            filters.append((field, value))
+    return filters
+
+
+def _service_action_params(
+    filters: list[tuple[str, str]],
+    props: str,
+    limit: int,
+    offset: int,
+) -> list[tuple[str, Any]]:
+    params: list[tuple[str, Any]] = [
+        ("props", props),
+        ("limit", limit),
+        ("offset", offset),
+    ]
+    for field, value in filters:
+        params.append(("filters", f"{field}={value}"))
+    return params
+
+
+def _service_action_rows(
+    rows: list[dict[str, Any]],
+    include_status_log: bool,
+    include_status_log_preview: bool,
+    status_log_max_chars: int,
+    latest_first: bool,
+) -> list[dict[str, Any]]:
+    shaped: list[dict[str, Any]] = []
+    source_rows = reversed(rows) if latest_first else rows
+    for row in source_rows:
+        action = dict(row)
+        status_log = action.get(SERVICE_ACTIONS_LOG_PROP)
+        if status_log is not None and include_status_log_preview:
+            action["status_log_preview"] = _truncate_text(
+                str(status_log),
+                status_log_max_chars,
+            )
+        if not include_status_log:
+            action.pop(SERVICE_ACTIONS_LOG_PROP, None)
+        shaped.append(action)
+    return shaped
+
+
+def _truncate_text(value: str, max_chars: int) -> str:
+    if max_chars <= 0:
+        return ""
+    if len(value) <= max_chars:
+        return value
+    return f"{value[:max_chars]}..."
+
+
+def _int_or_none(value: Any) -> int | None:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _group_frozen_services(

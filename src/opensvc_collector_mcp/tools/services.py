@@ -7,6 +7,7 @@ from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.services_core import (
     count_services as core_count_services,
     get_service as core_get_service,
+    get_service_actions as core_get_service_actions,
     get_service_health as core_get_service_health,
     get_service_instances as core_get_service_instances,
     get_service_resources as core_get_service_resources,
@@ -22,6 +23,8 @@ from opensvc_collector_mcp.models.services_model import (
     FrozenServicesResponse,
     ListServicesRequest,
     SearchServicesRequest,
+    ServiceActionsRequest,
+    ServiceActionsResponse,
     ServiceHealthResponse,
     ServiceInstancesResponse,
     ServiceNameRequest,
@@ -262,6 +265,48 @@ def register_services_tools(mcp: FastMCP) -> None:
         """Return grouped resource information for one OpenSVC Collector service."""
         response = await core_get_service_resources(svcname=request.svcname)
         return ServiceResourcesResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_service_actions",
+        description=(
+            "Return recent or paginated OpenSVC action history for one service. "
+            "Use status or action filters for targeted history, latest=true for "
+            "the newest matching actions, and include_status_log only when full "
+            "logs are explicitly needed."
+        ),
+        tags={"services", "actions", "history", "read"},
+        annotations={
+            "title": "Get OpenSVC Service Actions",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_service_actions(
+        request: Annotated[
+            ServiceActionsRequest,
+            Field(
+                description=(
+                    "Exact service name, action filters, pagination, and status_log "
+                    "options used to inspect service action history."
+                ),
+            ),
+        ],
+    ) -> ServiceActionsResponse:
+        'Return service action history for one OpenSVC Collector service.'
+        response = await core_get_service_actions(
+            svcname=request.svcname,
+            filters=request.merged_filters(),
+            limit=request.limit,
+            offset=request.offset,
+            latest=request.latest,
+            latest_first=request.latest_first,
+            include_status_log=request.include_status_log,
+            include_status_log_preview=request.include_status_log_preview,
+            status_log_max_chars=request.status_log_max_chars,
+        )
+        return ServiceActionsResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

@@ -125,6 +125,42 @@ meta
 services
 ```
 
+### `get_service_actions`
+
+Returns recent or paginated OpenSVC action history for one service selected by
+exact `svcname`.
+
+Use this tool to inspect actions executed on a service, such as starts, stops,
+provisions, syncs, freezes, and related errors. By default, `latest` is true, so
+it returns the newest matching actions without requiring the client to calculate
+an offset from Collector `meta.total`.
+
+Use exact filters such as `action`, `status`, `ack`, `rid`, and `subset` to
+focus the history. Full `status_log` values can be large, so they are excluded
+by default. The tool returns a truncated `status_log_preview` by default when a
+log is available.
+
+Example:
+
+```json
+{
+  "request": {
+    "svcname": "tst-lab-service",
+    "status": "err",
+    "limit": 10,
+    "latest": true
+  }
+}
+```
+
+Output fields:
+
+```text
+svcname
+meta
+data
+```
+
 ### `get_service_health`
 
 Returns an interpreted health summary for one service selected by exact
