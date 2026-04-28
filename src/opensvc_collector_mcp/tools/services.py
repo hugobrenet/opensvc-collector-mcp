@@ -5,11 +5,14 @@ from pydantic import Field
 
 from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.services_core import (
+    count_services as core_count_services,
     list_service_props as core_list_service_props,
     list_services as core_list_services,
     search_services as core_search_services,
 )
 from opensvc_collector_mcp.models.services_model import (
+    CountServicesRequest,
+    CountServicesResponse,
     ListServicesRequest,
     SearchServicesRequest,
     ServicePropsResponse,
@@ -97,3 +100,28 @@ def register_services_tools(mcp: FastMCP) -> None:
             offset=request.offset,
         )
         return ServiceRowsResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="count_services",
+        description=(
+            "Count OpenSVC Collector services matching exact-match service filters. "
+            "Use this when only the number of matching services is needed."
+        ),
+        tags={"services", "inventory", "count", "read"},
+        annotations={
+            "title": "Count OpenSVC Services",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def count_services(
+        request: Annotated[
+            CountServicesRequest,
+            Field(description="Exact-match filters used to count Collector services."),
+        ],
+    ) -> CountServicesResponse:
+        """Return the number of services matching the provided filters."""
+        response = await core_count_services(filters=request.merged_filters())
+        return CountServicesResponse.model_validate(response)

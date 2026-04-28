@@ -55,6 +55,42 @@ async def search_services(
     )
 
 
+async def count_services(
+    filters: dict[str, str] | str | None = None,
+    svcname: str | None = None,
+    svc_app: str | None = None,
+    svc_env: str | None = None,
+    svc_status: str | None = None,
+    svc_availstatus: str | None = None,
+    svc_topology: str | None = None,
+    svc_frozen: str | None = None,
+) -> dict[str, Any]:
+    parsed_filters = _service_search_filters(
+        filters,
+        svcname=svcname,
+        svc_app=svc_app,
+        svc_env=svc_env,
+        svc_status=svc_status,
+        svc_availstatus=svc_availstatus,
+        svc_topology=svc_topology,
+        svc_frozen=svc_frozen,
+    )
+    response = await collector_get(
+        "/services",
+        params=_service_search_params(
+            filters=parsed_filters,
+            props="svcname",
+            limit=1,
+            offset=0,
+        ),
+    )
+    meta = response.get("meta", {})
+    return {
+        "count": meta.get("total"),
+        "filters": {field: value for field, value in parsed_filters},
+    }
+
+
 async def list_service_props() -> dict[str, Any]:
     response = await collector_get("/services", params={"props": "svcname"})
     available_props = response.get("meta", {}).get("available_props", [])

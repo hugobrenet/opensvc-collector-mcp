@@ -15,6 +15,10 @@ shared `collector_get_all(..., strategy="paged")` helper and walks
 `/services` with exact-match filters plus explicit `limit` and `offset`, and
 uses Collector `meta.total` instead of fetching all matches.
 
+`count_services` does not paginate. It sends one Collector GET to `/services`
+with `props=svcname`, `limit=1`, `offset=0`, and exact-match filters, then
+returns Collector `meta.total`.
+
 `list_service_props` does not paginate. It performs one Collector GET on
 `/services` with `props=svcname` and reads `meta.available_props`; the returned
 service row is not used as inventory data.
@@ -57,6 +61,32 @@ Output fields:
 ```text
 meta
 data
+```
+
+### `count_services`
+
+Counts OpenSVC Collector services matching exact-match filters without
+returning service rows.
+
+The request supports the same shortcut and generic filters as
+`search_services`.
+
+Example:
+
+```json
+{
+  "request": {
+    "svc_env": "TST",
+    "svc_status": "up"
+  }
+}
+```
+
+Output fields:
+
+```text
+count
+filters
 ```
 
 ### `list_service_props`

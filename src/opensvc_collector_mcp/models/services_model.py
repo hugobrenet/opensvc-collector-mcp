@@ -91,6 +91,10 @@ class SearchServicesRequest(ServiceFilterRequest):
     )
 
 
+class CountServicesRequest(ServiceFilterRequest):
+    pass
+
+
 class ServicePropsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -104,3 +108,10 @@ class ServiceRowsResponse(BaseModel):
 
     meta: dict[str, Any] = Field(default_factory=dict)
     data: list[dict[str, Any]]
+
+
+class CountServicesResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    count: int | None
+    filters: dict[str, str]
