@@ -168,6 +168,28 @@ class ServiceNodesRequest(ServiceNameRequest):
     )
 
 
+class ServiceHbasRequest(ServiceNameRequest):
+    props: str | None = Field(
+        default=None,
+        description=(
+            "Comma-separated service HBA properties to return. Defaults to a "
+            "compact flat HBA view with node, HBA id, HBA type, and update time."
+        ),
+    )
+    page_size: int = Field(
+        default=1000,
+        ge=1,
+        le=5000,
+        description="Internal Collector page size used to retrieve all service HBAs.",
+    )
+    max_hbas: int = Field(
+        default=10000,
+        ge=1,
+        le=100000,
+        description="Maximum number of service HBA rows the tool may return.",
+    )
+
+
 class ServiceDisksRequest(ServiceNameRequest):
     props: str | None = Field(
         default=None,
@@ -999,6 +1021,49 @@ class ServiceInstancesResponse(BaseModel):
     svcname: str
     meta: dict[str, Any] = Field(default_factory=dict)
     data: list[ServiceInstanceRow]
+
+
+class ServiceHbaRow(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    id: int | None = Field(
+        default=None,
+        description="Collector HBA row id.",
+        exclude_if=_is_none,
+    )
+    nodename: str | None = Field(
+        default=None,
+        description="Node associated with this HBA row.",
+        exclude_if=_is_none,
+    )
+    node_id: str | None = Field(
+        default=None,
+        description="Collector node uuid.",
+        exclude_if=_is_none,
+    )
+    hba_id: str | None = Field(
+        default=None,
+        description="HBA identifier, such as a Fibre Channel WWPN or iSCSI IQN.",
+        exclude_if=_is_none,
+    )
+    hba_type: str | None = Field(
+        default=None,
+        description="HBA type, for example fc or iscsi.",
+        exclude_if=_is_none,
+    )
+    updated: str | None = Field(
+        default=None,
+        description="Collector HBA update timestamp.",
+        exclude_if=_is_none,
+    )
+
+
+class ServiceHbasResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    svcname: str
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ServiceHbaRow]
 
 
 class ServiceDiskRow(BaseModel):

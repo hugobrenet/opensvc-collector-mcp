@@ -30,6 +30,11 @@ SERVICE_NODES_PROPS = (
     "svcmon.mon_encap_frozen_at:mon_encap_frozen_at,"
     "svcmon.mon_updated:mon_updated,svcmon.mon_changed:mon_changed"
 )
+SERVICE_HBAS_PROPS = (
+    "nodes.nodename:nodename,node_hba.node_id:node_id,"
+    "node_hba.id:id,node_hba.hba_id:hba_id,"
+    "node_hba.hba_type:hba_type,node_hba.updated:updated"
+)
 SERVICE_DISKS_PROPS = (
     "nodes.nodename:nodename,svcdisks.node_id:node_id,"
     "svcdisks.id:id,svcdisks.svc_id:svc_id,svcdisks.disk_id:disk_id,"
@@ -277,6 +282,41 @@ async def get_service_nodes(
             "filter": {"svcname": svcname},
             "included_props": selected_props.split(","),
             "node_count": len(rows),
+        }
+    )
+    return {
+        "svcname": svcname,
+        "meta": meta,
+        "data": rows,
+    }
+
+
+async def get_service_hbas(
+    svcname: str,
+    props: str | None = None,
+    page_size: int = 1000,
+    max_hbas: int = 10000,
+) -> dict[str, Any]:
+    svcname = svcname.strip()
+    if not svcname:
+        raise ValueError("svcname must not be empty")
+
+    selected_props = props or SERVICE_HBAS_PROPS
+    response = await collector_get_all(
+        f"/services/{quote(svcname, safe='')}/hbas",
+        params={"props": selected_props},
+        strategy="paged",
+        page_size=page_size,
+        max_items=max_hbas,
+    )
+    rows = response.get("data", [])
+    meta = dict(response.get("meta", {}))
+    meta.update(
+        {
+            "source": "service_hbas",
+            "filter": {"svcname": svcname},
+            "included_props": selected_props.split(","),
+            "hba_count": len(rows),
         }
     )
     return {

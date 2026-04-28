@@ -12,6 +12,7 @@ from opensvc_collector_mcp.core.services_core import (
     get_service_checks as core_get_service_checks,
     get_service_config as core_get_service_config,
     get_service_disks as core_get_service_disks,
+    get_service_hbas as core_get_service_hbas,
     get_service_unacknowledged_errors as core_get_service_unacknowledged_errors,
     get_service_health as core_get_service_health,
     get_service_instances as core_get_service_instances,
@@ -44,6 +45,8 @@ from opensvc_collector_mcp.models.services_model import (
     ServiceDisksResponse,
     ServiceUnacknowledgedErrorsRequest,
     ServiceUnacknowledgedErrorsResponse,
+    ServiceHbasRequest,
+    ServiceHbasResponse,
     ServiceHealthResponse,
     ServiceInstancesResponse,
     ServiceNameRequest,
@@ -334,6 +337,43 @@ def register_services_tools(mcp: FastMCP) -> None:
             max_nodes=request.max_nodes,
         )
         return ServiceNodesResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_service_hbas",
+        description=(
+            "Return HBA rows attached to one OpenSVC service selected by exact "
+            "svcname. The tool reads /services/<svcname>/hbas and returns a "
+            "flat view with node, HBA id, HBA type, and update time."
+        ),
+        tags={"services", "hbas", "storage", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Service HBAs",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_service_hbas(
+        request: Annotated[
+            ServiceHbasRequest,
+            Field(
+                description=(
+                    "Exact service name, optional returned properties, and "
+                    "internal pagination guardrails used to list HBAs through "
+                    "Collector /services/<svcname>/hbas."
+                ),
+            ),
+        ],
+    ) -> ServiceHbasResponse:
+        'Return HBA rows attached to one OpenSVC Collector service.'
+        response = await core_get_service_hbas(
+            svcname=request.svcname,
+            props=request.props,
+            page_size=request.page_size,
+            max_hbas=request.max_hbas,
+        )
+        return ServiceHbasResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
