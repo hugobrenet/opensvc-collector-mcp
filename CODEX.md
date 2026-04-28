@@ -70,6 +70,7 @@ Current MCP cluster tool surface:
 
 Current MCP service tool surface:
 
+- `list_services`
 - `list_service_props`
 
 Tool implementation standard:
