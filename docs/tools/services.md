@@ -165,6 +165,75 @@ meta
 services
 ```
 
+### `search_services_by_tag`
+
+Returns services that have one exact OpenSVC Collector tag attached.
+
+The tool resolves the tag through Collector `/tags`, then calls
+`/tags/<tag_id>/services` using internal paged retrieval. Returned services are
+deduplicated by `svcname` because Collector can expose several rows for the same
+service/tag relation.
+
+Use `meta.service_count` to count unique tagged services. `meta.raw_count` is the
+raw Collector row count and `meta.duplicate_count` is the number of removed
+duplicate rows.
+
+Example:
+
+```json
+{
+  "request": {
+    "tag_name": "LAB-TAG",
+    "props": "svcname,svc_app,svc_env,svc_status"
+  }
+}
+```
+
+Output fields:
+
+```text
+tag_name
+tag_id
+tag
+meta
+data
+```
+
+### `search_services_without_tag`
+
+Returns services that do not have one exact OpenSVC Collector tag attached.
+
+The tool resolves the tag through Collector `/tags`, lists services attached to
+that tag through `/tags/<tag_id>/services`, lists all services through
+`/services`, then returns the difference by `svcname`.
+
+Use `meta.service_count` to count services without the tag, `meta.tagged_count`
+to count unique services with the tag, `meta.tagged_raw_count` to inspect the raw
+Collector row count for tagged services, and `meta.total_services` to see the
+full service population scanned.
+
+Example:
+
+```json
+{
+  "request": {
+    "tag_name": "LAB-TAG",
+    "props": "svcname,svc_app,svc_env,svc_status"
+  }
+}
+```
+
+Output fields:
+
+```text
+tag_name
+tag_id
+tag
+meta
+data
+```
+
+
 ### `get_service_tags`
 
 Returns OpenSVC Collector tags attached to one service selected by exact

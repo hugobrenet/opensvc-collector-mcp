@@ -117,6 +117,35 @@ class ServiceNameRequest(BaseModel):
     )
 
 
+class ServiceTagSearchRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    tag_name: str = Field(
+        min_length=1,
+        description="Exact OpenSVC Collector tag name.",
+        examples=["LAB-TAG"],
+    )
+    props: str | None = Field(
+        default=None,
+        description=(
+            "Comma-separated service properties to return. svcname is always "
+            "included because it is required to identify services."
+        ),
+    )
+    page_size: int = Field(
+        default=1000,
+        ge=1,
+        le=5000,
+        description="Internal Collector page size used for paged reads.",
+    )
+    max_services: int = Field(
+        default=200000,
+        ge=1,
+        le=500000,
+        description="Maximum number of services the tool may scan or return.",
+    )
+
+
 class ServiceTagsRequest(ServiceNameRequest):
     filters: dict[str, str] = Field(
         default_factory=dict,
@@ -641,6 +670,26 @@ class ServiceTagsResponse(BaseModel):
     svcname: str
     meta: dict[str, Any] = Field(default_factory=dict)
     data: list[ServiceTagRow]
+
+
+class ServicesByTagResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    tag_name: str
+    tag_id: str | None = Field(default=None, exclude_if=_is_none)
+    tag: ServiceTagRow | None = Field(default=None, exclude_if=_is_none)
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ServiceRow]
+
+
+class ServicesWithoutTagResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    tag_name: str
+    tag_id: str | None = Field(default=None, exclude_if=_is_none)
+    tag: ServiceTagRow | None = Field(default=None, exclude_if=_is_none)
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ServiceRow]
 
 
 class ServiceCheckRow(BaseModel):

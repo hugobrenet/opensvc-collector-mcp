@@ -40,6 +40,7 @@ SERVICE_TAGS_PROPS = (
     "tags.tag_name,tags.tag_id,tags.tag_data,tags.tag_exclude,"
     "tags.tag_created"
 )
+TAG_LOOKUP_PROPS = "tag_name,tag_id,tag_data,tag_exclude,tag_created"
 SERVICE_ACTIONS_PROPS = (
     "action,status,begin,end,time,ack,acked_by,acked_date,acked_comment,"
     "rid,subset,hostid,node_id"
@@ -261,6 +262,139 @@ async def get_service_resources(
         "svcname": svcname,
         "meta": meta,
         "resources": resources,
+    }
+
+
+async def search_services_by_tag(
+    tag_name: str,
+    props: str | None = None,
+    page_size: int = 1000,
+    max_services: int = 200000,
+) -> dict[str, Any]:
+    tag_name = tag_name.strip()
+    if not tag_name:
+        raise ValueError("tag_name must not be empty")
+
+    tag = await _resolve_tag_by_name(tag_name)
+    if not tag:
+        return {
+            "tag_name": tag_name,
+            "tag_id": None,
+            "meta": {
+                "count": 0,
+                "source": "tags",
+                "complete": True,
+                "raw_count": 0,
+                "service_count": 0,
+                "duplicate_count": 0,
+            },
+            "data": [],
+        }
+
+    tag_id = str(tag.get("tag_id") or "")
+    if not tag_id:
+        return {
+            "tag_name": tag_name,
+            "tag_id": None,
+            "meta": {
+                "count": 0,
+                "source": "tags",
+                "complete": True,
+                "raw_count": 0,
+                "service_count": 0,
+                "duplicate_count": 0,
+            },
+            "data": [],
+        }
+
+    selected_props = _ensure_props_include(props or DEFAULT_LIST_SERVICE_PROPS, "svcname")
+    response = await collector_get_all(
+        f"/tags/{quote(tag_id, safe='')}/services",
+        params={"props": selected_props},
+        strategy="paged",
+        page_size=page_size,
+        max_items=max_services,
+    )
+    raw_rows = response.get("data", [])
+    rows = _dedupe_service_rows_by_name(raw_rows)
+    meta = dict(response.get("meta", {}))
+    meta.update(
+        {
+            "source": "tags/<tag_id>/services",
+            "filter": {"tag_name": tag_name, "tag_id": tag_id},
+            "included_props": selected_props.split(","),
+            "raw_count": len(raw_rows),
+            "service_count": len(rows),
+            "duplicate_count": len(raw_rows) - len(rows),
+        }
+    )
+    return {
+        "tag_name": tag_name,
+        "tag_id": tag_id,
+        "tag": tag,
+        "meta": meta,
+        "data": rows,
+    }
+
+
+async def search_services_without_tag(
+    tag_name: str,
+    props: str | None = None,
+    page_size: int = 1000,
+    max_services: int = 200000,
+) -> dict[str, Any]:
+    tag_name = tag_name.strip()
+    if not tag_name:
+        raise ValueError("tag_name must not be empty")
+
+    tagged = await search_services_by_tag(
+        tag_name=tag_name,
+        props="svcname",
+        page_size=page_size,
+        max_services=max_services,
+    )
+    tagged_names = {
+        str(row.get("svcname")).strip()
+        for row in tagged.get("data", [])
+        if str(row.get("svcname", "")).strip()
+    }
+
+    selected_props = _ensure_props_include(props or DEFAULT_LIST_SERVICE_PROPS, "svcname")
+    all_services = await collector_get_all(
+        "/services",
+        params={"props": selected_props},
+        strategy="paged",
+        page_size=page_size,
+        max_items=max_services,
+    )
+    all_rows = all_services.get("data", [])
+    rows = [
+        row
+        for row in all_rows
+        if str(row.get("svcname", "")).strip() not in tagged_names
+    ]
+    all_meta = dict(all_services.get("meta", {}))
+    complete = bool(all_meta.get("complete")) and bool(tagged.get("meta", {}).get("complete"))
+    meta = {
+        "count": len(rows),
+        "source": "services - tags/<tag_id>/services",
+        "filter": {"tag_name": tag_name, "tag_id": tagged.get("tag_id")},
+        "included_props": selected_props.split(","),
+        "service_count": len(rows),
+        "tagged_count": len(tagged_names),
+        "tagged_raw_count": tagged.get("meta", {}).get("raw_count"),
+        "total_services": all_meta.get("total", len(all_rows)),
+        "complete": complete,
+        "page_size": all_meta.get("page_size"),
+        "max_items": all_meta.get("max_items"),
+        "strategy": all_meta.get("strategy"),
+    }
+    return {
+        "tag_name": tag_name,
+        "tag_id": tagged.get("tag_id"),
+        "tag": tagged.get("tag"),
+        "meta": meta,
+        "data": rows,
     }
 
 
@@ -707,6 +841,44 @@ async def list_service_props() -> dict[str, Any]:
         "available_props": available_props,
         "service_props": service_props,
     }
+
+
+async def _resolve_tag_by_name(tag_name: str) -> dict[str, Any] | None:
+    response = await collector_get(
+        "/tags",
+        params=[
+            ("filters", f"tag_name={tag_name}"),
+            ("props", TAG_LOOKUP_PROPS),
+            ("limit", 1),
+            ("offset", 0),
+        ],
+    )
+    rows = response.get("data", [])
+    if not rows:
+        return None
+    return rows[0]
+
+
+def _ensure_props_include(props: str, required_prop: str) -> str:
+    parts = [part.strip() for part in props.split(",") if part.strip()]
+    if not parts:
+        return required_prop
+    normalized = {part.rsplit(":", 1)[-1].rsplit(".", 1)[-1] for part in parts}
+    if required_prop not in normalized:
+        parts.append(required_prop)
+    return ",".join(parts)
+
+
+def _dedupe_service_rows_by_name(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    services: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for row in rows:
+        svcname = str(row.get("svcname", "")).strip()
+        if not svcname or svcname in seen:
+            continue
+        seen.add(svcname)
+        services.append(row)
+    return services
 
 
 def _parse_service_config_sections(config_text: str) -> list[dict[str, Any]]:
