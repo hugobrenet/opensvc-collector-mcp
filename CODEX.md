@@ -72,6 +72,7 @@ Current MCP service tool surface:
 
 - `list_services`
 - `list_service_props`
+- `search_services`
 
 Tool implementation standard:
 
