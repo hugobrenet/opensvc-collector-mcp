@@ -17,6 +17,9 @@ SERVICE_INSTANCES_PROPS = (
     "svcmon.mon_frozen:mon_frozen,svcmon.mon_frozen_at:mon_frozen_at,"
     "svcmon.mon_encap_frozen_at:mon_encap_frozen_at"
 )
+SERVICE_RESOURCES_PROPS = (
+    "nodes.nodename:nodename,rid,res_key,res_value,updated"
+)
 
 
 async def list_services(props: str | None = None) -> dict[str, Any]:
@@ -143,6 +146,41 @@ async def get_service_instances(
     }
 
 
+async def get_service_resources(
+    svcname: str,
+    page_size: int = 1000,
+    max_items: int = 200000,
+) -> dict[str, Any]:
+    svcname = svcname.strip()
+    if not svcname:
+        raise ValueError("svcname must not be empty")
+
+    response = await collector_get_all(
+        f"/services/{quote(svcname, safe='')}/resinfo",
+        params={"props": SERVICE_RESOURCES_PROPS},
+        strategy="paged",
+        page_size=page_size,
+        max_items=max_items,
+    )
+    rows = response.get("data", [])
+    resources = _group_service_resources(rows)
+    meta = dict(response.get("meta", {}))
+    meta.update(
+        {
+            "source": "services_resinfo",
+            "filter": {"svcname": svcname},
+            "included_props": SERVICE_RESOURCES_PROPS.split(","),
+            "raw_count": len(rows),
+            "resource_count": len(resources),
+        }
+    )
+    return {
+        "svcname": svcname,
+        "meta": meta,
+        "resources": resources,
+    }
+
+
 async def list_service_props() -> dict[str, Any]:
     response = await collector_get("/services", params={"props": "svcname"})
     available_props = response.get("meta", {}).get("available_props", [])
@@ -157,6 +195,65 @@ async def list_service_props() -> dict[str, Any]:
         "available_props": available_props,
         "service_props": service_props,
     }
+
+
+def _group_service_resources(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    grouped: dict[tuple[str, str], dict[str, Any]] = {}
+    for row in rows:
+        rid = str(row.get("rid") or "")
+        nodename = str(row.get("nodename") or "")
+        if not rid:
+            continue
+
+        key = (rid, nodename)
+        resource = grouped.setdefault(
+            key,
+            {
+                "rid": rid,
+                "resource_type": _resource_type_from_rid(rid),
+                "properties": {},
+            },
+        )
+        if nodename:
+            resource["nodename"] = nodename
+
+        updated = row.get("updated")
+        if updated and (
+            not resource.get("updated") or str(updated) > str(resource["updated"])
+        ):
+            resource["updated"] = updated
+
+        res_key = row.get("res_key")
+        if not res_key:
+            continue
+        res_key = str(res_key)
+        res_value = row.get("res_value")
+        resource["properties"][res_key] = res_value
+        if res_key in {
+            "driver",
+            "name",
+            "monitor",
+            "optional",
+            "disabled",
+            "shared",
+            "encap",
+            "standby",
+            "tags",
+        }:
+            resource[res_key] = res_value
+
+    return sorted(
+        grouped.values(),
+        key=lambda resource: (
+            str(resource.get("resource_type") or ""),
+            str(resource.get("rid") or ""),
+            str(resource.get("nodename") or ""),
+        ),
+    )
+
+
+def _resource_type_from_rid(rid: str) -> str:
+    return rid.split("#", 1)[0] if "#" in rid else rid
 
 
 def _service_search_filters(

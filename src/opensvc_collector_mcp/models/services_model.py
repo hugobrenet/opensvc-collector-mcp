@@ -302,6 +302,82 @@ class ServiceInstancesResponse(BaseModel):
     data: list[ServiceInstanceRow]
 
 
+class ServiceResource(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    rid: str = Field(description="OpenSVC resource identifier, for example disk#0.")
+    resource_type: str = Field(
+        description="Resource family derived from rid, for example disk, ip, fs, app, sync.",
+    )
+    nodename: str | None = Field(
+        default=None,
+        description="Node or encapsulated node this resource information belongs to.",
+        exclude_if=_is_none,
+    )
+    driver: str | None = Field(
+        default=None,
+        description="OpenSVC resource driver.",
+        exclude_if=_is_none,
+    )
+    name: str | None = Field(
+        default=None,
+        description="Resource name when exposed by Collector.",
+        exclude_if=_is_none,
+    )
+    monitor: str | None = Field(
+        default=None,
+        description="Resource monitor setting.",
+        exclude_if=_is_none,
+    )
+    optional: str | None = Field(
+        default=None,
+        description="Resource optional setting.",
+        exclude_if=_is_none,
+    )
+    disabled: str | None = Field(
+        default=None,
+        description="Resource disabled setting.",
+        exclude_if=_is_none,
+    )
+    shared: str | None = Field(
+        default=None,
+        description="Resource shared setting.",
+        exclude_if=_is_none,
+    )
+    encap: str | None = Field(
+        default=None,
+        description="Resource encapsulation setting.",
+        exclude_if=_is_none,
+    )
+    standby: str | None = Field(
+        default=None,
+        description="Resource standby setting.",
+        exclude_if=_is_none,
+    )
+    tags: str | None = Field(
+        default=None,
+        description="Resource tags when exposed by Collector.",
+        exclude_if=_is_none,
+    )
+    updated: str | None = Field(
+        default=None,
+        description="Most recent Collector update timestamp found for this resource.",
+        exclude_if=_is_none,
+    )
+    properties: dict[str, Any] = Field(
+        default_factory=dict,
+        description="All resource key/value properties grouped from Collector resinfo rows.",
+    )
+
+
+class ServiceResourcesResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    svcname: str
+    meta: dict[str, Any] = Field(default_factory=dict)
+    resources: list[ServiceResource]
+
+
 class CountServicesResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

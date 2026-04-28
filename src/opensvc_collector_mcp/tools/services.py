@@ -8,6 +8,7 @@ from opensvc_collector_mcp.core.services_core import (
     count_services as core_count_services,
     get_service as core_get_service,
     get_service_instances as core_get_service_instances,
+    get_service_resources as core_get_service_resources,
     list_service_props as core_list_service_props,
     list_services as core_list_services,
     search_services as core_search_services,
@@ -20,6 +21,7 @@ from opensvc_collector_mcp.models.services_model import (
     ServiceInstancesResponse,
     ServiceNameRequest,
     ServicePropsResponse,
+    ServiceResourcesResponse,
     ServiceRowsResponse,
 )
 
@@ -189,3 +191,34 @@ def register_services_tools(mcp: FastMCP) -> None:
         """Return node-level service instances for one OpenSVC Collector service."""
         response = await core_get_service_instances(svcname=request.svcname)
         return ServiceInstancesResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_service_resources",
+        description=(
+            "Return OpenSVC service resources for one service selected by exact "
+            "svcname. The tool reads /services/<svcname>/resinfo and groups "
+            "Collector key/value rows by resource id and node."
+        ),
+        tags={"services", "resources", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Service Resources",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_service_resources(
+        request: Annotated[
+            ServiceNameRequest,
+            Field(
+                description=(
+                    "Exact service name used to list grouped resource information "
+                    "through Collector /services/<svcname>/resinfo."
+                ),
+            ),
+        ],
+    ) -> ServiceResourcesResponse:
+        """Return grouped resource information for one OpenSVC Collector service."""
+        response = await core_get_service_resources(svcname=request.svcname)
+        return ServiceResourcesResponse.model_validate(response)

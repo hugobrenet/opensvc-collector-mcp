@@ -26,6 +26,11 @@ returns Collector `meta.total`.
 `/services_instances` through the shared `collector_get_all(...,
 strategy="paged")` helper and filters on `services.svcname`.
 
+`get_service_resources` uses `prefer_pagination`: it calls
+`/services/<svcname>/resinfo` through the shared `collector_get_all(...,
+strategy="paged")` helper, then groups Collector key/value rows by resource id
+and node.
+
 `list_service_props` does not paginate. It performs one Collector GET on
 `/services` with `props=svcname` and reads `meta.available_props`; the returned
 service row is not used as inventory data.
@@ -59,6 +64,10 @@ known, use `search_services` first.
 Use `get_service_instances` when the client already knows the exact `svcname`
 and needs the node-level instances for that service, including monitor state per
 node.
+
+Use `get_service_resources` when the client already knows the exact `svcname`
+and needs resource-level information such as disks, filesystems, IPs,
+containers, app resources, sync resources, and their key/value properties.
 
 ## Tools
 
@@ -195,6 +204,34 @@ Output fields:
 svcname
 meta
 data
+```
+
+### `get_service_resources`
+
+Returns grouped OpenSVC resource information for one service selected by exact
+`svcname`.
+
+The tool reads Collector `/services/<svcname>/resinfo`, which exposes resource
+information as key/value rows, then groups those rows by resource id and node.
+This avoids parsing `svc_config` while keeping the resource payload useful for
+LLMs.
+
+Example:
+
+```json
+{
+  "request": {
+    "svcname": "tst-lab-service"
+  }
+}
+```
+
+Output fields:
+
+```text
+svcname
+meta
+resources
 ```
 
 ### `search_services`
