@@ -19,6 +19,11 @@ uses Collector `meta.total` instead of fetching all matches.
 with `props=svcname`, `limit=1`, `offset=0`, and exact-match filters, then
 returns Collector `meta.total`.
 
+`search_frozen_services` uses `prefer_pagination`: it calls
+`/services_instances` through the shared `collector_get_all(...,
+strategy="paged")` helper, filters on `svcmon.mon_frozen=1`, applies exact
+service property filters, and groups frozen instances by service.
+
 `get_service` does not paginate. It reads the single object endpoint
 `/services/<svcname>` and returns the Collector response for that service.
 
@@ -60,6 +65,9 @@ exact service property values. This tool does not do substring or fuzzy search.
 
 Use `count_services` when the client only needs the number of services matching
 exact filters and does not need service rows.
+
+Use `search_frozen_services` when the client needs services currently frozen,
+optionally restricted by exact service filters and minimum frozen age.
 
 Use `get_service` when the client already knows the exact `svcname` and needs
 the full detail payload for that single service. If the exact `svcname` is not
@@ -159,6 +167,41 @@ Output fields:
 ```text
 meta
 data
+```
+
+### `search_frozen_services`
+
+Returns services with currently frozen monitor instances.
+
+Use `filters` for exact service property filters, or the typed shortcut fields
+shared with `search_services` such as `svc_env`, `svc_status`, `svc_app`,
+`svc_availstatus`, `svc_topology`, and `svc_frozen`. Use `min_frozen_days` to
+return only services frozen for at least that many days. In this Collector,
+production services use `svc_env=PRD`.
+
+The tool reads Collector `/services_instances`, filters on `svcmon.mon_frozen=1`,
+applies the requested service filters as `services.<prop>=<value>`, and groups
+matching frozen instances by `svcname`.
+
+Example:
+
+```json
+{
+  "request": {
+    "filters": {
+      "svc_env": "LAB",
+      "svc_status": "up"
+    },
+    "min_frozen_days": 15
+  }
+}
+```
+
+Output fields:
+
+```text
+meta
+services
 ```
 
 ### `get_service_health`

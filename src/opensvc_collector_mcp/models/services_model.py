@@ -16,7 +16,10 @@ class ServiceFilterRequest(BaseModel):
     )
     svcname: str | None = Field(default=None, description="Exact service name.")
     svc_app: str | None = Field(default=None, description="Exact service application.")
-    svc_env: str | None = Field(default=None, description="Exact service environment.")
+    svc_env: str | None = Field(
+        default=None,
+        description="Exact service environment. Use PRD for production services in this Collector.",
+    )
     svc_status: str | None = Field(default=None, description="Exact service status.")
     svc_availstatus: str | None = Field(
         default=None,
@@ -93,6 +96,15 @@ class SearchServicesRequest(ServiceFilterRequest):
 
 class CountServicesRequest(ServiceFilterRequest):
     pass
+
+
+class FrozenServicesRequest(ServiceFilterRequest):
+    min_frozen_days: int = Field(
+        default=0,
+        ge=0,
+        le=3650,
+        description="Only return services frozen for at least this many days.",
+    )
 
 
 class ServiceNameRequest(BaseModel):
@@ -376,6 +388,106 @@ class ServiceResourcesResponse(BaseModel):
     svcname: str
     meta: dict[str, Any] = Field(default_factory=dict)
     resources: list[ServiceResource]
+
+
+class FrozenServiceInstance(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    nodename: str | None = Field(
+        default=None,
+        description="Node hosting the frozen service instance.",
+        exclude_if=_is_none,
+    )
+    mon_vmname: str | None = Field(
+        default=None,
+        description="Monitor VM or encapsulated instance name.",
+        exclude_if=_is_none,
+    )
+    mon_availstatus: str | None = Field(
+        default=None,
+        description="Monitor availability status for this frozen instance.",
+        exclude_if=_is_none,
+    )
+    mon_frozen: bool | int | str | None = Field(
+        default=None,
+        description="Monitor frozen state returned by Collector.",
+        exclude_if=_is_none,
+    )
+    mon_frozen_at: str | None = Field(
+        default=None,
+        description="Monitor frozen timestamp for this instance.",
+        exclude_if=_is_none,
+    )
+    mon_encap_frozen_at: str | None = Field(
+        default=None,
+        description="Encapsulated monitor frozen timestamp for this instance.",
+        exclude_if=_is_none,
+    )
+
+
+class FrozenService(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    svcname: str = Field(description="OpenSVC service name.")
+    svc_env: str | None = Field(
+        default=None,
+        description="Service environment.",
+        exclude_if=_is_none,
+    )
+    svc_app: str | None = Field(
+        default=None,
+        description="Service application.",
+        exclude_if=_is_none,
+    )
+    svc_status: str | None = Field(
+        default=None,
+        description="Service status.",
+        exclude_if=_is_none,
+    )
+    svc_availstatus: str | None = Field(
+        default=None,
+        description="Service availability status.",
+        exclude_if=_is_none,
+    )
+    svc_frozen: bool | int | str | None = Field(
+        default=None,
+        description="Service frozen state returned by Collector.",
+        exclude_if=_is_none,
+    )
+    svc_topology: str | None = Field(
+        default=None,
+        description="Service topology.",
+        exclude_if=_is_none,
+    )
+    frozen_since: str | None = Field(
+        default=None,
+        description="Oldest frozen timestamp found across frozen instances.",
+        exclude_if=_is_none,
+    )
+    frozen_days: int | None = Field(
+        default=None,
+        description="Whole days since frozen_since at query time.",
+        exclude_if=_is_none,
+    )
+    frozen_instance_count: int = Field(
+        description="Number of currently frozen monitor instances for this service."
+    )
+    nodes: list[str] = Field(description="Nodes hosting frozen instances.")
+    instances: list[FrozenServiceInstance] = Field(
+        description="Frozen monitor instances grouped under this service."
+    )
+
+
+class FrozenServicesResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    meta: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Collector pagination metadata plus frozen service query summary.",
+    )
+    services: list[FrozenService] = Field(
+        description="Services with currently frozen monitor instances."
+    )
 
 
 class ServiceHealthIssue(BaseModel):

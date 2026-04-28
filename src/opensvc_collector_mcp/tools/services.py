@@ -12,11 +12,14 @@ from opensvc_collector_mcp.core.services_core import (
     get_service_resources as core_get_service_resources,
     list_service_props as core_list_service_props,
     list_services as core_list_services,
+    search_frozen_services as core_search_frozen_services,
     search_services as core_search_services,
 )
 from opensvc_collector_mcp.models.services_model import (
     CountServicesRequest,
     CountServicesResponse,
+    FrozenServicesRequest,
+    FrozenServicesResponse,
     ListServicesRequest,
     SearchServicesRequest,
     ServiceHealthResponse,
@@ -136,6 +139,41 @@ def register_services_tools(mcp: FastMCP) -> None:
         """Return the number of services matching the provided filters."""
         response = await core_count_services(filters=request.merged_filters())
         return CountServicesResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="search_frozen_services",
+        description=(
+            "Search OpenSVC services with currently frozen monitor instances. "
+            "Accepts the same exact-match service filters as search_services, "
+            "plus min_frozen_days to find services frozen longer than a threshold."
+        ),
+        tags={"services", "frozen", "inventory", "health", "read"},
+        annotations={
+            "title": "Search Frozen OpenSVC Services",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def search_frozen_services(
+        request: Annotated[
+            FrozenServicesRequest,
+            Field(
+                description=(
+                    "Frozen service search criteria. Use filters or typed service "
+                    "fields for exact service property matching, and min_frozen_days "
+                    "for age filtering."
+                ),
+            ),
+        ] = FrozenServicesRequest(),
+    ) -> FrozenServicesResponse:
+        """Return services with currently frozen monitor instances."""
+        response = await core_search_frozen_services(
+            filters=request.merged_filters(),
+            min_frozen_days=request.min_frozen_days,
+        )
+        return FrozenServicesResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

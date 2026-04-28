@@ -74,6 +74,7 @@ Current MCP service tool surface:
 - `list_service_props`
 - `search_services`
 - `count_services`
+- `search_frozen_services`
 - `get_service`
 - `get_service_health`
 - `get_service_instances`
@@ -168,6 +169,15 @@ Error and production-readiness notes:
   use, add `OPENSVC_VERIFY_TLS` and/or `OPENSVC_CA_BUNDLE`.
 - Add focused tests as the tool surface grows, especially for model validation,
   filter merging, `count_nodes`, `search_nodes`, `get_node_health`, and stats.
+
+Post-implementation validation:
+
+- Run focused `py_compile` checks on modified Python modules.
+- Run `./venv/bin/ruff check src` after each implementation.
+- Validate FastMCP tool registration when tool signatures or models changed.
+- Run `git diff --check` before handing changes back.
+- For Collector-backed tools, validate with read-only GET calls only and avoid
+  writing real infrastructure identifiers into docs, examples, or tests.
 
 Tool documentation:
 
