@@ -22,6 +22,10 @@ returns Collector `meta.total`.
 `get_service` does not paginate. It reads the single object endpoint
 `/services/<svcname>` and returns the Collector response for that service.
 
+`get_service_health` does not expose pagination. It calls the single service
+detail endpoint and the paged `/services_instances` lookup, then returns an
+interpreted health summary.
+
 `get_service_instances` uses `prefer_pagination`: it calls
 `/services_instances` through the shared `collector_get_all(...,
 strategy="paged")` helper and filters on `services.svcname`.
@@ -60,6 +64,9 @@ exact filters and does not need service rows.
 Use `get_service` when the client already knows the exact `svcname` and needs
 the full detail payload for that single service. If the exact `svcname` is not
 known, use `search_services` first.
+
+Use `get_service_health` when the client needs an interpreted service health
+summary instead of raw service and instance rows.
 
 Use `get_service_instances` when the client already knows the exact `svcname`
 and needs the node-level instances for that service, including monitor state per
@@ -152,6 +159,35 @@ Output fields:
 ```text
 meta
 data
+```
+
+### `get_service_health`
+
+Returns an interpreted health summary for one service selected by exact
+`svcname`.
+
+The tool combines service-level status fields and node-level instance monitor
+state. It reports an overall state, worst severity, concrete issues, and the raw
+signals used for interpretation.
+
+Example:
+
+```json
+{
+  "request": {
+    "svcname": "tst-lab-service"
+  }
+}
+```
+
+Output fields:
+
+```text
+overall
+severity
+service
+issues
+signals
 ```
 
 ### `list_service_props`

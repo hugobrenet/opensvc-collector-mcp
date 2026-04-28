@@ -378,6 +378,53 @@ class ServiceResourcesResponse(BaseModel):
     resources: list[ServiceResource]
 
 
+class ServiceHealthIssue(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    severity: str = Field(description="Issue severity: warning, critical, or unknown.")
+    field: str = Field(description="Service or instance field that triggered the issue.")
+    message: str = Field(description="Human-readable health issue description.")
+
+
+class ServiceHealthService(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    svcname: str | None = None
+    svc_status: str | None = None
+    svc_availstatus: str | None = None
+    svc_frozen: str | None = None
+    svc_topology: str | None = None
+    svc_nodes: str | None = None
+    svc_drpnodes: str | None = None
+    svc_placement: str | None = None
+    svc_ha: int | None = None
+    updated: str | None = None
+    svc_status_updated: str | None = None
+
+
+class ServiceHealthSignals(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    instance_count: int
+    nodes: list[str]
+    active_nodes: list[str]
+    inactive_nodes: list[str]
+    availability_counts: dict[str, int]
+    instances: list[ServiceInstanceRow]
+
+
+class ServiceHealthResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    overall: str = Field(description="Interpreted service health state.")
+    severity: str = Field(description="Worst issue severity.")
+    service: ServiceHealthService = Field(description="Service-level health signals.")
+    issues: list[ServiceHealthIssue]
+    signals: ServiceHealthSignals = Field(
+        description="Instance-level health signals and raw instance rows.",
+    )
+
+
 class CountServicesResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

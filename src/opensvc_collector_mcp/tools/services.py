@@ -7,6 +7,7 @@ from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.services_core import (
     count_services as core_count_services,
     get_service as core_get_service,
+    get_service_health as core_get_service_health,
     get_service_instances as core_get_service_instances,
     get_service_resources as core_get_service_resources,
     list_service_props as core_list_service_props,
@@ -18,6 +19,7 @@ from opensvc_collector_mcp.models.services_model import (
     CountServicesResponse,
     ListServicesRequest,
     SearchServicesRequest,
+    ServiceHealthResponse,
     ServiceInstancesResponse,
     ServiceNameRequest,
     ServicePropsResponse,
@@ -222,3 +224,34 @@ def register_services_tools(mcp: FastMCP) -> None:
         """Return grouped resource information for one OpenSVC Collector service."""
         response = await core_get_service_resources(svcname=request.svcname)
         return ServiceResourcesResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_service_health",
+        description=(
+            "Return an interpreted health summary for one OpenSVC service selected "
+            "by exact svcname. The tool combines service status, availability, "
+            "frozen state, placement, and per-node monitor state."
+        ),
+        tags={"services", "health", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Service Health",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_service_health(
+        request: Annotated[
+            ServiceNameRequest,
+            Field(
+                description=(
+                    "Exact service name used to compute a health summary from "
+                    "Collector service and service instance state."
+                ),
+            ),
+        ],
+    ) -> ServiceHealthResponse:
+        """Return interpreted health signals and issues for one service."""
+        response = await core_get_service_health(svcname=request.svcname)
+        return ServiceHealthResponse.model_validate(response)
