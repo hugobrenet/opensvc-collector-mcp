@@ -2,17 +2,19 @@
 
 > Give AI agents a clean, typed MCP interface to the OpenSVC Collector API.
 
-`opensvc-collector-mcp` is a FastMCP server that exposes OpenSVC Collector data as MCP tools, so LLM clients can inspect infrastructure inventory through a controlled HTTP interface.
+`opensvc-collector-mcp` is a FastMCP server that exposes OpenSVC Collector data as MCP tools, so LLM clients can inspect infrastructure inventory, service state, and operational history through a controlled HTTP interface.
 
 ## What It Is
 
 - MCP server built with `FastMCP`
-- HTTP transport served directly with `uvicorn`
+- HTTP transport served with `uvicorn`
 - custom health route: `/health`
-- current tool surface: node inventory tools
+- typed Pydantic input and output models for MCP tools
+- OpenSVC Collector read-only tool surface for nodes, services, and clusters
 - architecture split between:
-  `tools/` for MCP tool definitions and
-  `core/` for business logic
+  - `tools/` for MCP tool definitions
+  - `core/` for Collector workflows and business logic
+  - `models/` for typed request and response contracts
 
 ## Why It Exists
 
@@ -22,6 +24,8 @@ This repository is focused on:
 
 - clear tool contracts for MCP clients
 - predictable environment-based configuration
+- read-only Collector access patterns
+- pagination-safe Collector reads
 - separation between MCP surface and Collector-specific logic
 
 ## FastMCP
@@ -30,19 +34,27 @@ This project uses `FastMCP` as the server framework that exposes Python function
 
 If you are new to FastMCP, start with the official documentation:
 
-- FastMCP : https://gofastmcp.com
+- FastMCP: https://gofastmcp.com
 
 ## Current Structure
 
 ```text
 src/opensvc_collector_mcp/
-├── client.py          # generic Collector HTTP client helpers
-├── config.py          # environment variables
-├── core/
-│   └── nodes_core.py  # business logic for nodes
-├── tools/
-│   └── nodes.py       # FastMCP tool definitions
-└── server.py          # FastMCP app + uvicorn entrypoint
+|-- client.py          # generic Collector HTTP client helpers
+|-- config.py          # environment variables
+|-- core/              # Collector workflows and business logic
+|   |-- clusters_core.py
+|   |-- nodes_core.py
+|   `-- services_core.py
+|-- models/            # Pydantic request and response models
+|   |-- clusters_model.py
+|   |-- nodes_model.py
+|   `-- services_model.py
+|-- tools/             # FastMCP tool definitions
+|   |-- clusters.py
+|   |-- nodes.py
+|   `-- services.py
+`-- server.py          # FastMCP app + uvicorn entrypoint
 ```
 
 ## Environment
@@ -104,8 +116,29 @@ Tool documentation is organized by Collector domain:
 - [Cluster tools](docs/tools/clusters.md)
 - [Service tools](docs/tools/services.md)
 
+## Tool Domains
+
+The current tool surface covers:
+
+- node inventory, health, tags, compliance, checks, disks, network, services, and cluster membership
+- service inventory, search, tags, config, instances, nodes, resources, disks, storage HBAs and targets, checks, alerts, actions, status history, frozen state, and health
+- cluster node membership
+
+All tools are intended to be read-only against OpenSVC Collector.
+
 ## Development Notes
 
-- FastMCP version is pinned in this project
-- tool definitions should stay in `tools/`
-- Collector logic should stay in `core/`
+- FastMCP version is pinned in this project.
+- Tool definitions should stay in `tools/`.
+- Collector logic should stay in `core/`.
+- Request and response contracts should stay in `models/`.
+- User-facing tool documentation should stay in `docs/tools/`.
+- New tools should be validated with compile checks, FastMCP registration, Ruff, and read-only Collector tests.
+
+## Project Status
+
+This project is currently in development. Feedback, issues, and contributions are welcome.
+
+For questions or discussion, you can contact me on LinkedIn:
+
+https://fr.linkedin.com/in/hugo-brenet-49b200202
