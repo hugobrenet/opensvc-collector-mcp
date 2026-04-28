@@ -11,6 +11,10 @@ MCP tool definitions live in `src/opensvc_collector_mcp/tools/services.py`.
 shared `collector_get_all(..., strategy="paged")` helper and walks
 `limit/offset` pages internally.
 
+`search_services` uses user-facing pagination. It sends one Collector GET to
+`/services` with exact-match filters plus explicit `limit` and `offset`, and
+uses Collector `meta.total` instead of fetching all matches.
+
 `list_service_props` does not paginate. It performs one Collector GET on
 `/services` with `props=svcname` and reads `meta.available_props`; the returned
 service row is not used as inventory data.
@@ -74,4 +78,58 @@ Output fields:
 count
 available_props
 service_props
+```
+
+### `search_services`
+
+Searches OpenSVC Collector services with exact-match filters and explicit
+pagination.
+
+Shortcut filters:
+
+```text
+svcname
+svc_app
+svc_env
+svc_status
+svc_availstatus
+svc_topology
+svc_frozen
+```
+
+Generic filters can be passed with service properties discovered through
+`list_service_props`.
+
+Example:
+
+```json
+{
+  "request": {
+    "svc_env": "PRD",
+    "svc_status": "up",
+    "limit": 20,
+    "offset": 0
+  }
+}
+```
+
+Generic filter example:
+
+```json
+{
+  "request": {
+    "filters": {
+      "svc_app": "APPLICATION-PRE",
+      "svc_topology": "failover"
+    },
+    "props": "svcname,svc_app,svc_env,svc_status"
+  }
+}
+```
+
+Output fields:
+
+```text
+meta
+data
 ```

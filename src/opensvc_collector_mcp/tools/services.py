@@ -7,9 +7,11 @@ from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.services_core import (
     list_service_props as core_list_service_props,
     list_services as core_list_services,
+    search_services as core_search_services,
 )
 from opensvc_collector_mcp.models.services_model import (
     ListServicesRequest,
+    SearchServicesRequest,
     ServicePropsResponse,
     ServiceRowsResponse,
 )
@@ -60,3 +62,38 @@ def register_services_tools(mcp: FastMCP) -> None:
         """Return the available service properties exposed by the Collector."""
         response = await core_list_service_props()
         return ServicePropsResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="search_services",
+        description=(
+            "Search OpenSVC Collector services using exact-match service filters. "
+            "Use list_service_props to discover valid filter and props fields."
+        ),
+        tags={"services", "inventory", "search", "read"},
+        annotations={
+            "title": "Search OpenSVC Services",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def search_services(
+        request: Annotated[
+            SearchServicesRequest,
+            Field(
+                description=(
+                    "Search criteria, pagination, and returned properties for "
+                    "service inventory lookup."
+                ),
+            ),
+        ],
+    ) -> ServiceRowsResponse:
+        """Search services by exact-match service fields."""
+        response = await core_search_services(
+            filters=request.merged_filters(),
+            props=request.props,
+            limit=request.limit,
+            offset=request.offset,
+        )
+        return ServiceRowsResponse.model_validate(response)
