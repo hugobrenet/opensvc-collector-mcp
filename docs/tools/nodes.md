@@ -76,9 +76,9 @@ Example:
 {
   "request": {
     "filters": {
-      "asset_env": "prod",
-      "loc_country": "FR",
-      "loc_rack": "A13"
+      "asset_env": "lab",
+      "loc_country": "ZZ",
+      "loc_rack": "LAB-RACK-01"
     },
     "props": "nodename,status,asset_env,loc_country,loc_rack",
     "limit": 10
@@ -119,8 +119,8 @@ Example:
   "request": {
     "filters": {
       "status": "warn",
-      "loc_city": "Paris",
-      "asset_env": "prod"
+      "loc_city": "Lab City",
+      "asset_env": "lab"
     }
   }
 }
@@ -133,8 +133,8 @@ Typical response:
   "count": 0,
   "filters": {
     "status": "warn",
-    "loc_city": "Paris",
-    "asset_env": "prod"
+    "loc_city": "Lab City",
+    "asset_env": "lab"
   }
 }
 ```
@@ -149,7 +149,7 @@ Example:
 ```json
 {
   "request": {
-    "nodename": "lab-paris-01"
+    "nodename": "lab-node-01"
   }
 }
 ```
@@ -163,7 +163,7 @@ Example:
 ```json
 {
   "request": {
-    "nodename": "lab-paris-01"
+    "nodename": "lab-node-01"
   }
 }
 ```
@@ -240,7 +240,7 @@ Example:
 ```json
 {
   "request": {
-    "nodename": "lab-paris-01"
+    "nodename": "lab-node-01"
   }
 }
 ```
@@ -265,7 +265,7 @@ Example:
 ```json
 {
   "request": {
-    "nodename": "lab-paris-01"
+    "nodename": "lab-node-01"
   }
 }
 ```
@@ -402,7 +402,7 @@ Example:
 ```json
 {
   "request": {
-    "nodename": "lab-paris-01"
+    "nodename": "lab-node-01"
   }
 }
 ```
@@ -430,7 +430,7 @@ Example:
 ```json
 {
   "request": {
-    "nodename": "lab-paris-01"
+    "nodename": "lab-node-01"
   }
 }
 ```
@@ -592,8 +592,8 @@ Examples:
 ```json
 {
   "filters": {
-    "asset_env": "prod",
-    "loc_city": "Paris, VINCENNES"
+    "asset_env": "lab",
+    "loc_city": "Lab City"
   }
 }
 ```
@@ -601,8 +601,8 @@ Examples:
 ```json
 {
   "filters": {
-    "manufacturer": "Dell",
-    "loc_rack": "A12"
+    "manufacturer": "LabVendor",
+    "loc_rack": "LAB-RACK-01"
   }
 }
 ```
@@ -610,9 +610,9 @@ Examples:
 ```json
 {
   "filters": {
-    "node_env": "TST",
+    "node_env": "LAB",
     "status": "down",
-    "loc_country": "FR"
+    "loc_country": "ZZ"
   }
 }
 ```
@@ -629,7 +629,7 @@ These two calls are equivalent:
   "request": {
     "filters": {
       "status": "warn",
-      "loc_city": "Paris"
+      "loc_city": "Lab City"
     }
   }
 }
@@ -639,7 +639,7 @@ These two calls are equivalent:
 {
   "request": {
     "status": "warn",
-    "loc_city": "Paris"
+    "loc_city": "Lab City"
   }
 }
 ```
@@ -649,15 +649,15 @@ These two calls are equivalent:
 Use `search_nodes` when the user wants rows:
 
 ```text
-List prod nodes in France.
-Show down nodes in Paris.
+List lab nodes in Lab Country.
+Show down nodes in Lab City.
 ```
 
 Use `count_nodes` when the user wants one count:
 
 ```text
-How many prod nodes are in rack A13?
-How many nodes are warn in Paris?
+How many lab nodes are in rack LAB-RACK-01?
+How many nodes are warn in Lab City?
 ```
 
 Use `get_nodes_inventory_stats` when the user wants distributions or possible

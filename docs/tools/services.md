@@ -19,6 +19,9 @@ uses Collector `meta.total` instead of fetching all matches.
 with `props=svcname`, `limit=1`, `offset=0`, and exact-match filters, then
 returns Collector `meta.total`.
 
+`get_service` does not paginate. It reads the single object endpoint
+`/services/<svcname>` and returns the Collector response for that service.
+
 `list_service_props` does not paginate. It performs one Collector GET on
 `/services` with `props=svcname` and reads `meta.available_props`; the returned
 service row is not used as inventory data.
@@ -31,14 +34,34 @@ Future service collection tools should choose an explicit strategy:
   validating the Collector cardinality with real data.
 - Keep user-facing search tools paginated with explicit `limit` and `offset`.
 
+## Tool Selection
+
+Use `list_service_props` when the client needs to discover valid service
+properties before building a `props` list or exact-match filters.
+
+Use `list_services` when the client needs a broad service inventory scan. This
+tool is not filtered; use `search_services` for targeted lookup.
+
+Use `search_services` when the client needs service rows matching one or more
+exact service property values. This tool does not do substring or fuzzy search.
+
+Use `count_services` when the client only needs the number of services matching
+exact filters and does not need service rows.
+
+Use `get_service` when the client already knows the exact `svcname` and needs
+the full detail payload for that single service. If the exact `svcname` is not
+known, use `search_services` first.
+
 ## Tools
 
 ### `list_services`
 
-Returns OpenSVC Collector services.
+Returns all OpenSVC Collector services.
 
 By default, this tool returns a compact service inventory view and deliberately
 does not include large fields such as `svc_config`.
+
+This tool does not accept filters. For filtered lookup, use `search_services`.
 
 Default props:
 
@@ -76,7 +99,7 @@ Example:
 ```json
 {
   "request": {
-    "svc_env": "TST",
+    "svc_env": "LAB",
     "svc_status": "up"
   }
 }
@@ -89,12 +112,39 @@ count
 filters
 ```
 
+### `get_service`
+
+Returns all available OpenSVC Collector information for one service selected by
+exact `svcname`.
+
+Use this for service detail inspection. Unlike `list_services`, this endpoint
+may include large fields such as `svc_config`.
+
+Example:
+
+```json
+{
+  "request": {
+    "svcname": "tst-lab-service"
+  }
+}
+```
+
+Output fields:
+
+```text
+meta
+data
+```
+
 ### `list_service_props`
 
 Returns available OpenSVC Collector service properties.
 
-Use this before service list or search tools to choose valid `props` and
-exact-match filters.
+Use this before service list or search tools to choose valid field names.
+For service tools, prefer `service_props` values in `props` and exact-match
+filters. `available_props` preserves the raw Collector property names for
+inspection.
 
 Example:
 
@@ -113,7 +163,7 @@ service_props
 ### `search_services`
 
 Searches OpenSVC Collector services with exact-match filters and explicit
-pagination.
+pagination. It does not perform substring, wildcard, or fuzzy search.
 
 Shortcut filters:
 
@@ -135,7 +185,7 @@ Example:
 ```json
 {
   "request": {
-    "svc_env": "PRD",
+    "svc_env": "LAB",
     "svc_status": "up",
     "limit": 20,
     "offset": 0
@@ -149,7 +199,7 @@ Generic filter example:
 {
   "request": {
     "filters": {
-      "svc_app": "APPLICATION-PRE",
+      "svc_app": "LAB-APP",
       "svc_topology": "failover"
     },
     "props": "svcname,svc_app,svc_env,svc_status"
