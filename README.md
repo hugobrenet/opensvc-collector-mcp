@@ -43,7 +43,7 @@ src/opensvc_collector_mcp/
 |-- client.py          # generic Collector HTTP client helpers
 |-- config.py          # environment variables
 |-- core/              # Collector workflows and business logic
-|   |-- clusters_core.py
+|   |-- clusters/
 |   |-- nodes/
 |   `-- services/
 |       |-- inventory.py
@@ -54,7 +54,7 @@ src/opensvc_collector_mcp/
 |       |-- health.py
 |       `-- storage.py
 |-- models/            # Pydantic request and response models
-|   |-- clusters_model.py
+|   |-- clusters/
 |   |-- nodes/
 |   `-- services/
 |-- tools/             # FastMCP tool definitions
