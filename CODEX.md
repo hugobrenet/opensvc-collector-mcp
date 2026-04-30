@@ -44,8 +44,14 @@ Current package layout:
 - `src/opensvc_collector_mcp/core/services/`
   service-domain business logic split by concern: inventory, resources,
   compliance, actions, tags, health, and storage
+- `src/opensvc_collector_mcp/core/nodes/`
+  node-domain business logic split by concern: inventory, tags, location,
+  organization, hardware, OS, cluster, network, compliance, checks, storage,
+  services, health, and stats
 - `src/opensvc_collector_mcp/models/services/`
   service-domain Pydantic contracts split with the same concern boundaries
+- `src/opensvc_collector_mcp/models/nodes/`
+  node-domain Pydantic contracts split with the same concern boundaries
 
 Current MCP node tool surface:
 
@@ -133,7 +139,7 @@ Pydantic model standard:
 - Use one request model and one response model per tool by default, even when a
   request model currently only inherits from a shared base model.
 - Node models live in:
-  `src/opensvc_collector_mcp/models/nodes_model.py`
+  `src/opensvc_collector_mcp/models/nodes/`
 - Service models live in:
   `src/opensvc_collector_mcp/models/services/`
 - Prefer a single `request` model argument for complex tools.
@@ -146,8 +152,9 @@ Pydantic model standard:
   when Collector properties are dynamic.
 - If a tool has no arguments, either keep it argument-less or introduce an empty
   request model only if consistency is worth the extra schema noise.
-- Keep model definitions in `src/opensvc_collector_mcp/models/`, named by
-  domain, for example `nodes_model.py`.
+- Keep model definitions in `src/opensvc_collector_mcp/models/`, grouped by
+  domain. Large domains should use packages such as `models/nodes/` or
+  `models/services/`.
 
 Layering standard:
 
@@ -157,6 +164,8 @@ Layering standard:
   Python types and raw Collector dicts.
 - Service core code lives under `core/services/` by concern. Keep generic service
   helpers private to that package.
+- Node core code lives under `core/nodes/` by concern. Keep generic node helpers
+  private to that package.
 - `models/`: Pydantic contracts for MCP tool input/output.
 - `client.py`: async HTTP client helpers only.
 - `docs/`: human-facing tool documentation by domain.

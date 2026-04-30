@@ -2,7 +2,8 @@
 
 This document describes the OpenSVC Collector MCP tools for node inventory.
 
-Node business logic lives in `src/opensvc_collector_mcp/core/nodes_core.py`.
+Node business logic lives under `src/opensvc_collector_mcp/core/nodes/`, split by concern.
+Node Pydantic models live under `src/opensvc_collector_mcp/models/nodes/`.
 MCP tool definitions live in `src/opensvc_collector_mcp/tools/nodes.py`.
 
 ## Tools

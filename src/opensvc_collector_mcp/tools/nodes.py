@@ -4,7 +4,7 @@ from fastmcp import FastMCP
 from pydantic import Field
 
 from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
-from opensvc_collector_mcp.models.nodes_model import (
+from opensvc_collector_mcp.models.nodes import (
     CountNodesRequest,
     CountNodesResponse,
     InventoryStatsRequest,
@@ -30,7 +30,7 @@ from opensvc_collector_mcp.models.nodes_model import (
     SearchNodesRequest,
     TagNameRequest,
 )
-from opensvc_collector_mcp.core.nodes_core import (
+from opensvc_collector_mcp.core.nodes import (
     count_nodes as core_count_nodes,
     get_node as core_get_node,
     get_node_cluster as core_get_node_cluster,
