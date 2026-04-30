@@ -10,6 +10,7 @@ from opensvc_collector_mcp.core.services_core import (
     get_service_actions as core_get_service_actions,
     get_service_alerts as core_get_service_alerts,
     get_service_checks as core_get_service_checks,
+    get_service_compliance_status as core_get_service_compliance_status,
     get_service_config as core_get_service_config,
     get_service_disks as core_get_service_disks,
     get_service_hbas as core_get_service_hbas,
@@ -42,6 +43,8 @@ from opensvc_collector_mcp.models.services_model import (
     ServiceAlertsResponse,
     ServiceChecksRequest,
     ServiceChecksResponse,
+    ServiceComplianceStatusRequest,
+    ServiceComplianceStatusResponse,
     ServiceConfigRequest,
     ServiceConfigResponse,
     ServiceDisksRequest,
@@ -490,6 +493,49 @@ def register_services_tools(mcp: FastMCP) -> None:
         """Return grouped resource information for one OpenSVC Collector service."""
         response = await core_get_service_resources(svcname=request.svcname)
         return ServiceResourcesResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_service_compliance_status",
+        description=(
+            "Return current OpenSVC compliance status rows for one service selected "
+            "by exact svcname. The tool reads /services/<svcname>/compliance/status, "
+            "summarizes OK and non-OK module counts, and includes a bounded "
+            "run_log_preview by default for diagnostics."
+        ),
+        tags={"services", "compliance", "status", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Service Compliance Status",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_service_compliance_status(
+        request: Annotated[
+            ServiceComplianceStatusRequest,
+            Field(
+                description=(
+                    "Exact service name, optional exact-match compliance filters, "
+                    "returned properties, pagination guardrails, and run_log "
+                    "output options used to inspect current service compliance "
+                    "status through Collector /services/<svcname>/compliance/status."
+                ),
+            ),
+        ],
+    ) -> ServiceComplianceStatusResponse:
+        'Return current compliance status rows for one OpenSVC Collector service.'
+        response = await core_get_service_compliance_status(
+            svcname=request.svcname,
+            filters=request.merged_filters(),
+            props=request.props,
+            page_size=request.page_size,
+            max_status=request.max_status,
+            include_run_log=request.include_run_log,
+            include_run_log_preview=request.include_run_log_preview,
+            run_log_max_chars=request.run_log_max_chars,
+        )
+        return ServiceComplianceStatusResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

@@ -737,6 +737,71 @@ meta
 resources
 ```
 
+### `get_service_compliance_status`
+
+Returns current OpenSVC compliance status rows for one service selected by exact
+`svcname`.
+
+Use this tool to inspect service compliance checks and quickly identify modules
+that are not OK. In this Collector, `run_status=0` is OK and non-zero values are
+not OK. The tool returns summary counts in `meta`, including `ok_count`,
+`error_count`, `unknown_count`, and `failed_modules`.
+
+The tool reads Collector `/services/<svcname>/compliance/status` using internal
+paged retrieval. By default it includes a bounded `run_log_preview` when a log is
+available, but omits full `run_log` values. Set `include_run_log` to `true` only
+when the full diagnostic log is needed.
+
+Use exact filters such as `run_module`, `run_status`, `run_action`, `node_id`, or
+`rset_md5` to narrow the result.
+
+Example:
+
+```json
+{
+  "request": {
+    "svcname": "rct-asuhures",
+    "run_status": 1
+  }
+}
+```
+
+Example requesting full logs:
+
+```json
+{
+  "request": {
+    "svcname": "rct-asuhures",
+    "run_status": 1,
+    "include_run_log": true
+  }
+}
+```
+
+Output fields:
+
+```text
+svcname
+meta
+data
+```
+
+Each `data` row commonly includes:
+
+```text
+id
+svc_id
+node_id
+run_module
+run_action
+run_status
+run_date
+rset_md5
+run_log_preview
+run_log_truncated
+```
+
+
 ### `get_service_resource_status`
 
 Returns runtime OpenSVC resource status rows for one service selected by exact

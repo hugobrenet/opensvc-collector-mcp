@@ -85,6 +85,7 @@ Current MCP service tool surface:
 - `get_service_hbas`
 - `get_service_targets`
 - `get_service_resources`
+- `get_service_compliance_status`
 - `get_service_resource_status`
 - `get_service_tags`
 - `search_services_by_tag`
