@@ -18,6 +18,7 @@ from .resources import (
 
 from .compliance import (
     get_service_compliance_status,
+    get_service_compliance_logs,
 )
 
 from .storage import (
@@ -51,6 +52,7 @@ __all__ = [
     'get_service_actions',
     'get_service_alerts',
     'get_service_checks',
+    'get_service_compliance_logs',
     'get_service_compliance_status',
     'get_service_config',
     'get_service_disks',

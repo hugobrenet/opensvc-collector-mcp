@@ -39,6 +39,9 @@ from .compliance import (
     ServiceComplianceStatusRequest,
     ServiceComplianceStatusRow,
     ServiceComplianceStatusResponse,
+    ServiceComplianceLogsRequest,
+    ServiceComplianceLogRow,
+    ServiceComplianceLogsResponse,
 )
 
 from .resources import (
@@ -104,6 +107,9 @@ __all__ = [
     'ServiceCheckRow',
     'ServiceChecksRequest',
     'ServiceChecksResponse',
+    'ServiceComplianceLogRow',
+    'ServiceComplianceLogsRequest',
+    'ServiceComplianceLogsResponse',
     'ServiceComplianceStatusRequest',
     'ServiceComplianceStatusResponse',
     'ServiceComplianceStatusRow',

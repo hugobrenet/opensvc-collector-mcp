@@ -804,6 +804,78 @@ run_log_truncated
 ```
 
 
+### `get_service_compliance_logs`
+
+Returns historical OpenSVC compliance run logs for one service selected by exact
+`svcname`.
+
+Use this tool after `get_service_compliance_status` shows a non-OK compliance
+module and the user needs history: recent failures, recurrence, previous run
+logs, or the timeline of a specific module/action/ruleset.
+
+The tool reads Collector `/services/<svcname>/compliance/logs` using internal
+paged retrieval. Because this endpoint can return many rows, it returns the most
+recent matching logs by default (`latest=true`) and is bounded by `max_logs`.
+Set `latest=false` with `offset` to walk older pages from the Collector order.
+
+By default it includes a bounded `run_log_preview` when a log is available, but
+omits full `run_log` values. Set `include_run_log` to `true` only when the full
+diagnostic log is needed.
+
+Use exact filters such as `run_module`, `run_status`, `run_action`, `node_id`, or
+`rset_md5` to narrow the history.
+
+Example:
+
+```json
+{
+  "request": {
+    "svcname": "rct-asuhures",
+    "run_status": 1,
+    "max_logs": 20
+  }
+}
+```
+
+Example requesting full logs for a module:
+
+```json
+{
+  "request": {
+    "svcname": "rct-asuhures",
+    "run_module": "aits.outils.controlm",
+    "run_status": 1,
+    "include_run_log": true,
+    "max_logs": 5
+  }
+}
+```
+
+Output fields:
+
+```text
+svcname
+meta
+data
+```
+
+Each `data` row commonly includes:
+
+```text
+id
+svc_id
+node_id
+nodename
+run_module
+run_action
+run_status
+run_date
+rset_md5
+run_log_preview
+run_log_truncated
+```
+
+
 ### `get_service_resource_status`
 
 Returns runtime OpenSVC resource status rows for one service selected by exact

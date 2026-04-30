@@ -11,6 +11,7 @@ from opensvc_collector_mcp.core.services import (
     get_service_alerts as core_get_service_alerts,
     get_service_checks as core_get_service_checks,
     get_service_compliance_status as core_get_service_compliance_status,
+    get_service_compliance_logs as core_get_service_compliance_logs,
     get_service_config as core_get_service_config,
     get_service_disks as core_get_service_disks,
     get_service_hbas as core_get_service_hbas,
@@ -45,6 +46,8 @@ from opensvc_collector_mcp.models.services import (
     ServiceChecksResponse,
     ServiceComplianceStatusRequest,
     ServiceComplianceStatusResponse,
+    ServiceComplianceLogsRequest,
+    ServiceComplianceLogsResponse,
     ServiceConfigRequest,
     ServiceConfigResponse,
     ServiceDisksRequest,
@@ -536,6 +539,53 @@ def register_services_tools(mcp: FastMCP) -> None:
             run_log_max_chars=request.run_log_max_chars,
         )
         return ServiceComplianceStatusResponse.model_validate(response)
+
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_service_compliance_logs",
+        description=(
+            "Return OpenSVC compliance run history for one service selected by "
+            "exact svcname. The tool reads /services/<svcname>/compliance/logs, "
+            "uses internal pagination, returns the latest matching logs by default, "
+            "and includes bounded run_log previews for diagnostics."
+        ),
+        tags={"services", "compliance", "logs", "history", "read"},
+        annotations={
+            "title": "Get OpenSVC Service Compliance Logs",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_service_compliance_logs(
+        request: Annotated[
+            ServiceComplianceLogsRequest,
+            Field(
+                description=(
+                    "Exact service name, optional exact-match compliance log filters, "
+                    "returned properties, internal pagination guardrails, latest-log "
+                    "selection, and run_log output options used to inspect historical "
+                    "service compliance runs through Collector /services/<svcname>/compliance/logs."
+                ),
+            ),
+        ],
+    ) -> ServiceComplianceLogsResponse:
+        'Return compliance run history rows for one OpenSVC Collector service.'
+        response = await core_get_service_compliance_logs(
+            svcname=request.svcname,
+            filters=request.merged_filters(),
+            props=request.props,
+            page_size=request.page_size,
+            max_logs=request.max_logs,
+            offset=request.offset,
+            latest=request.latest,
+            latest_first=request.latest_first,
+            include_run_log=request.include_run_log,
+            include_run_log_preview=request.include_run_log_preview,
+            run_log_max_chars=request.run_log_max_chars,
+        )
+        return ServiceComplianceLogsResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
