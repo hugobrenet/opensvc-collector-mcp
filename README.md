@@ -45,11 +45,18 @@ src/opensvc_collector_mcp/
 |-- core/              # Collector workflows and business logic
 |   |-- clusters_core.py
 |   |-- nodes_core.py
-|   `-- services_core.py
+|   `-- services/
+|       |-- inventory.py
+|       |-- resources.py
+|       |-- compliance.py
+|       |-- actions.py
+|       |-- tags.py
+|       |-- health.py
+|       `-- storage.py
 |-- models/            # Pydantic request and response models
 |   |-- clusters_model.py
 |   |-- nodes_model.py
-|   `-- services_model.py
+|   `-- services/
 |-- tools/             # FastMCP tool definitions
 |   |-- clusters.py
 |   |-- nodes.py
