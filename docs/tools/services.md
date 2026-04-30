@@ -456,6 +456,62 @@ svc_availstatus
 ```
 
 
+### `get_service_instance_status_history`
+
+Returns per-node monitor status history for one service selected by exact
+`svcname`.
+
+Use this tool when the question is about a service instance on a node: when an
+instance changed monitor state, which node was affected, or the historical
+`mon_availstatus` / `mon_overallstatus` periods. The tool resolves the service
+`svc_id`, reads `/services_instances_status_log`, filters by `svc_id`, and
+returns joined `svcname` and `nodename` fields.
+
+Example:
+
+```json
+{
+  "request": {
+    "svcname": "tst-lab-service",
+    "mon_availstatus": "down",
+    "limit": 10
+  }
+}
+```
+
+Output fields:
+
+```text
+svcname
+svc_id
+service
+meta
+data
+```
+
+Each `data` row commonly includes:
+
+```text
+id
+svcname
+svc_id
+nodename
+node_id
+mon_begin
+mon_end
+mon_availstatus
+mon_overallstatus
+mon_appstatus
+mon_containerstatus
+mon_diskstatus
+mon_fsstatus
+mon_hbstatus
+mon_ipstatus
+mon_sharestatus
+mon_syncstatus
+```
+
+
 ### `get_service_health`
 
 Returns an interpreted health summary for one service selected by exact

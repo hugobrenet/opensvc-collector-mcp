@@ -224,6 +224,90 @@ class ServiceStatusHistoryRequest(ServiceNameRequest):
         return merged
 
 
+class ServiceInstanceStatusHistoryRequest(ServiceNameRequest):
+    filters: dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            "Exact-match service instance status history filters. Keys can be "
+            "node_id, nodename, mon_availstatus, mon_overallstatus, or their "
+            "v_svcmon_log.<field> form."
+        ),
+        examples=[{"mon_availstatus": "down"}],
+    )
+    node_id: str | None = Field(default=None, description="Exact Collector node uuid filter.")
+    nodename: str | None = Field(default=None, description="Exact node name filter.")
+    mon_availstatus: str | None = Field(
+        default=None,
+        description="Exact monitor availability status filter, for example up or down.",
+    )
+    mon_overallstatus: str | None = Field(
+        default=None,
+        description="Exact monitor overall status filter, for example up or warn.",
+    )
+    props: str | None = Field(
+        default=None,
+        description=(
+            "Comma-separated instance status history properties to return. "
+            "Defaults to service, node, monitor status, and period fields."
+        ),
+    )
+    limit: int = Field(
+        default=20,
+        ge=1,
+        le=100,
+        description="Maximum number of instance status history rows to return.",
+    )
+    offset: int = Field(
+        default=0,
+        ge=0,
+        description="Number of matching history rows to skip when latest is false.",
+    )
+    latest: bool = Field(
+        default=True,
+        description="When true, return the newest matching instance status rows.",
+    )
+    latest_first: bool = Field(
+        default=True,
+        description="When true, sort instance status history newest first.",
+    )
+    page_size: int = Field(
+        default=1000,
+        ge=1,
+        le=5000,
+        description="Internal Collector page size used to retrieve matching rows.",
+    )
+    max_history: int = Field(
+        default=1000,
+        ge=1,
+        le=100000,
+        description="Maximum number of instance status history rows the tool may scan.",
+    )
+
+    @model_validator(mode="after")
+    def normalize_filters(self) -> "ServiceInstanceStatusHistoryRequest":
+        self.filters = {
+            key.strip(): value.strip()
+            for key, value in self.filters.items()
+            if key.strip() and value.strip()
+        }
+        return self
+
+    def merged_filters(self) -> dict[str, str]:
+        merged = dict(self.filters)
+        for field in ("node_id", "nodename", "mon_availstatus", "mon_overallstatus"):
+            value = getattr(self, field)
+            if value is None:
+                continue
+            value = value.strip()
+            if not value:
+                continue
+            existing = merged.get(field)
+            if existing is not None and existing != value:
+                raise ValueError(f"Conflicting filter values for {field!r}")
+            merged[field] = value
+        return merged
+
+
 class ServiceCheckRow(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -357,6 +441,77 @@ class ServiceStatusHistoryResponse(BaseModel):
     )
     meta: dict[str, Any] = Field(default_factory=dict)
     data: list[ServiceStatusHistoryRow]
+
+
+class ServiceInstanceStatusHistoryRow(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    id: int | str | None = Field(
+        default=None,
+        description="Collector service instance status history row id.",
+        exclude_if=_is_none,
+    )
+    svcname: str | None = Field(
+        default=None,
+        description="OpenSVC service name returned through the Collector join.",
+        exclude_if=_is_none,
+    )
+    svc_id: str | None = Field(
+        default=None,
+        description="Collector service uuid.",
+        exclude_if=_is_none,
+    )
+    nodename: str | None = Field(
+        default=None,
+        description="Node name returned through the Collector join.",
+        exclude_if=_is_none,
+    )
+    node_id: str | None = Field(
+        default=None,
+        description="Collector node uuid.",
+        exclude_if=_is_none,
+    )
+    mon_begin: str | None = Field(
+        default=None,
+        description="Timestamp when this monitor status period started.",
+        exclude_if=_is_none,
+    )
+    mon_end: str | None = Field(
+        default=None,
+        description="Timestamp when this monitor status period ended.",
+        exclude_if=_is_none,
+    )
+    mon_availstatus: str | None = Field(
+        default=None,
+        description="Instance monitor availability status for this history period.",
+        exclude_if=_is_none,
+    )
+    mon_overallstatus: str | None = Field(
+        default=None,
+        description="Instance monitor overall status for this history period.",
+        exclude_if=_is_none,
+    )
+    mon_appstatus: str | None = Field(default=None, exclude_if=_is_none)
+    mon_containerstatus: str | None = Field(default=None, exclude_if=_is_none)
+    mon_diskstatus: str | None = Field(default=None, exclude_if=_is_none)
+    mon_fsstatus: str | None = Field(default=None, exclude_if=_is_none)
+    mon_hbstatus: str | None = Field(default=None, exclude_if=_is_none)
+    mon_ipstatus: str | None = Field(default=None, exclude_if=_is_none)
+    mon_sharestatus: str | None = Field(default=None, exclude_if=_is_none)
+    mon_syncstatus: str | None = Field(default=None, exclude_if=_is_none)
+
+
+class ServiceInstanceStatusHistoryResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    svcname: str
+    svc_id: str | None = Field(default=None, exclude_if=_is_none)
+    service: ServiceRow = Field(
+        default_factory=ServiceRow,
+        description="Current service state used as context for the instance history.",
+    )
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ServiceInstanceStatusHistoryRow]
 
 
 class FrozenServiceInstance(BaseModel):

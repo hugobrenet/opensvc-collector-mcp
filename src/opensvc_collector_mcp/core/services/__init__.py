@@ -42,6 +42,7 @@ from .health import (
     get_service_checks,
     get_service_alerts,
     get_service_status_history,
+    get_service_instance_status_history,
     search_frozen_services,
     get_service_health,
 )
@@ -58,6 +59,7 @@ __all__ = [
     'get_service_disks',
     'get_service_hbas',
     'get_service_health',
+    'get_service_instance_status_history',
     'get_service_instances',
     'get_service_nodes',
     'get_service_resource_status',

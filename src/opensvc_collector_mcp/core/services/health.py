@@ -6,7 +6,11 @@ import httpx
 
 from opensvc_collector_mcp.client import collector_get, collector_get_all
 
-from ._common import _ensure_props_include, _parse_service_filters
+from ._common import (
+    _ensure_props_include,
+    _parse_service_filters,
+    get_service_identity,
+)
 from .inventory import (
     _service_instance_filters,
     _service_search_filters,
@@ -15,8 +19,13 @@ from .inventory import (
 )
 
 
-SERVICE_STATUS_HISTORY_SERVICE_PROPS = "svc_id,svcname,svc_status,svc_availstatus,updated"
 SERVICE_STATUS_HISTORY_PROPS = "svc_id,svc_begin,svc_end,svc_availstatus,id"
+SERVICE_INSTANCE_STATUS_HISTORY_PROPS = (
+    "services.svcname:svcname,nodes.nodename:nodename,"
+    "svc_id,node_id,mon_begin,mon_end,mon_availstatus,mon_overallstatus,"
+    "mon_appstatus,mon_containerstatus,mon_diskstatus,mon_fsstatus,"
+    "mon_hbstatus,mon_ipstatus,mon_sharestatus,mon_syncstatus,id"
+)
 SERVICE_ALERTS_PROPS = (
     "alert,dashboard.dash_type,dashboard.dash_severity,dashboard.dash_created,"
     "dashboard.dash_updated,dashboard.node_id,dashboard.id,"
@@ -165,13 +174,9 @@ async def get_service_status_history(
     selected_props = props or SERVICE_STATUS_HISTORY_PROPS
     for required_prop in ("svc_id", "svc_begin", "svc_availstatus", "id"):
         selected_props = _ensure_props_include(selected_props, required_prop)
-    service_response = await collector_get(
-        f"/services/{quote(svcname, safe='')}",
-        params={"props": SERVICE_STATUS_HISTORY_SERVICE_PROPS},
-    )
-    service_rows = service_response.get("data", [])
-    service = service_rows[0] if service_rows else {}
-    svc_id = str(service.get("svc_id") or "").strip()
+    identity = await get_service_identity(svcname)
+    service = identity.get("service", {})
+    svc_id = str(identity.get("svc_id") or "").strip()
     if not svc_id:
         return {
             "svcname": svcname,
@@ -239,6 +244,108 @@ async def get_service_status_history(
             current_history.get("svc_begin") if current_history else None
         ),
         "current_history": current_history,
+        "meta": meta,
+        "data": output_rows,
+    }
+
+
+async def get_service_instance_status_history(
+    svcname: str,
+    filters: dict[str, str] | str | None = None,
+    node_id: str | None = None,
+    nodename: str | None = None,
+    mon_availstatus: str | None = None,
+    mon_overallstatus: str | None = None,
+    props: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+    latest: bool = True,
+    latest_first: bool = True,
+    page_size: int = 1000,
+    max_history: int = 1000,
+) -> dict[str, Any]:
+    svcname = svcname.strip()
+    if not svcname:
+        raise ValueError("svcname must not be empty")
+
+    limit = max(1, min(limit, 100))
+    offset = max(0, offset)
+    page_size = max(1, min(page_size, 5000))
+    max_history = max(1, min(max_history, 100000))
+    selected_props = props or SERVICE_INSTANCE_STATUS_HISTORY_PROPS
+    for required_prop in (
+        "svcname",
+        "nodename",
+        "svc_id",
+        "node_id",
+        "mon_begin",
+        "mon_availstatus",
+        "id",
+    ):
+        selected_props = _ensure_props_include(selected_props, required_prop)
+    identity = await get_service_identity(svcname)
+    service = identity.get("service", {})
+    svc_id = str(identity.get("svc_id") or "").strip()
+    if not svc_id:
+        return {
+            "svcname": svcname,
+            "svc_id": None,
+            "service": service,
+            "meta": {
+                "count": 0,
+                "source": "services_instances_status_log",
+                "filter": {"svcname": svcname},
+                "complete": True,
+                "history_count": 0,
+                "output_count": 0,
+            },
+            "data": [],
+        }
+
+    parsed_filters = _service_instance_status_history_filters(
+        filters,
+        node_id=node_id,
+        nodename=nodename,
+        mon_availstatus=mon_availstatus,
+        mon_overallstatus=mon_overallstatus,
+    )
+    effective_offset = 0 if latest else offset
+    fetch_limit = min(max_history, limit)
+    orderby = "~mon_begin" if latest or latest_first else "mon_begin"
+    response = await _get_service_instance_status_history_page(
+        filters=[("svc_id", svc_id), *parsed_filters],
+        props=selected_props,
+        orderby=orderby,
+        page_size=page_size,
+        max_history=fetch_limit,
+        offset=effective_offset,
+    )
+    rows = _sort_service_instance_status_history_rows(
+        response.get("data", []),
+        latest_first=latest_first,
+    )
+    output_rows = rows[:limit]
+    meta = dict(response.get("meta", {}))
+    meta.update(
+        {
+            "source": "services_instances_status_log",
+            "filter": {
+                "svcname": svcname,
+                "svc_id": svc_id,
+                **{field: value for field, value in parsed_filters},
+            },
+            "included_props": selected_props.split(","),
+            "requested_latest": latest,
+            "latest_first": latest_first,
+            "effective_offset": effective_offset,
+            "history_count": len(rows),
+            "output_count": len(output_rows),
+        }
+    )
+    return {
+        "svcname": service.get("svcname") or svcname,
+        "svc_id": svc_id,
+        "service": service,
         "meta": meta,
         "data": output_rows,
     }
@@ -326,6 +433,140 @@ async def get_service_health(svcname: str) -> dict[str, Any]:
         "issues": issues,
         "signals": _service_health_signals(instances),
     }
+
+
+def _service_instance_status_history_filters(
+    raw_filters: dict[str, str] | str | None = None,
+    **criteria: str | None,
+) -> list[tuple[str, str]]:
+    filters = [
+        (_service_instance_status_history_filter_field(field), value)
+        for field, value in _parse_service_filters(raw_filters)
+    ]
+    for field, value in criteria.items():
+        if value is None:
+            continue
+        value = value.strip()
+        if value:
+            filters.append((_service_instance_status_history_filter_field(field), value))
+    return filters
+
+
+def _service_instance_status_history_filter_field(field: str) -> str:
+    if "." in field:
+        return field
+    return {
+        "id": "v_svcmon_log.id",
+        "svc_id": "v_svcmon_log.svc_id",
+        "node_id": "v_svcmon_log.node_id",
+        "nodename": "nodes.nodename",
+        "mon_begin": "v_svcmon_log.mon_begin",
+        "mon_end": "v_svcmon_log.mon_end",
+        "mon_availstatus": "v_svcmon_log.mon_availstatus",
+        "mon_overallstatus": "v_svcmon_log.mon_overallstatus",
+        "mon_appstatus": "v_svcmon_log.mon_appstatus",
+        "mon_containerstatus": "v_svcmon_log.mon_containerstatus",
+        "mon_diskstatus": "v_svcmon_log.mon_diskstatus",
+        "mon_fsstatus": "v_svcmon_log.mon_fsstatus",
+        "mon_hbstatus": "v_svcmon_log.mon_hbstatus",
+        "mon_ipstatus": "v_svcmon_log.mon_ipstatus",
+        "mon_sharestatus": "v_svcmon_log.mon_sharestatus",
+        "mon_syncstatus": "v_svcmon_log.mon_syncstatus",
+    }.get(field, field)
+
+
+def _service_instance_status_history_params(
+    filters: list[tuple[str, str]],
+    props: str,
+    orderby: str,
+    limit: int | None = None,
+    offset: int | None = None,
+) -> list[tuple[str, Any]]:
+    params: list[tuple[str, Any]] = [
+        ("props", props),
+        ("orderby", orderby),
+    ]
+    if limit is not None:
+        params.append(("limit", limit))
+    if offset is not None:
+        params.append(("offset", offset))
+    for field, value in filters:
+        params.append(("filters", f"{field}={value}"))
+    return params
+
+
+async def _get_service_instance_status_history_page(
+    filters: list[tuple[str, str]],
+    props: str,
+    orderby: str,
+    page_size: int,
+    max_history: int,
+    offset: int,
+) -> dict[str, Any]:
+    rows: list[dict[str, Any]] = []
+    scanned = 0
+    total: int | None = None
+    first_meta: dict[str, Any] = {}
+    current_offset = offset
+    while len(rows) < max_history:
+        response = await collector_get(
+            "/services_instances_status_log",
+            params=_service_instance_status_history_params(
+                filters=filters,
+                props=props,
+                orderby=orderby,
+                limit=min(page_size, max_history - len(rows)),
+                offset=current_offset,
+            ),
+        )
+        meta = response.get("meta", {})
+        data = response.get("data", [])
+        if not first_meta:
+            first_meta = dict(meta)
+        if total is None:
+            raw_total = meta.get("total")
+            try:
+                total = int(raw_total) if raw_total is not None else None
+            except (TypeError, ValueError):
+                total = None
+        rows.extend(data)
+        count = len(data)
+        scanned += count
+        current_offset += count
+        if count == 0 or count < page_size:
+            break
+        if total is not None and current_offset >= total:
+            break
+
+    complete = total is None or current_offset >= total
+    merged_meta = dict(first_meta)
+    merged_meta.update(
+        {
+            "count": len(rows),
+            "total": total if complete else None,
+            "offset": offset,
+            "complete": complete,
+            "page_size": page_size,
+            "max_items": max_history,
+            "scanned": scanned,
+            "strategy": "paged",
+        }
+    )
+    return {"meta": merged_meta, "data": rows}
+
+
+def _sort_service_instance_status_history_rows(
+    rows: list[dict[str, Any]],
+    latest_first: bool,
+) -> list[dict[str, Any]]:
+    return sorted(
+        rows,
+        key=lambda row: (
+            str(row.get("mon_begin") or ""),
+            str(row.get("id") or ""),
+        ),
+        reverse=latest_first,
+    )
 
 
 def _service_status_history_filters(

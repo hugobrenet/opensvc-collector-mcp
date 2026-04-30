@@ -17,6 +17,7 @@ from opensvc_collector_mcp.core.services import (
     get_service_hbas as core_get_service_hbas,
     get_service_targets as core_get_service_targets,
     get_service_status_history as core_get_service_status_history,
+    get_service_instance_status_history as core_get_service_instance_status_history,
     get_service_unacknowledged_errors as core_get_service_unacknowledged_errors,
     get_service_health as core_get_service_health,
     get_service_instances as core_get_service_instances,
@@ -71,6 +72,8 @@ from opensvc_collector_mcp.models.services import (
     ServiceTargetsResponse,
     ServiceStatusHistoryRequest,
     ServiceStatusHistoryResponse,
+    ServiceInstanceStatusHistoryRequest,
+    ServiceInstanceStatusHistoryResponse,
     ServiceTagSearchRequest,
     ServicesByTagResponse,
     ServicesWithoutTagResponse,
@@ -941,6 +944,49 @@ def register_services_tools(mcp: FastMCP) -> None:
             max_history=request.max_history,
         )
         return ServiceStatusHistoryResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_service_instance_status_history",
+        description=(
+            "Return per-node monitor status history for one OpenSVC service "
+            "selected by exact svcname. The tool resolves svc_id, reads "
+            "/services_instances_status_log, and returns sorted instance "
+            "status periods with svcname and nodename join fields."
+        ),
+        tags={"services", "instances", "status", "history", "health", "read"},
+        annotations={
+            "title": "Get OpenSVC Service Instance Status History",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_service_instance_status_history(
+        request: Annotated[
+            ServiceInstanceStatusHistoryRequest,
+            Field(
+                description=(
+                    "Exact service name, optional node and monitor status filters, "
+                    "pagination, and internal scan guardrails used to inspect "
+                    "per-node service instance status history."
+                ),
+            ),
+        ],
+    ) -> ServiceInstanceStatusHistoryResponse:
+        'Return per-node status history for one OpenSVC Collector service.'
+        response = await core_get_service_instance_status_history(
+            svcname=request.svcname,
+            filters=request.merged_filters(),
+            props=request.props,
+            limit=request.limit,
+            offset=request.offset,
+            latest=request.latest,
+            latest_first=request.latest_first,
+            page_size=request.page_size,
+            max_history=request.max_history,
+        )
+        return ServiceInstanceStatusHistoryResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
