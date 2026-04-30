@@ -5,9 +5,12 @@ from pydantic import Field
 
 from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.compliance import (
+    get_compliance_moduleset as core_get_compliance_moduleset,
     list_compliance_modulesets as core_list_compliance_modulesets,
 )
 from opensvc_collector_mcp.models.compliance import (
+    ComplianceModulesetRequest,
+    ComplianceModulesetResponse,
     ComplianceModulesetsRequest,
     ComplianceModulesetsResponse,
 )
@@ -51,3 +54,39 @@ def register_compliance_tools(mcp: FastMCP) -> None:
             offset=request.offset,
         )
         return ComplianceModulesetsResponse.model_validate(response)
+
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_compliance_moduleset",
+        description=(
+            "Return one OpenSVC Collector compliance moduleset selected by "
+            "Collector moduleset id. Use list_compliance_modulesets first "
+            "list_compliance_modulesets first when the exact name is unknown."
+        ),
+        tags={"compliance", "modulesets", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Compliance Moduleset",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_compliance_moduleset(
+        request: Annotated[
+            ComplianceModulesetRequest,
+            Field(
+                description=(
+                    "Collector moduleset id or exact modset_name plus optional "
+                    "returned properties used to retrieve one compliance moduleset."
+                ),
+            ),
+        ],
+    ) -> ComplianceModulesetResponse:
+        """Return one compliance moduleset visible to the Collector account."""
+        response = await core_get_compliance_moduleset(
+            moduleset_id=request.moduleset_id,
+            modset_name=request.modset_name,
+            props=request.props,
+        )
+        return ComplianceModulesetResponse.model_validate(response)

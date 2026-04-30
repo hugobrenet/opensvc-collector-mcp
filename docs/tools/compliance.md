@@ -36,3 +36,31 @@ Output fields:
 meta
 data
 ```
+
+
+### `get_compliance_moduleset`
+
+Returns one compliance moduleset selected by Collector moduleset id or exact moduleset name.
+
+Use `modset_name` for natural human requests. Use `list_compliance_modulesets`
+first when the exact name is unknown. Default output returns the same compact
+moduleset properties as the listing tool.
+
+Example:
+
+```json
+{
+  "request": {
+    "modset_name": "01-aits.nodes.opensvc"
+  }
+}
+```
+
+Output fields:
+
+```text
+object_id
+modset_name
+meta
+data
+```

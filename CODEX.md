@@ -89,6 +89,7 @@ Current MCP cluster tool surface:
 Current MCP compliance tool surface:
 
 - `list_compliance_modulesets`
+- `get_compliance_moduleset`
 
 Current MCP service tool surface:
 

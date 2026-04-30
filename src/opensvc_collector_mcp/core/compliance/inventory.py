@@ -62,13 +62,63 @@ async def list_compliance_modulesets(
 
 
 async def get_compliance_moduleset(
-    moduleset_id: int | str,
+    moduleset_id: int | str | None = None,
+    modset_name: str | None = None,
     props: str | None = None,
 ) -> dict[str, Any]:
     selected_props = props or MODULESET_PROPS
-    path = f"/compliance/modulesets/{quote_path_id(moduleset_id)}"
+    resolved = await _resolve_moduleset_identity(
+        moduleset_id=moduleset_id,
+        modset_name=modset_name,
+    )
+    resolved_id = str(resolved["id"])
+    path = f"/compliance/modulesets/{quote_path_id(resolved_id)}"
     response = await get_object(path, props=selected_props)
-    return _object_response(response, "compliance_moduleset", moduleset_id, selected_props)
+    data = _object_response(response, "compliance_moduleset", resolved_id, selected_props)
+    rows = data.get("data", [])
+    resolved_name = resolved.get("modset_name") or (
+        rows[0].get("modset_name") if rows else None
+    )
+    data["modset_name"] = resolved_name
+    data["meta"].update(
+        {
+            "requested_moduleset_id": str(moduleset_id).strip()
+            if moduleset_id is not None
+            else None,
+            "requested_modset_name": modset_name,
+            "resolved_moduleset_id": resolved_id,
+            "resolved_modset_name": resolved_name,
+        }
+    )
+    return data
+
+
+async def _resolve_moduleset_identity(
+    moduleset_id: int | str | None,
+    modset_name: str | None,
+) -> dict[str, Any]:
+    requested_id = str(moduleset_id).strip() if moduleset_id is not None else ""
+    requested_name = modset_name.strip() if modset_name else ""
+    if requested_id:
+        return {"id": requested_id, "modset_name": requested_name or None}
+    if not requested_name:
+        raise ValueError("moduleset_id or modset_name must be provided")
+
+    response = await get_collection_page(
+        "/compliance/modulesets",
+        filters=[("modset_name", requested_name)],
+        props="id,modset_name",
+        limit=2,
+        offset=0,
+    )
+    rows = response.get("data", [])
+    if not rows:
+        raise ValueError(f"No compliance moduleset found for modset_name {requested_name!r}")
+    if len(rows) > 1:
+        raise ValueError(
+            f"Multiple compliance modulesets found for modset_name {requested_name!r}"
+        )
+    return rows[0]
 
 
 async def get_compliance_moduleset_items(
