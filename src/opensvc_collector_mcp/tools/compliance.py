@@ -8,6 +8,7 @@ from opensvc_collector_mcp.core.compliance import (
     get_compliance_moduleset as core_get_compliance_moduleset,
     get_compliance_moduleset_definition as core_get_compliance_moduleset_definition,
     get_compliance_moduleset_modules as core_get_compliance_moduleset_modules,
+    get_compliance_moduleset_nodes as core_get_compliance_moduleset_nodes,
     get_compliance_moduleset_usage as core_get_compliance_moduleset_usage,
     list_compliance_modulesets as core_list_compliance_modulesets,
 )
@@ -16,6 +17,8 @@ from opensvc_collector_mcp.models.compliance import (
     ComplianceModulesetDefinitionResponse,
     ComplianceModulesetModulesRequest,
     ComplianceModulesetModulesResponse,
+    ComplianceModulesetNodesRequest,
+    ComplianceModulesetNodesResponse,
     ComplianceModulesetRequest,
     ComplianceModulesetResponse,
     ComplianceModulesetUsageRequest,
@@ -138,6 +141,47 @@ def register_compliance_tools(mcp: FastMCP) -> None:
             offset=request.offset,
         )
         return ComplianceModulesetModulesResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_compliance_moduleset_nodes",
+        description=(
+            "Return nodes directly attached to one OpenSVC Collector compliance "
+            "moduleset, selected by Collector moduleset id or exact moduleset "
+            "name. This does not return candidate or merely eligible nodes."
+        ),
+        tags={"compliance", "modulesets", "nodes", "read"},
+        annotations={
+            "title": "Get OpenSVC Compliance Moduleset Nodes",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_compliance_moduleset_nodes(
+        request: Annotated[
+            ComplianceModulesetNodesRequest,
+            Field(
+                description=(
+                    "Collector moduleset id or exact modset_name plus optional "
+                    "filters, properties, ordering, search, limit, and offset. "
+                    "Returns directly attached nodes only."
+                ),
+            ),
+        ],
+    ) -> ComplianceModulesetNodesResponse:
+        """Return nodes directly attached to one compliance moduleset."""
+        response = await core_get_compliance_moduleset_nodes(
+            moduleset_id=request.moduleset_id,
+            modset_name=request.modset_name,
+            filters=request.filters,
+            props=request.props,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
+        )
+        return ComplianceModulesetNodesResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

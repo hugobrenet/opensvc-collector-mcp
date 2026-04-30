@@ -119,6 +119,13 @@ class ComplianceModulesetModulesRequest(ComplianceModulesetRelationRequest):
     )
 
 
+class ComplianceModulesetNodesRequest(ComplianceModulesetRelationRequest):
+    orderby: str | None = Field(
+        default="nodename",
+        description="Collector orderby expression. Defaults to nodename.",
+    )
+
+
 class ComplianceModulesetRow(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -183,3 +190,24 @@ class ComplianceModulesetModulesResponse(BaseModel):
     relation: str = Field(default="modules")
     meta: dict[str, Any] = Field(default_factory=dict)
     data: list[ComplianceModulesetModuleRow]
+
+
+class ComplianceModulesetNodeRow(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    node_id: str | None = Field(default=None, description="Collector node id.")
+    nodename: str | None = Field(default=None, description="OpenSVC node name.")
+    app: str | None = Field(default=None, description="Node application.")
+    node_env: str | None = Field(default=None, description="Node environment.")
+    status: str | None = Field(default=None, description="Node status.")
+    updated: str | None = Field(default=None, description="Node update timestamp.")
+
+
+class ComplianceModulesetNodesResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    object_id: str
+    modset_name: str | None = None
+    relation: str = Field(default="nodes")
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ComplianceModulesetNodeRow]

@@ -91,6 +91,7 @@ Current MCP compliance tool surface:
 - `list_compliance_modulesets`
 - `get_compliance_moduleset`
 - `get_compliance_moduleset_modules`
+- `get_compliance_moduleset_nodes`
 - `get_compliance_moduleset_usage`
 - `get_compliance_moduleset_definition`
 

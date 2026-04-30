@@ -96,6 +96,36 @@ data
 ```
 
 
+### `get_compliance_moduleset_nodes`
+
+Returns nodes directly attached to one compliance moduleset, selected by
+Collector moduleset id or exact `modset_name`.
+
+Use this when the question is about effective node attachments. This is distinct
+from candidate nodes, which are eligible nodes according to Collector targeting
+rules but not necessarily attached.
+
+Example:
+
+```json
+{
+  "request": {
+    "modset_name": "02-aits.nodes.opensvc.tags"
+  }
+}
+```
+
+Output fields:
+
+```text
+object_id
+modset_name
+relation
+meta
+data
+```
+
+
 ### `get_compliance_moduleset_usage`
 
 Returns where one compliance moduleset is reused or referenced, selected by
