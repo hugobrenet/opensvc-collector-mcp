@@ -66,6 +66,35 @@ data
 ```
 
 
+### `get_compliance_moduleset_usage`
+
+Returns where one compliance moduleset is reused or referenced, selected by
+Collector moduleset id or exact `modset_name`.
+
+Use this when the question is about impact or dependency analysis, for example
+which modulesets reference a given moduleset. This does not return the moduleset
+content itself; use `get_compliance_moduleset_definition` for that.
+
+Example:
+
+```json
+{
+  "request": {
+    "modset_name": "02-aits.nodes.opensvc.tags"
+  }
+}
+```
+
+Output fields:
+
+```text
+object_id
+modset_name
+meta
+data
+```
+
+
 ### `get_compliance_moduleset_definition`
 
 Returns the declarative definition/export of one compliance moduleset selected

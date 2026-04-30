@@ -67,6 +67,28 @@ class ComplianceModulesetDefinitionRequest(BaseModel):
         return self
 
 
+class ComplianceModulesetUsageRequest(BaseModel):
+    moduleset_id: int | str | None = Field(
+        default=None,
+        description="Collector compliance moduleset id, when already known.",
+    )
+    modset_name: str | None = Field(
+        default=None,
+        description="Exact compliance moduleset name to resolve to a Collector id.",
+        examples=["02-aits.nodes.opensvc.tags"],
+    )
+
+    @model_validator(mode="after")
+    def require_selector(self) -> "ComplianceModulesetUsageRequest":
+        has_id = self.moduleset_id is not None and str(self.moduleset_id).strip()
+        has_name = self.modset_name is not None and self.modset_name.strip()
+        if not has_id and not has_name:
+            raise ValueError("moduleset_id or modset_name must be provided")
+        if self.modset_name is not None:
+            self.modset_name = self.modset_name.strip() or None
+        return self
+
+
 class ComplianceModulesetRow(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -101,3 +123,12 @@ class ComplianceModulesetDefinitionResponse(BaseModel):
     modset_name: str | None = None
     meta: dict[str, Any] = Field(default_factory=dict)
     definition: dict[str, Any] = Field(default_factory=dict)
+
+
+class ComplianceModulesetUsageResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    object_id: str
+    modset_name: str | None = None
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: dict[str, Any] = Field(default_factory=dict)

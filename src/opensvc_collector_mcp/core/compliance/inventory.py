@@ -210,13 +210,33 @@ async def get_compliance_moduleset_module(
     return data
 
 
-async def get_compliance_moduleset_usage(moduleset_id: int | str) -> dict[str, Any]:
-    path = f"/compliance/modulesets/{quote_path_id(moduleset_id)}/usage"
+async def get_compliance_moduleset_usage(
+    moduleset_id: int | str | None = None,
+    modset_name: str | None = None,
+) -> dict[str, Any]:
+    resolved = await _resolve_moduleset_identity(
+        moduleset_id=moduleset_id,
+        modset_name=modset_name,
+    )
+    resolved_id = str(resolved["id"])
+    resolved_name = resolved.get("modset_name")
+    path = f"/compliance/modulesets/{quote_path_id(resolved_id)}/usage"
     response = await get_object(path)
+    usage = response.get("data", response)
     return {
-        "object_id": str(moduleset_id),
-        "source": "compliance_moduleset_usage",
-        "data": response.get("data", response),
+        "object_id": resolved_id,
+        "modset_name": resolved_name,
+        "meta": {
+            "source": "compliance_moduleset_usage",
+            "object_id": resolved_id,
+            "requested_moduleset_id": str(moduleset_id).strip()
+            if moduleset_id is not None
+            else None,
+            "requested_modset_name": modset_name,
+            "resolved_moduleset_id": resolved_id,
+            "resolved_modset_name": resolved_name,
+        },
+        "data": usage,
     }
 
 

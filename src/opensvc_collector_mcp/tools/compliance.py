@@ -7,6 +7,7 @@ from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.compliance import (
     get_compliance_moduleset as core_get_compliance_moduleset,
     get_compliance_moduleset_definition as core_get_compliance_moduleset_definition,
+    get_compliance_moduleset_usage as core_get_compliance_moduleset_usage,
     list_compliance_modulesets as core_list_compliance_modulesets,
 )
 from opensvc_collector_mcp.models.compliance import (
@@ -14,6 +15,8 @@ from opensvc_collector_mcp.models.compliance import (
     ComplianceModulesetDefinitionResponse,
     ComplianceModulesetRequest,
     ComplianceModulesetResponse,
+    ComplianceModulesetUsageRequest,
+    ComplianceModulesetUsageResponse,
     ComplianceModulesetsRequest,
     ComplianceModulesetsResponse,
 )
@@ -92,6 +95,40 @@ def register_compliance_tools(mcp: FastMCP) -> None:
             props=request.props,
         )
         return ComplianceModulesetResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_compliance_moduleset_usage",
+        description=(
+            "Return where one OpenSVC Collector compliance moduleset is reused "
+            "or referenced, selected by Collector moduleset id or exact moduleset "
+            "name. The returned sections depend on Collector /usage data."
+        ),
+        tags={"compliance", "modulesets", "usage", "read"},
+        annotations={
+            "title": "Get OpenSVC Compliance Moduleset Usage",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_compliance_moduleset_usage(
+        request: Annotated[
+            ComplianceModulesetUsageRequest,
+            Field(
+                description=(
+                    "Collector moduleset id or exact modset_name used to retrieve "
+                    "where the compliance moduleset is referenced."
+                ),
+            ),
+        ],
+    ) -> ComplianceModulesetUsageResponse:
+        """Return where one compliance moduleset is referenced."""
+        response = await core_get_compliance_moduleset_usage(
+            moduleset_id=request.moduleset_id,
+            modset_name=request.modset_name,
+        )
+        return ComplianceModulesetUsageResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
