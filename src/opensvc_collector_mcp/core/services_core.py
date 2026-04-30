@@ -58,6 +58,10 @@ SERVICE_DISKS_PROPS = (
 SERVICE_RESOURCES_PROPS = (
     "nodes.nodename:nodename,rid,res_key,res_value,updated"
 )
+SERVICE_RESOURCE_STATUS_PROPS = (
+    "node_id,rid,vmname,res_type,res_status,res_desc,res_disable,"
+    "res_optional,res_monitor,changed,updated"
+)
 SERVICE_CONFIG_PROPS = "svcname,svc_config,svc_config_updated,updated"
 SERVICE_STATUS_HISTORY_SERVICE_PROPS = "svc_id,svcname,svc_status,svc_availstatus,updated"
 SERVICE_STATUS_HISTORY_PROPS = "svc_id,svc_begin,svc_end,svc_availstatus,id"
@@ -456,6 +460,67 @@ async def get_service_resources(
         "svcname": svcname,
         "meta": meta,
         "resources": resources,
+    }
+
+
+async def get_service_resource_status(
+    svcname: str,
+    filters: dict[str, str] | str | None = None,
+    rid: str | None = None,
+    node_id: str | None = None,
+    vmname: str | None = None,
+    res_type: str | None = None,
+    res_status: str | None = None,
+    res_disable: str | None = None,
+    res_optional: str | None = None,
+    res_monitor: str | None = None,
+    props: str | None = None,
+    page_size: int = 1000,
+    max_resources: int = 10000,
+) -> dict[str, Any]:
+    svcname = svcname.strip()
+    if not svcname:
+        raise ValueError("svcname must not be empty")
+
+    selected_props = props or SERVICE_RESOURCE_STATUS_PROPS
+    parsed_filters = _service_resource_status_filters(
+        filters,
+        rid=rid,
+        node_id=node_id,
+        vmname=vmname,
+        res_type=res_type,
+        res_status=res_status,
+        res_disable=res_disable,
+        res_optional=res_optional,
+        res_monitor=res_monitor,
+    )
+    response = await collector_get_all(
+        f"/services/{quote(svcname, safe='')}/resources",
+        params=_service_resource_status_params(
+            filters=parsed_filters,
+            props=selected_props,
+        ),
+        strategy="paged",
+        page_size=page_size,
+        max_items=max_resources,
+    )
+    rows = response.get("data", [])
+    meta = dict(response.get("meta", {}))
+    meta.update(
+        {
+            "source": "service_resource_status",
+            "filter": {
+                "svcname": svcname,
+                **{field: value for field, value in parsed_filters},
+            },
+            "included_props": selected_props.split(","),
+            "resource_count": len(rows),
+        }
+    )
+    return {
+        "svcname": svcname,
+        "meta": meta,
+        "data": rows,
     }
 
 
@@ -1258,6 +1323,54 @@ def _group_service_resources(rows: list[dict[str, Any]]) -> list[dict[str, Any]]
 
 def _resource_type_from_rid(rid: str) -> str:
     return rid.split("#", 1)[0] if "#" in rid else rid
+
+
+def _service_resource_status_filters(
+    raw_filters: dict[str, str] | str | None = None,
+    **criteria: str | None,
+) -> list[tuple[str, str]]:
+    filters = [
+        (_service_resource_status_filter_field(field), value)
+        for field, value in _parse_service_filters(raw_filters)
+    ]
+    for field, value in criteria.items():
+        if value is None:
+            continue
+        value = value.strip()
+        if value:
+            filters.append((_service_resource_status_filter_field(field), value))
+    return filters
+
+
+def _service_resource_status_filter_field(field: str) -> str:
+    if "." in field:
+        return field
+    return {
+        "id": "resmon.id",
+        "svc_id": "resmon.svc_id",
+        "node_id": "resmon.node_id",
+        "rid": "resmon.rid",
+        "vmname": "resmon.vmname",
+        "res_type": "resmon.res_type",
+        "res_status": "resmon.res_status",
+        "res_desc": "resmon.res_desc",
+        "res_log": "resmon.res_log",
+        "res_disable": "resmon.res_disable",
+        "res_optional": "resmon.res_optional",
+        "res_monitor": "resmon.res_monitor",
+        "changed": "resmon.changed",
+        "updated": "resmon.updated",
+    }.get(field, field)
+
+
+def _service_resource_status_params(
+    filters: list[tuple[str, str]],
+    props: str,
+) -> list[tuple[str, Any]]:
+    params: list[tuple[str, Any]] = [("props", props)]
+    for field, value in filters:
+        params.append(("filters", f"{field}={value}"))
+    return params
 
 
 def _service_status_history_filters(

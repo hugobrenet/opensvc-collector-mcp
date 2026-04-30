@@ -20,6 +20,7 @@ from opensvc_collector_mcp.core.services_core import (
     get_service_instances as core_get_service_instances,
     get_service_nodes as core_get_service_nodes,
     get_service_resources as core_get_service_resources,
+    get_service_resource_status as core_get_service_resource_status,
     get_service_tags as core_get_service_tags,
     list_service_props as core_list_service_props,
     list_services as core_list_services,
@@ -56,6 +57,8 @@ from opensvc_collector_mcp.models.services_model import (
     ServiceNodesResponse,
     ServicePropsResponse,
     ServiceResourcesResponse,
+    ServiceResourceStatusRequest,
+    ServiceResourceStatusResponse,
     ServiceTagsRequest,
     ServiceTagsResponse,
     ServiceTargetsRequest,
@@ -487,6 +490,46 @@ def register_services_tools(mcp: FastMCP) -> None:
         """Return grouped resource information for one OpenSVC Collector service."""
         response = await core_get_service_resources(svcname=request.svcname)
         return ServiceResourcesResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_service_resource_status",
+        description=(
+            "Return runtime OpenSVC resource status rows for one service selected "
+            "by exact svcname. The tool reads /services/<svcname>/resources and "
+            "returns flat per-node resource state such as rid, type, status, "
+            "monitor flags, description, and timestamps."
+        ),
+        tags={"services", "resources", "status", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Service Resource Status",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_service_resource_status(
+        request: Annotated[
+            ServiceResourceStatusRequest,
+            Field(
+                description=(
+                    "Exact service name, optional exact-match runtime resource "
+                    "filters, returned properties, and internal pagination "
+                    "guardrails used to list resource status through Collector "
+                    "/services/<svcname>/resources."
+                ),
+            ),
+        ],
+    ) -> ServiceResourceStatusResponse:
+        'Return runtime resource status rows for one OpenSVC Collector service.'
+        response = await core_get_service_resource_status(
+            svcname=request.svcname,
+            filters=request.merged_filters(),
+            props=request.props,
+            page_size=request.page_size,
+            max_resources=request.max_resources,
+        )
+        return ServiceResourceStatusResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

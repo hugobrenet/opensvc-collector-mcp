@@ -737,6 +737,57 @@ meta
 resources
 ```
 
+### `get_service_resource_status`
+
+Returns runtime OpenSVC resource status rows for one service selected by exact
+`svcname`.
+
+Use this tool when the question is about effective resource state on service
+nodes: which resources are `up`, `down`, `n/a`, disabled, optional, or monitored.
+This differs from `get_service_resources`, which reads `/resinfo` and returns
+configuration-style resource key/value data grouped by resource id and node.
+
+The tool reads Collector `/services/<svcname>/resources` using internal paged
+retrieval. Use exact filters such as `rid`, `node_id`, `vmname`, `res_type`,
+`res_status`, `res_disable`, `res_optional`, or `res_monitor` to narrow the
+result.
+
+Example:
+
+```json
+{
+  "request": {
+    "svcname": "tst-lab-service",
+    "res_status": "down"
+  }
+}
+```
+
+Output fields:
+
+```text
+svcname
+meta
+data
+```
+
+Each `data` row commonly includes:
+
+```text
+node_id
+rid
+vmname
+res_type
+res_status
+res_desc
+res_disable
+res_optional
+res_monitor
+changed
+updated
+```
+
+
 ### `search_services`
 
 Searches OpenSVC Collector services with exact-match filters and explicit
