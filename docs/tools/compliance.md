@@ -64,3 +64,33 @@ modset_name
 meta
 data
 ```
+
+
+### `get_compliance_moduleset_definition`
+
+Returns the declarative definition/export of one compliance moduleset selected
+by Collector moduleset id or exact `modset_name`.
+
+Use this when the question is about the content of a moduleset: included modules,
+rulesets, variables, filtersets, publications, responsibles, and dependencies.
+Variable values are hidden by default because they can be large or sensitive; set
+`include_variable_values` to `true` only when the detailed values are needed.
+
+Example:
+
+```json
+{
+  "request": {
+    "modset_name": "02-aits.nodes.opensvc.tags"
+  }
+}
+```
+
+Output fields:
+
+```text
+object_id
+modset_name
+meta
+definition
+```

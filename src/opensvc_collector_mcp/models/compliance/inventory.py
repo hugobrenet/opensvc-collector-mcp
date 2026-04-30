@@ -38,6 +38,35 @@ class ComplianceModulesetRequest(BaseModel):
         return self
 
 
+class ComplianceModulesetDefinitionRequest(BaseModel):
+    moduleset_id: int | str | None = Field(
+        default=None,
+        description="Collector compliance moduleset id, when already known.",
+    )
+    modset_name: str | None = Field(
+        default=None,
+        description="Exact compliance moduleset name to resolve to a Collector id.",
+        examples=["02-aits.nodes.opensvc.tags"],
+    )
+    include_variable_values: bool = Field(
+        default=False,
+        description=(
+            "Include ruleset variable values from the export payload. Disabled "
+            "by default because values can be large or sensitive."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def require_selector(self) -> "ComplianceModulesetDefinitionRequest":
+        has_id = self.moduleset_id is not None and str(self.moduleset_id).strip()
+        has_name = self.modset_name is not None and self.modset_name.strip()
+        if not has_id and not has_name:
+            raise ValueError("moduleset_id or modset_name must be provided")
+        if self.modset_name is not None:
+            self.modset_name = self.modset_name.strip() or None
+        return self
+
+
 class ComplianceModulesetRow(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -62,3 +91,13 @@ class ComplianceModulesetResponse(BaseModel):
     modset_name: str | None = None
     meta: dict[str, Any] = Field(default_factory=dict)
     data: list[ComplianceModulesetRow]
+
+
+
+class ComplianceModulesetDefinitionResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    object_id: str
+    modset_name: str | None = None
+    meta: dict[str, Any] = Field(default_factory=dict)
+    definition: dict[str, Any] = Field(default_factory=dict)
