@@ -44,7 +44,7 @@ src/opensvc_collector_mcp/
 |-- config.py          # environment variables
 |-- core/              # Collector workflows and business logic
 |   |-- clusters_core.py
-|   |-- nodes_core.py
+|   |-- nodes/
 |   `-- services/
 |       |-- inventory.py
 |       |-- resources.py
@@ -55,7 +55,7 @@ src/opensvc_collector_mcp/
 |       `-- storage.py
 |-- models/            # Pydantic request and response models
 |   |-- clusters_model.py
-|   |-- nodes_model.py
+|   |-- nodes/
 |   `-- services/
 |-- tools/             # FastMCP tool definitions
 |   |-- clusters.py
