@@ -1,0 +1,53 @@
+from typing import Annotated
+
+from fastmcp import FastMCP
+from pydantic import Field
+
+from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
+from opensvc_collector_mcp.core.compliance import (
+    list_compliance_modulesets as core_list_compliance_modulesets,
+)
+from opensvc_collector_mcp.models.compliance import (
+    ComplianceModulesetsRequest,
+    ComplianceModulesetsResponse,
+)
+
+
+def register_compliance_tools(mcp: FastMCP) -> None:
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="list_compliance_modulesets",
+        description=(
+            "List OpenSVC Collector compliance modulesets published to the "
+            "requesting user's groups. Use filters for exact-match Collector "
+            "filters and props to choose returned moduleset fields."
+        ),
+        tags={"compliance", "modulesets", "inventory", "read"},
+        annotations={
+            "title": "List OpenSVC Compliance Modulesets",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def list_compliance_modulesets(
+        request: Annotated[
+            ComplianceModulesetsRequest,
+            Field(
+                description=(
+                    "Compliance moduleset listing parameters: exact-match filters, "
+                    "returned properties, ordering, search, limit, and offset."
+                ),
+            ),
+        ] = ComplianceModulesetsRequest(),
+    ) -> ComplianceModulesetsResponse:
+        """Return compliance modulesets visible to the Collector account."""
+        response = await core_list_compliance_modulesets(
+            filters=request.filters,
+            props=request.props,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
+        )
+        return ComplianceModulesetsResponse.model_validate(response)

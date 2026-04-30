@@ -50,6 +50,8 @@ Current package layout:
   services, health, and stats
 - `src/opensvc_collector_mcp/core/clusters/`
   cluster-domain business logic
+- `src/opensvc_collector_mcp/core/compliance/`
+  global compliance-domain business logic
 - `src/opensvc_collector_mcp/models/services/`
   service-domain Pydantic contracts split with the same concern boundaries
 - `src/opensvc_collector_mcp/models/nodes/`
@@ -83,6 +85,10 @@ Current MCP node tool surface:
 Current MCP cluster tool surface:
 
 - `get_cluster_nodes`
+
+Current MCP compliance tool surface:
+
+- `list_compliance_modulesets`
 
 Current MCP service tool surface:
 
@@ -230,6 +236,8 @@ Tool documentation:
   `docs/tools/nodes.md`
 - Current service tool docs:
   `docs/tools/services.md`
+- Current compliance tool docs:
+  `docs/tools/compliance.md`
 - If new Collector domains are added, prefer one focused doc per domain:
   `docs/tools/services.md`, `docs/tools/checks.md`, etc.
 

@@ -5,6 +5,7 @@ from starlette.responses import PlainTextResponse
 
 from opensvc_collector_mcp.config import MCP_PORT
 from opensvc_collector_mcp.tools.clusters import register_clusters_tools
+from opensvc_collector_mcp.tools.compliance import register_compliance_tools
 from opensvc_collector_mcp.tools.nodes import register_nodes_tools
 from opensvc_collector_mcp.tools.services import register_services_tools
 
@@ -25,6 +26,7 @@ async def health_check(request: Request) -> PlainTextResponse:
 register_nodes_tools(mcp)
 register_clusters_tools(mcp)
 register_services_tools(mcp)
+register_compliance_tools(mcp)
 
 
 def create_app():
