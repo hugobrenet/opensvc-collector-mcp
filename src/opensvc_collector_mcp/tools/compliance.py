@@ -7,12 +7,15 @@ from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.compliance import (
     get_compliance_moduleset as core_get_compliance_moduleset,
     get_compliance_moduleset_definition as core_get_compliance_moduleset_definition,
+    get_compliance_moduleset_modules as core_get_compliance_moduleset_modules,
     get_compliance_moduleset_usage as core_get_compliance_moduleset_usage,
     list_compliance_modulesets as core_list_compliance_modulesets,
 )
 from opensvc_collector_mcp.models.compliance import (
     ComplianceModulesetDefinitionRequest,
     ComplianceModulesetDefinitionResponse,
+    ComplianceModulesetModulesRequest,
+    ComplianceModulesetModulesResponse,
     ComplianceModulesetRequest,
     ComplianceModulesetResponse,
     ComplianceModulesetUsageRequest,
@@ -95,6 +98,46 @@ def register_compliance_tools(mcp: FastMCP) -> None:
             props=request.props,
         )
         return ComplianceModulesetResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_compliance_moduleset_modules",
+        description=(
+            "Return modules declared in one OpenSVC Collector compliance moduleset, "
+            "selected by Collector moduleset id or exact moduleset name. Use this "
+            "to inspect the concrete modules composing a moduleset."
+        ),
+        tags={"compliance", "modulesets", "modules", "read"},
+        annotations={
+            "title": "Get OpenSVC Compliance Moduleset Modules",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_compliance_moduleset_modules(
+        request: Annotated[
+            ComplianceModulesetModulesRequest,
+            Field(
+                description=(
+                    "Collector moduleset id or exact modset_name plus optional "
+                    "filters, properties, ordering, search, limit, and offset."
+                ),
+            ),
+        ],
+    ) -> ComplianceModulesetModulesResponse:
+        """Return modules declared in one compliance moduleset."""
+        response = await core_get_compliance_moduleset_modules(
+            moduleset_id=request.moduleset_id,
+            modset_name=request.modset_name,
+            filters=request.filters,
+            props=request.props,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
+        )
+        return ComplianceModulesetModulesResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

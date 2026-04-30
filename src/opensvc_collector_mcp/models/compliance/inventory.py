@@ -89,6 +89,36 @@ class ComplianceModulesetUsageRequest(BaseModel):
         return self
 
 
+class ComplianceModulesetRelationRequest(ComplianceListRequest):
+    moduleset_id: int | str | None = Field(
+        default=None,
+        description="Collector compliance moduleset id, when already known.",
+    )
+    modset_name: str | None = Field(
+        default=None,
+        description="Exact compliance moduleset name to resolve to a Collector id.",
+        examples=["02-aits.nodes.opensvc.tags"],
+    )
+
+    @model_validator(mode="after")
+    def require_selector(self) -> "ComplianceModulesetRelationRequest":
+        super().normalize_filters()
+        has_id = self.moduleset_id is not None and str(self.moduleset_id).strip()
+        has_name = self.modset_name is not None and self.modset_name.strip()
+        if not has_id and not has_name:
+            raise ValueError("moduleset_id or modset_name must be provided")
+        if self.modset_name is not None:
+            self.modset_name = self.modset_name.strip() or None
+        return self
+
+
+class ComplianceModulesetModulesRequest(ComplianceModulesetRelationRequest):
+    orderby: str | None = Field(
+        default="modset_mod_name",
+        description="Collector orderby expression. Defaults to modset_mod_name.",
+    )
+
+
 class ComplianceModulesetRow(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -132,3 +162,24 @@ class ComplianceModulesetUsageResponse(BaseModel):
     modset_name: str | None = None
     meta: dict[str, Any] = Field(default_factory=dict)
     data: dict[str, Any] = Field(default_factory=dict)
+
+
+class ComplianceModulesetModuleRow(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    id: int | str | None = Field(default=None, description="Collector module row id.")
+    modset_id: int | str | None = Field(default=None, description="Collector moduleset id.")
+    modset_mod_name: str | None = Field(default=None, description="Moduleset module name.")
+    autofix: bool | None = Field(default=None, description="Whether the module supports autofix.")
+    modset_mod_author: str | None = Field(default=None, description="Module author.")
+    modset_mod_updated: str | None = Field(default=None, description="Module update timestamp.")
+
+
+class ComplianceModulesetModulesResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    object_id: str
+    modset_name: str | None = None
+    relation: str = Field(default="modules")
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ComplianceModulesetModuleRow]

@@ -3,6 +3,9 @@
 from .inventory import (
     ComplianceModulesetDefinitionRequest,
     ComplianceModulesetDefinitionResponse,
+    ComplianceModulesetModuleRow,
+    ComplianceModulesetModulesRequest,
+    ComplianceModulesetModulesResponse,
     ComplianceModulesetRequest,
     ComplianceModulesetResponse,
     ComplianceModulesetUsageRequest,
@@ -15,6 +18,9 @@ from .inventory import (
 __all__ = [
     "ComplianceModulesetDefinitionRequest",
     "ComplianceModulesetDefinitionResponse",
+    "ComplianceModulesetModuleRow",
+    "ComplianceModulesetModulesRequest",
+    "ComplianceModulesetModulesResponse",
     "ComplianceModulesetRequest",
     "ComplianceModulesetResponse",
     "ComplianceModulesetUsageRequest",

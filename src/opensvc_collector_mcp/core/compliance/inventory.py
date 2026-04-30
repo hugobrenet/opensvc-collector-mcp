@@ -163,7 +163,7 @@ async def _resolve_moduleset_identity(
 
 
 async def get_compliance_moduleset_items(
-    moduleset_id: int | str,
+    moduleset_id: int | str | None,
     relation: ModulesetRelation,
     filters: dict[str, str] | str | None = None,
     props: str | None = None,
@@ -171,10 +171,17 @@ async def get_compliance_moduleset_items(
     search: str | None = None,
     limit: int = 20,
     offset: int = 0,
+    modset_name: str | None = None,
 ) -> dict[str, Any]:
+    resolved = await _resolve_moduleset_identity(
+        moduleset_id=moduleset_id,
+        modset_name=modset_name,
+    )
+    resolved_id = str(resolved["id"])
+    resolved_name = resolved.get("modset_name")
     selected_props = props or _moduleset_relation_props(relation)
     parsed_filters = parse_filters(filters)
-    path = f"/compliance/modulesets/{quote_path_id(moduleset_id)}/{relation}"
+    path = f"/compliance/modulesets/{quote_path_id(resolved_id)}/{relation}"
     response = await get_collection_page(
         path,
         filters=parsed_filters,
@@ -184,13 +191,48 @@ async def get_compliance_moduleset_items(
         limit=limit,
         offset=offset,
     )
-    return _relation_response(
+    data = _relation_response(
         response,
         "compliance_moduleset_items",
-        moduleset_id,
+        resolved_id,
         relation,
         parsed_filters,
         selected_props,
+    )
+    data["modset_name"] = resolved_name
+    data["meta"].update(
+        {
+            "requested_moduleset_id": str(moduleset_id).strip()
+            if moduleset_id is not None
+            else None,
+            "requested_modset_name": modset_name,
+            "resolved_moduleset_id": resolved_id,
+            "resolved_modset_name": resolved_name,
+        }
+    )
+    return data
+
+
+async def get_compliance_moduleset_modules(
+    moduleset_id: int | str | None = None,
+    modset_name: str | None = None,
+    filters: dict[str, str] | str | None = None,
+    props: str | None = None,
+    orderby: str | None = None,
+    search: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> dict[str, Any]:
+    return await get_compliance_moduleset_items(
+        moduleset_id=moduleset_id,
+        modset_name=modset_name,
+        relation="modules",
+        filters=filters,
+        props=props,
+        orderby=orderby,
+        search=search,
+        limit=limit,
+        offset=offset,
     )
 
 

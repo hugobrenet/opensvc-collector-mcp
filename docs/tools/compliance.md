@@ -66,6 +66,36 @@ data
 ```
 
 
+### `get_compliance_moduleset_modules`
+
+Returns modules declared in one compliance moduleset, selected by Collector
+moduleset id or exact `modset_name`.
+
+Use this when the question is about the concrete modules composing a moduleset.
+The response is paginated and includes Collector metadata such as `total`,
+`limit`, and `offset`.
+
+Example:
+
+```json
+{
+  "request": {
+    "modset_name": "02-aits.nodes.opensvc.tags"
+  }
+}
+```
+
+Output fields:
+
+```text
+object_id
+modset_name
+relation
+meta
+data
+```
+
+
 ### `get_compliance_moduleset_usage`
 
 Returns where one compliance moduleset is reused or referenced, selected by
