@@ -41,6 +41,11 @@ Current package layout:
 - `src/opensvc_collector_mcp/core/`
   business logic, Collector request handling, and shared core helpers such as
   node id to nodename resolution
+- `src/opensvc_collector_mcp/core/services/`
+  service-domain business logic split by concern: inventory, resources,
+  compliance, actions, tags, health, and storage
+- `src/opensvc_collector_mcp/models/services/`
+  service-domain Pydantic contracts split with the same concern boundaries
 
 Current MCP node tool surface:
 
@@ -129,6 +134,8 @@ Pydantic model standard:
   request model currently only inherits from a shared base model.
 - Node models live in:
   `src/opensvc_collector_mcp/models/nodes_model.py`
+- Service models live in:
+  `src/opensvc_collector_mcp/models/services/`
 - Prefer a single `request` model argument for complex tools.
 - Return Pydantic response models from tool functions.
 - Use shared base request models for common behavior such as filters, but expose
@@ -148,6 +155,8 @@ Layering standard:
   parameter descriptions, and calls into core.
 - `core/`: business logic and Collector-specific behavior. Core may use simple
   Python types and raw Collector dicts.
+- Service core code lives under `core/services/` by concern. Keep generic service
+  helpers private to that package.
 - `models/`: Pydantic contracts for MCP tool input/output.
 - `client.py`: async HTTP client helpers only.
 - `docs/`: human-facing tool documentation by domain.

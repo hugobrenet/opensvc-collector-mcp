@@ -4,7 +4,7 @@ from fastmcp import FastMCP
 from pydantic import Field
 
 from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
-from opensvc_collector_mcp.core.services_core import (
+from opensvc_collector_mcp.core.services import (
     count_services as core_count_services,
     get_service as core_get_service,
     get_service_actions as core_get_service_actions,
@@ -30,7 +30,7 @@ from opensvc_collector_mcp.core.services_core import (
     search_services_by_tag as core_search_services_by_tag,
     search_services_without_tag as core_search_services_without_tag,
 )
-from opensvc_collector_mcp.models.services_model import (
+from opensvc_collector_mcp.models.services import (
     CountServicesRequest,
     CountServicesResponse,
     FrozenServicesRequest,

@@ -2,7 +2,8 @@
 
 This document describes the OpenSVC Collector MCP tools for service inventory.
 
-Service business logic lives in `src/opensvc_collector_mcp/core/services_core.py`.
+Service business logic lives under `src/opensvc_collector_mcp/core/services/`, split by concern.
+Service Pydantic models live under `src/opensvc_collector_mcp/models/services/`.
 MCP tool definitions live in `src/opensvc_collector_mcp/tools/services.py`.
 
 ## Tools
