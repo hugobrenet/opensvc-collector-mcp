@@ -6,6 +6,10 @@ from urllib.parse import quote
 import httpx
 
 from opensvc_collector_mcp.client import collector_get, collector_get_all
+from opensvc_collector_mcp.core.utils import (
+    enrich_rows_with_nodenames,
+    get_nodenames_by_node_ids,
+)
 
 
 DEFAULT_LIST_SERVICE_PROPS = (
@@ -508,7 +512,12 @@ async def get_service_resource_status(
         page_size=page_size,
         max_items=max_resources,
     )
-    rows = response.get("data", [])
+    raw_rows = response.get("data", [])
+    nodenames_by_node_id = await get_nodenames_by_node_ids(
+        str(row.get("node_id") or "") for row in raw_rows
+    )
+    rows = enrich_rows_with_nodenames(raw_rows, nodenames_by_node_id)
+    unresolved_node_ids = _unresolved_node_ids(rows, nodenames_by_node_id)
     meta = dict(response.get("meta", {}))
     meta.update(
         {
@@ -519,6 +528,9 @@ async def get_service_resource_status(
             },
             "included_props": selected_props.split(","),
             "resource_count": len(rows),
+            "node_names_resolved": not unresolved_node_ids,
+            "node_name_count": len(nodenames_by_node_id),
+            "unresolved_node_ids": unresolved_node_ids,
         }
     )
     return {
@@ -572,12 +584,18 @@ async def get_service_compliance_status(
         page_size=page_size,
         max_items=max_status,
     )
+    raw_rows = response.get("data", [])
+    nodenames_by_node_id = await get_nodenames_by_node_ids(
+        str(row.get("node_id") or "") for row in raw_rows
+    )
+    enriched_rows = enrich_rows_with_nodenames(raw_rows, nodenames_by_node_id)
     rows = _service_compliance_status_rows(
-        response.get("data", []),
+        enriched_rows,
         include_run_log=include_run_log,
         include_run_log_preview=include_run_log_preview,
         run_log_max_chars=run_log_max_chars,
     )
+    unresolved_node_ids = _unresolved_node_ids(rows, nodenames_by_node_id)
     summary = _service_compliance_status_summary(rows)
     meta = dict(response.get("meta", {}))
     meta.update(
@@ -592,6 +610,9 @@ async def get_service_compliance_status(
             "include_run_log_preview": include_run_log_preview,
             "run_log_max_chars": run_log_max_chars,
             "status_count": len(rows),
+            "node_names_resolved": not unresolved_node_ids,
+            "node_name_count": len(nodenames_by_node_id),
+            "unresolved_node_ids": unresolved_node_ids,
             **summary,
         }
     )
@@ -1401,6 +1422,20 @@ def _group_service_resources(rows: list[dict[str, Any]]) -> list[dict[str, Any]]
 
 def _resource_type_from_rid(rid: str) -> str:
     return rid.split("#", 1)[0] if "#" in rid else rid
+
+
+def _unresolved_node_ids(
+    rows: list[dict[str, Any]],
+    nodenames_by_node_id: dict[str, str],
+) -> list[str]:
+    return sorted(
+        {
+            node_id
+            for row in rows
+            if (node_id := str(row.get("node_id") or "").strip())
+            and node_id not in nodenames_by_node_id
+        }
+    )
 
 
 def _service_resource_status_filters(

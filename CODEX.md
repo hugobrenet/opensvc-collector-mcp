@@ -39,7 +39,8 @@ Current package layout:
 - `src/opensvc_collector_mcp/tools/`
   FastMCP tool definitions
 - `src/opensvc_collector_mcp/core/`
-  business logic and Collector request handling
+  business logic, Collector request handling, and shared core helpers such as
+  node id to nodename resolution
 
 Current MCP node tool surface:
 

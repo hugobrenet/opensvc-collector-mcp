@@ -1615,6 +1615,11 @@ class ServiceComplianceStatusRow(BaseModel):
         description="Collector node uuid where the compliance check ran.",
         exclude_if=_is_none,
     )
+    nodename: str | None = Field(
+        default=None,
+        description="Node name resolved from node_id when available.",
+        exclude_if=_is_none,
+    )
     run_module: str | None = Field(
         default=None,
         description="Compliance module name.",
@@ -1681,6 +1686,11 @@ class ServiceResourceStatusRow(BaseModel):
     node_id: str | None = Field(
         default=None,
         description="Collector node uuid where this resource status was reported.",
+        exclude_if=_is_none,
+    )
+    nodename: str | None = Field(
+        default=None,
+        description="Node name resolved from node_id when available.",
         exclude_if=_is_none,
     )
     rid: str | None = Field(

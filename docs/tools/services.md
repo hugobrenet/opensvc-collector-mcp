@@ -792,6 +792,7 @@ Each `data` row commonly includes:
 id
 svc_id
 node_id
+nodename
 run_module
 run_action
 run_status
@@ -840,6 +841,7 @@ Each `data` row commonly includes:
 
 ```text
 node_id
+nodename
 rid
 vmname
 res_type
