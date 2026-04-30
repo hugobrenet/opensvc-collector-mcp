@@ -1,4 +1,25 @@
 from typing import Any
+from urllib.parse import quote
+
+from opensvc_collector_mcp.client import collector_get
+
+
+async def get_service_identity(svcname: str) -> dict[str, Any]:
+    svcname = svcname.strip()
+    if not svcname:
+        raise ValueError("svcname must not be empty")
+
+    response = await collector_get(
+        f"/services/{quote(svcname, safe='')}",
+        params={"props": "svc_id,svcname,svc_status,svc_availstatus,updated"},
+    )
+    rows = response.get("data", [])
+    service = rows[0] if rows else {"svcname": svcname}
+    return {
+        "svcname": service.get("svcname") or svcname,
+        "svc_id": service.get("svc_id"),
+        "service": service,
+    }
 
 
 def _ensure_props_include(props: str, required_prop: str) -> str:
