@@ -48,10 +48,14 @@ Current package layout:
   node-domain business logic split by concern: inventory, tags, location,
   organization, hardware, OS, cluster, network, compliance, checks, storage,
   services, health, and stats
+- `src/opensvc_collector_mcp/core/clusters/`
+  cluster-domain business logic
 - `src/opensvc_collector_mcp/models/services/`
   service-domain Pydantic contracts split with the same concern boundaries
 - `src/opensvc_collector_mcp/models/nodes/`
   node-domain Pydantic contracts split with the same concern boundaries
+- `src/opensvc_collector_mcp/models/clusters/`
+  cluster-domain Pydantic contracts
 
 Current MCP node tool surface:
 
@@ -142,6 +146,8 @@ Pydantic model standard:
   `src/opensvc_collector_mcp/models/nodes/`
 - Service models live in:
   `src/opensvc_collector_mcp/models/services/`
+- Cluster models live in:
+  `src/opensvc_collector_mcp/models/clusters/`
 - Prefer a single `request` model argument for complex tools.
 - Return Pydantic response models from tool functions.
 - Use shared base request models for common behavior such as filters, but expose
@@ -166,6 +172,7 @@ Layering standard:
   helpers private to that package.
 - Node core code lives under `core/nodes/` by concern. Keep generic node helpers
   private to that package.
+- Cluster core code lives under `core/clusters/`.
 - `models/`: Pydantic contracts for MCP tool input/output.
 - `client.py`: async HTTP client helpers only.
 - `docs/`: human-facing tool documentation by domain.

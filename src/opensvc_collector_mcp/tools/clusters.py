@@ -4,10 +4,10 @@ from fastmcp import FastMCP
 from pydantic import Field
 
 from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
-from opensvc_collector_mcp.core.clusters_core import (
+from opensvc_collector_mcp.core.clusters import (
     get_cluster_nodes as core_get_cluster_nodes,
 )
-from opensvc_collector_mcp.models.clusters_model import (
+from opensvc_collector_mcp.models.clusters import (
     ClusterNameRequest,
     ClusterNodesResponse,
 )

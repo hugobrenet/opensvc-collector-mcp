@@ -2,7 +2,8 @@
 
 This document describes the OpenSVC Collector MCP tools for cluster inventory.
 
-Cluster business logic lives in `src/opensvc_collector_mcp/core/clusters_core.py`.
+Cluster business logic lives under `src/opensvc_collector_mcp/core/clusters/`.
+Cluster Pydantic models live under `src/opensvc_collector_mcp/models/clusters/`.
 MCP tool definitions live in `src/opensvc_collector_mcp/tools/clusters.py`.
 
 ## Tools
