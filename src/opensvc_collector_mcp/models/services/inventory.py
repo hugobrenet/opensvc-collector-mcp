@@ -2,7 +2,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from ._common import ServiceNameRequest, _is_none
+from ._common import ServiceNameRequest, ServiceRelationCollectionRequest, _is_none
 
 
 class ServiceFilterRequest(BaseModel):
@@ -67,9 +67,7 @@ class ServiceFilterRequest(BaseModel):
         return merged
 
 
-class ListServicesRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class ServiceCollectionRequest(ServiceFilterRequest):
     props: str | None = Field(
         default=None,
         description=(
@@ -77,20 +75,18 @@ class ListServicesRequest(BaseModel):
             "Defaults to a compact service inventory view."
         ),
     )
-
-
-class SearchServicesRequest(ServiceFilterRequest):
-    props: str | None = Field(
+    orderby: str | None = Field(
         default=None,
-        description=(
-            "Comma-separated service properties to include in the response. "
-            "Defaults to a compact service inventory view."
-        ),
+        description="Collector orderby expression, for example svcname or ~updated.",
+    )
+    search: str | None = Field(
+        default=None,
+        description="Collector full-text search expression when supported by /services.",
     )
     limit: int = Field(
         default=20,
         ge=1,
-        le=100,
+        le=1000,
         description="Maximum number of services to return.",
     )
     offset: int = Field(
@@ -98,6 +94,14 @@ class SearchServicesRequest(ServiceFilterRequest):
         ge=0,
         description="Number of matching services to skip.",
     )
+
+
+class ListServicesRequest(ServiceCollectionRequest):
+    pass
+
+
+class SearchServicesRequest(ServiceCollectionRequest):
+    pass
 
 
 class CountServicesRequest(ServiceFilterRequest):
@@ -124,20 +128,12 @@ class ServiceConfigRequest(ServiceNameRequest):
     )
 
 
-class ServiceNodesRequest(ServiceNameRequest):
-    props: str | None = Field(
-        default=None,
-        description=(
-            "Comma-separated service node properties to return. Defaults to a "
-            "compact per-node monitor view with nodename and key statuses."
-        ),
-    )
-    max_nodes: int = Field(
-        default=10000,
-        ge=1,
-        le=100000,
-        description="Maximum number of service node rows the tool may return.",
-    )
+class ServiceInstancesRequest(ServiceRelationCollectionRequest):
+    pass
+
+
+class ServiceNodesRequest(ServiceRelationCollectionRequest):
+    pass
 
 
 class ServicePropsResponse(BaseModel):

@@ -2,7 +2,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from ._common import ServiceNameRequest, _is_none
+from ._common import ServiceRelationCollectionRequest, _is_none
 from .inventory import ServiceRow
 
 
@@ -29,7 +29,7 @@ class ServiceTagSearchRequest(BaseModel):
     )
 
 
-class ServiceTagsRequest(ServiceNameRequest):
+class ServiceTagsRequest(ServiceRelationCollectionRequest):
     filters: dict[str, str] = Field(
         default_factory=dict,
         description=(
@@ -45,20 +45,6 @@ class ServiceTagsRequest(ServiceNameRequest):
     tag_exclude: str | None = Field(
         default=None, description="Exact tag exclude filter."
     )
-    props: str | None = Field(
-        default=None,
-        description=(
-            "Comma-separated tag properties to return. Defaults to a compact "
-            "service tag view."
-        ),
-    )
-    max_tags: int = Field(
-        default=10000,
-        ge=1,
-        le=100000,
-        description="Maximum number of matching tags the tool may return.",
-    )
-
     @model_validator(mode="after")
     def normalize_filters(self) -> "ServiceTagsRequest":
         self.filters = {

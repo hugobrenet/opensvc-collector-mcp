@@ -2,6 +2,7 @@
 
 from ._common import (
     NodeNameRequest,
+    NodeRelationRequest,
 )
 
 from .inventory import (
@@ -72,6 +73,7 @@ from .storage import (
 )
 
 from .services import (
+    NodeServicesRequest,
     NodeService,
     NodeServicesResponse,
 )
@@ -111,6 +113,7 @@ __all__ = [
     'NodeLocationResponse',
     'NodeMemoryHardware',
     'NodeNameRequest',
+    'NodeRelationRequest',
     'NodeNetworkEntry',
     'NodeNetworkResponse',
     'NodeOperatingSystem',
@@ -122,6 +125,7 @@ __all__ = [
     'NodePropsResponse',
     'NodeRowsResponse',
     'NodeService',
+    'NodeServicesRequest',
     'NodeServicesResponse',
     'NodeTagsResponse',
     'NodesByTagResponse',

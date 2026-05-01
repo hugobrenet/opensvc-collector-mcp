@@ -36,5 +36,13 @@ def register_clusters_tools(mcp: FastMCP) -> None:
         ],
     ) -> ClusterNodesResponse:
         """Return nodes belonging to one OpenSVC Collector cluster."""
-        response = await core_get_cluster_nodes(cluster_name=request.cluster_name)
+        response = await core_get_cluster_nodes(
+            cluster_name=request.cluster_name,
+            filters=request.filters,
+            props=request.props,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
+        )
         return ClusterNodesResponse.model_validate(response)

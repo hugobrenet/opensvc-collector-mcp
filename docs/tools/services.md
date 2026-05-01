@@ -10,12 +10,13 @@ MCP tool definitions live in `src/opensvc_collector_mcp/tools/services.py`.
 
 ### `list_services`
 
-Returns all OpenSVC Collector services.
+Lists one page of OpenSVC Collector services.
 
 By default, this tool returns a compact service inventory view and deliberately
 does not include large fields such as `svc_config`.
 
-This tool does not accept filters. For filtered lookup, use `search_services`.
+This tool follows the standard Collector collection contract: `limit`, `offset`,
+`orderby`, `filters`, `search`, and `props`. Use `offset` to request the next page.
 
 Default props:
 
@@ -28,7 +29,10 @@ Example:
 ```json
 {
   "request": {
-    "props": "svcname,svc_app,svc_env,svc_status"
+    "props": "svcname,svc_app,svc_env,svc_status",
+    "limit": 20,
+    "offset": 0,
+    "orderby": "svcname"
   }
 }
 ```
@@ -242,8 +246,8 @@ Returns OpenSVC Collector tags attached to one service selected by exact
 
 Use this tool when the question is about service classification, ownership,
 policy markers, or other metadata represented as Collector tags. The tool reads
-Collector `/services/<svcname>/tags` using bounded server-side retrieval, so it is
-not limited to the first Collector page.
+one Collector page from `/services/<svcname>/tags`. Use `limit`, `offset`,
+`orderby`, `search`, `props`, and exact filters to navigate the result.
 
 Use exact filters such as `tag_name`, `tag_id`, or `tag_exclude` to narrow the
 result. Default output uses compact tag properties.
@@ -274,12 +278,11 @@ Returns live OpenSVC Collector checks for one service selected by exact
 `svcname`.
 
 Use this tool to inspect check values, thresholds, and error flags for a service.
-The tool reads Collector `/services/<svcname>/checks` using bounded server-side
-retrieval, so it is not limited to the first Collector page. Use exact filters
-such as `chk_type`, `chk_err`, `chk_instance`, or `node_id` to narrow the result.
+The tool reads one Collector page from `/services/<svcname>/checks`. Use `limit`,
+`offset`, `orderby`, `search`, `props`, and exact filters such as `chk_type`,
+`chk_err`, `chk_instance`, or `node_id` to narrow the result.
 
 Default output uses compact check properties and excludes no large payload field.
-`max_checks` is a safety guardrail for unusually large services.
 
 Example:
 
@@ -288,7 +291,8 @@ Example:
   "request": {
     "svcname": "tst-lab-service",
     "chk_err": 1,
-    "max_checks": 10000
+    "limit": 20,
+    "offset": 0
   }
 }
 ```
@@ -942,10 +946,10 @@ nodes: which resources are `up`, `down`, `n/a`, disabled, optional, or monitored
 This differs from `get_service_resources`, which reads `/resinfo` and returns
 configuration-style resource key/value data grouped by resource id and node.
 
-The tool reads Collector `/services/<svcname>/resources` using bounded server-side
-retrieval. Use exact filters such as `rid`, `node_id`, `vmname`, `res_type`,
-`res_status`, `res_disable`, `res_optional`, or `res_monitor` to narrow the
-result.
+The tool reads one Collector page from `/services/<svcname>/resources`. Use
+`limit`, `offset`, `orderby`, `search`, `props`, and exact filters such as `rid`,
+`node_id`, `vmname`, `res_type`, `res_status`, `res_disable`, `res_optional`, or
+`res_monitor` to narrow the result.
 
 Example:
 

@@ -56,8 +56,10 @@ async def get_service_checks(
     node_id: str | None = None,
     chk_instance: str | None = None,
     props: str | None = None,
-    page_size: int = 1000,
-    max_checks: int = 10000,
+    orderby: str | None = "checks_live.chk_type",
+    search: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
 ) -> dict[str, Any]:
     svcname = svcname.strip()
     if not svcname:
@@ -71,14 +73,16 @@ async def get_service_checks(
         node_id=node_id,
         chk_instance=chk_instance,
     )
-    response = await collector_get_all(
+    response = await collector_get(
         f"/services/{quote(svcname, safe='')}/checks",
         params=_service_check_params(
             filters=parsed_filters,
             props=selected_props,
+            orderby=orderby,
+            search=search,
+            limit=limit,
+            offset=offset,
         ),
-        page_size=page_size,
-        max_items=max_checks,
     )
     rows = response.get("data", [])
     meta = dict(response.get("meta", {}))
@@ -107,6 +111,8 @@ async def get_service_alerts(
     dash_severity: int | str | None = None,
     node_id: str | None = None,
     props: str | None = None,
+    orderby: str | None = "~dashboard.dash_updated",
+    search: str | None = None,
     limit: int = 20,
     offset: int = 0,
 ) -> dict[str, Any]:
@@ -114,7 +120,7 @@ async def get_service_alerts(
     if not svcname:
         raise ValueError("svcname must not be empty")
 
-    limit = max(1, min(limit, 100))
+    limit = max(1, min(limit, 1000))
     offset = max(0, offset)
     selected_props = props or SERVICE_ALERTS_PROPS
     parsed_filters = _service_alert_filters(
@@ -128,6 +134,8 @@ async def get_service_alerts(
         params=_service_alert_params(
             filters=parsed_filters,
             props=selected_props,
+            orderby=orderby,
+            search=search,
             limit=limit,
             offset=offset,
         ),
@@ -605,6 +613,28 @@ def _service_status_history_params(
     return params
 
 
+def _collector_params(
+    filters: list[tuple[str, str]],
+    props: str,
+    orderby: str | None,
+    limit: int,
+    offset: int,
+    search: str | None = None,
+) -> list[tuple[str, Any]]:
+    params: list[tuple[str, Any]] = [
+        ("props", props),
+        ("limit", limit),
+        ("offset", offset),
+    ]
+    if orderby:
+        params.append(("orderby", orderby))
+    if search:
+        params.append(("search", search))
+    for field, value in filters:
+        params.append(("filters", f"{field}={value}"))
+    return params
+
+
 def _sort_service_status_history_rows(
     rows: list[dict[str, Any]],
     latest_first: bool,
@@ -675,11 +705,19 @@ def _service_check_filter_field(field: str) -> str:
 def _service_check_params(
     filters: list[tuple[str, str]],
     props: str,
+    orderby: str | None,
+    search: str | None,
+    limit: int,
+    offset: int,
 ) -> list[tuple[str, Any]]:
-    params: list[tuple[str, Any]] = [("props", props)]
-    for field, value in filters:
-        params.append(("filters", f"{field}={value}"))
-    return params
+    return _collector_params(
+        filters=filters,
+        props=props,
+        orderby=orderby,
+        limit=limit,
+        offset=offset,
+        search=search,
+    )
 
 
 def _service_alert_filters(
@@ -718,17 +756,19 @@ def _service_alert_filter_field(field: str) -> str:
 def _service_alert_params(
     filters: list[tuple[str, str]],
     props: str,
+    orderby: str | None,
+    search: str | None,
     limit: int,
     offset: int,
 ) -> list[tuple[str, Any]]:
-    params: list[tuple[str, Any]] = [
-        ("props", props),
-        ("limit", limit),
-        ("offset", offset),
-    ]
-    for field, value in filters:
-        params.append(("filters", f"{field}={value}"))
-    return params
+    return _collector_params(
+        filters=filters,
+        props=props,
+        orderby=orderby,
+        limit=limit,
+        offset=offset,
+        search=search,
+    )
 
 
 def _group_frozen_services(

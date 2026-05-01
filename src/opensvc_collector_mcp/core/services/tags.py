@@ -2,6 +2,7 @@ from typing import Any
 from urllib.parse import quote
 
 from opensvc_collector_mcp.client import collector_get, collector_get_all
+from opensvc_collector_mcp.core.utils import collection_params
 
 from ._common import _ensure_props_include, _parse_service_filters
 from .inventory import DEFAULT_LIST_SERVICE_PROPS
@@ -155,8 +156,10 @@ async def get_service_tags(
     tag_id: str | None = None,
     tag_exclude: str | None = None,
     props: str | None = None,
-    page_size: int = 1000,
-    max_tags: int = 10000,
+    orderby: str | None = "tags.tag_name",
+    search: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
 ) -> dict[str, Any]:
     svcname = svcname.strip()
     if not svcname:
@@ -169,14 +172,16 @@ async def get_service_tags(
         tag_id=tag_id,
         tag_exclude=tag_exclude,
     )
-    response = await collector_get_all(
+    response = await collector_get(
         f"/services/{quote(svcname, safe='')}/tags",
         params=_service_tag_params(
             filters=parsed_filters,
             props=selected_props,
+            orderby=orderby,
+            search=search,
+            limit=limit,
+            offset=offset,
         ),
-        page_size=page_size,
-        max_items=max_tags,
     )
     rows = response.get("data", [])
     meta = dict(response.get("meta", {}))
@@ -258,8 +263,16 @@ def _service_tag_filter_field(field: str) -> str:
 def _service_tag_params(
     filters: list[tuple[str, str]],
     props: str,
+    orderby: str | None,
+    search: str | None,
+    limit: int,
+    offset: int,
 ) -> list[tuple[str, Any]]:
-    params: list[tuple[str, Any]] = [("props", props)]
-    for field, value in filters:
-        params.append(("filters", f"{field}={value}"))
-    return params
+    return collection_params(
+        filters=filters,
+        props=props,
+        orderby=orderby,
+        search=search,
+        limit=limit,
+        offset=offset,
+    )

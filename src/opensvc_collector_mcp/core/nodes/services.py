@@ -1,6 +1,7 @@
 from typing import Any
 
 from opensvc_collector_mcp.client import collector_get
+from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
 
 
 NODE_SERVICES_INSTANCE_PROPS = (
@@ -13,56 +14,38 @@ NODE_SERVICES_INSTANCE_PROPS = (
 
 async def get_node_services(
     nodename: str,
-    page_size: int = 1000,
-    max_instances: int = 100000,
+    filters: dict[str, str] | str | None = None,
+    props: str | None = None,
+    orderby: str | None = "services.svcname",
+    search: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
 ) -> dict[str, Any]:
     nodename = nodename.strip()
     if not nodename:
         raise ValueError("nodename must not be empty")
 
-    page_size = max(1, min(page_size, 5000))
-    max_instances = max(1, min(max_instances, 500000))
-    matches: list[dict[str, Any]] = []
-    scanned = 0
-    offset = 0
-    total: int | None = None
-
-    while scanned < max_instances:
-        response = await collector_get(
-            "/services_instances",
-            params=[
-                ("props", NODE_SERVICES_INSTANCE_PROPS),
-                ("filters", f"nodes.nodename={nodename}"),
-                ("limit", min(page_size, max_instances - scanned)),
-                ("offset", offset),
-            ],
-        )
-        meta = response.get("meta", {})
-        data = response.get("data", [])
-        if total is None:
-            total = meta.get("total")
-
-        matches.extend(data)
-
-        count = len(data)
-        scanned += count
-        offset += count
-        if count == 0 or count < page_size:
-            break
-
-    complete = total is None or scanned >= total
-    return {
-        "nodename": nodename,
-        "meta": {
-            "count": len(matches),
-            "total": len(matches) if complete else None,
-            "scanned": scanned,
-            "collector_total": total,
-            "complete": complete,
-            "max_instances": max_instances,
+    selected_props = props or NODE_SERVICES_INSTANCE_PROPS
+    parsed_filters = [("nodes.nodename", nodename), *parse_collector_filters(filters)]
+    response = await collector_get(
+        "/services_instances",
+        params=collection_params(
+            filters=parsed_filters,
+            props=selected_props,
+            orderby=orderby,
+            search=search,
+            limit=limit,
+            offset=offset,
+        ),
+    )
+    rows = response.get("data", [])
+    meta = dict(response.get("meta", {}))
+    meta.update(
+        {
             "source": "services_instances",
-            "filter": {"nodes.nodename": nodename},
-            "included_props": NODE_SERVICES_INSTANCE_PROPS.split(","),
-        },
-        "data": matches,
-    }
+            "filter": {field: value for field, value in parsed_filters},
+            "included_props": selected_props.split(","),
+            "output_count": len(rows),
+        }
+    )
+    return {"nodename": nodename, "meta": meta, "data": rows}

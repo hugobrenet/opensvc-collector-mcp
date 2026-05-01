@@ -2,7 +2,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from ._common import ServiceNameRequest, _is_none
+from ._common import ServiceRelationCollectionRequest, ServiceNameRequest, _is_none
 from .inventory import ServiceFilterRequest, ServiceInstanceRow, ServiceRow
 
 
@@ -15,7 +15,7 @@ class FrozenServicesRequest(ServiceFilterRequest):
     )
 
 
-class ServiceChecksRequest(ServiceNameRequest):
+class ServiceChecksRequest(ServiceRelationCollectionRequest):
     filters: dict[str, str] = Field(
         default_factory=dict,
         description=(
@@ -37,20 +37,6 @@ class ServiceChecksRequest(ServiceNameRequest):
     chk_instance: str | None = Field(
         default=None, description="Exact check instance filter."
     )
-    props: str | None = Field(
-        default=None,
-        description=(
-            "Comma-separated check properties to return. Defaults to a compact "
-            "service check view."
-        ),
-    )
-    max_checks: int = Field(
-        default=10000,
-        ge=1,
-        le=100000,
-        description="Maximum number of matching checks the tool may return.",
-    )
-
     @model_validator(mode="after")
     def normalize_filters(self) -> "ServiceChecksRequest":
         self.filters = {
@@ -108,10 +94,18 @@ class ServiceAlertsRequest(ServiceNameRequest):
             "alert view without large dashboard payload fields."
         ),
     )
+    orderby: str | None = Field(
+        default=None,
+        description="Collector orderby expression, for example dashboard.dash_created or ~dashboard.dash_updated.",
+    )
+    search: str | None = Field(
+        default=None,
+        description="Collector full-text search expression when supported by the endpoint.",
+    )
     limit: int = Field(
         default=20,
         ge=1,
-        le=100,
+        le=1000,
         description="Maximum number of service alert rows to return.",
     )
     offset: int = Field(

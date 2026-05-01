@@ -58,6 +58,7 @@ from opensvc_collector_mcp.models.services import (
     ServiceHbasRequest,
     ServiceHbasResponse,
     ServiceHealthResponse,
+    ServiceInstancesRequest,
     ServiceInstancesResponse,
     ServiceNameRequest,
     ServiceNodesRequest,
@@ -105,7 +106,14 @@ def register_services_tools(mcp: FastMCP) -> None:
         ] = ListServicesRequest(),
     ) -> ServiceRowsResponse:
         """Return OpenSVC Collector services and their selected properties."""
-        response = await core_list_services(props=request.props)
+        response = await core_list_services(
+            filters=request.merged_filters(),
+            props=request.props,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
+        )
         return ServiceRowsResponse.model_validate(response)
 
     @mcp.tool(
@@ -160,6 +168,8 @@ def register_services_tools(mcp: FastMCP) -> None:
         response = await core_search_services(
             filters=request.merged_filters(),
             props=request.props,
+            orderby=request.orderby,
+            search=request.search,
             limit=request.limit,
             offset=request.offset,
         )
@@ -307,7 +317,7 @@ def register_services_tools(mcp: FastMCP) -> None:
     )
     async def get_service_instances(
         request: Annotated[
-            ServiceNameRequest,
+            ServiceInstancesRequest,
             Field(
                 description=(
                     "Exact service name used to list node-level instances through "
@@ -317,7 +327,15 @@ def register_services_tools(mcp: FastMCP) -> None:
         ],
     ) -> ServiceInstancesResponse:
         """Return node-level service instances for one OpenSVC Collector service."""
-        response = await core_get_service_instances(svcname=request.svcname)
+        response = await core_get_service_instances(
+            svcname=request.svcname,
+            filters=request.merged_filters(),
+            props=request.props,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
+        )
         return ServiceInstancesResponse.model_validate(response)
 
     @mcp.tool(
@@ -342,8 +360,8 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional returned properties, and "
-                    "server-side scan bounds used to list Collector "
-                    "node monitor rows through /services/<svcname>/nodes."
+                    "Collector pagination, ordering, filters, search, and returned properties "
+                    "used to list node monitor rows through /services/<svcname>/nodes."
                 ),
             ),
         ],
@@ -351,8 +369,12 @@ def register_services_tools(mcp: FastMCP) -> None:
         "Return node monitor rows for one OpenSVC Collector service."
         response = await core_get_service_nodes(
             svcname=request.svcname,
+            filters=request.merged_filters(),
             props=request.props,
-            max_nodes=request.max_nodes,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
         )
         return ServiceNodesResponse.model_validate(response)
 
@@ -378,8 +400,8 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional returned properties, and "
-                    "server-side scan bounds used to list HBAs through "
-                    "Collector /services/<svcname>/hbas."
+                    "Collector pagination, ordering, filters, search, and returned properties "
+                    "used to list HBAs through /services/<svcname>/hbas."
                 ),
             ),
         ],
@@ -387,8 +409,12 @@ def register_services_tools(mcp: FastMCP) -> None:
         "Return HBA rows attached to one OpenSVC Collector service."
         response = await core_get_service_hbas(
             svcname=request.svcname,
+            filters=request.merged_filters(),
             props=request.props,
-            max_hbas=request.max_hbas,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
         )
         return ServiceHbasResponse.model_validate(response)
 
@@ -414,7 +440,7 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional exact-match target filters, "
-                    "returned properties, and server-side scan bounds "
+                    "returned properties, Collector ordering, search, limit, and offset "
                     "used to list targets through /services/<svcname>/targets."
                 ),
             ),
@@ -425,7 +451,10 @@ def register_services_tools(mcp: FastMCP) -> None:
             svcname=request.svcname,
             filters=request.merged_filters(),
             props=request.props,
-            max_targets=request.max_targets,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
         )
         return ServiceTargetsResponse.model_validate(response)
 
@@ -452,8 +481,8 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional returned properties, and "
-                    "server-side scan bounds used to list disks through "
-                    "Collector /services/<svcname>/disks."
+                    "Collector pagination, ordering, filters, search, and returned properties "
+                    "used to list disks through /services/<svcname>/disks."
                 ),
             ),
         ],
@@ -461,8 +490,12 @@ def register_services_tools(mcp: FastMCP) -> None:
         "Return disk rows attached to one OpenSVC Collector service."
         response = await core_get_service_disks(
             svcname=request.svcname,
+            filters=request.merged_filters(),
             props=request.props,
-            max_disks=request.max_disks,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
         )
         return ServiceDisksResponse.model_validate(response)
 
@@ -520,7 +553,7 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional exact-match compliance filters, "
-                    "returned properties, server-side scan bounds, and run_log "
+                    "returned properties, bounded result limits, and run_log "
                     "output options used to inspect current service compliance "
                     "status through Collector /services/<svcname>/compliance/status."
                 ),
@@ -562,7 +595,7 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional exact-match compliance log filters, "
-                    "returned properties, server-side scan bounds, latest-log "
+                    "returned properties, bounded result limits, latest-log "
                     "selection, and run_log output options used to inspect historical "
                     "service compliance runs through Collector /services/<svcname>/compliance/logs."
                 ),
@@ -607,7 +640,7 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional exact-match runtime resource "
-                    "filters, returned properties, and server-side scan bounds used to list resource status through Collector "
+                    "filters, returned properties, Collector ordering, search, limit, and offset used to list resource status through Collector "
                     "/services/<svcname>/resources."
                 ),
             ),
@@ -618,7 +651,10 @@ def register_services_tools(mcp: FastMCP) -> None:
             svcname=request.svcname,
             filters=request.merged_filters(),
             props=request.props,
-            max_resources=request.max_resources,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
         )
         return ServiceResourceStatusResponse.model_validate(response)
 
@@ -643,7 +679,7 @@ def register_services_tools(mcp: FastMCP) -> None:
             ServiceTagSearchRequest,
             Field(
                 description=(
-                    "Exact tag name, returned service properties, and server-side scan bounds."
+                    "Exact tag name, returned service properties, and bounded result limits."
                 ),
             ),
         ],
@@ -678,7 +714,7 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact tag name to exclude, returned service properties, "
-                    "and server-side scan bounds."
+                    "and bounded result limits."
                 ),
             ),
         ],
@@ -696,7 +732,7 @@ def register_services_tools(mcp: FastMCP) -> None:
         name="get_service_tags",
         description=(
             "Return OpenSVC Collector tags attached to one service selected by "
-            "exact svcname. The tool retrieves all matching tags using bounded Collector reads and compact tag properties by default."
+            "exact svcname. The tool reads one Collector page from /services/<svcname>/tags using compact tag properties by default."
         ),
         tags={"services", "tags", "inventory", "read"},
         annotations={
@@ -712,7 +748,7 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional exact-match tag filters, "
-                    "returned properties, and server-side scan bounds."
+                    "returned properties, Collector ordering, search, limit, and offset."
                 ),
             ),
         ],
@@ -722,7 +758,10 @@ def register_services_tools(mcp: FastMCP) -> None:
             svcname=request.svcname,
             filters=request.merged_filters(),
             props=request.props,
-            max_tags=request.max_tags,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
         )
         return ServiceTagsResponse.model_validate(response)
 
@@ -748,7 +787,7 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional exact-match check filters, "
-                    "returned properties, and server-side scan bounds."
+                    "returned properties, Collector ordering, search, limit, and offset."
                 ),
             ),
         ],
@@ -758,7 +797,10 @@ def register_services_tools(mcp: FastMCP) -> None:
             svcname=request.svcname,
             filters=request.merged_filters(),
             props=request.props,
-            max_checks=request.max_checks,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
         )
         return ServiceChecksResponse.model_validate(response)
 
@@ -794,6 +836,8 @@ def register_services_tools(mcp: FastMCP) -> None:
             svcname=request.svcname,
             filters=request.merged_filters(),
             props=request.props,
+            orderby=request.orderby,
+            search=request.search,
             limit=request.limit,
             offset=request.offset,
         )
@@ -906,7 +950,7 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional availability status filters, "
-                    "pagination, and server-side scan bounds used to inspect "
+                    "pagination, and bounded result limits used to inspect "
                     "service availability status history."
                 ),
             ),
@@ -948,7 +992,7 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional node and monitor status filters, "
-                    "pagination, and server-side scan bounds used to inspect "
+                    "pagination, and bounded result limits used to inspect "
                     "per-node service instance status history."
                 ),
             ),

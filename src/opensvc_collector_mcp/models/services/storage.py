@@ -2,26 +2,14 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from ._common import ServiceNameRequest, _is_none
+from ._common import ServiceRelationCollectionRequest, _is_none
 
 
-class ServiceHbasRequest(ServiceNameRequest):
-    props: str | None = Field(
-        default=None,
-        description=(
-            "Comma-separated service HBA properties to return. Defaults to a "
-            "compact flat HBA view with node, HBA id, HBA type, and update time."
-        ),
-    )
-    max_hbas: int = Field(
-        default=10000,
-        ge=1,
-        le=100000,
-        description="Maximum number of service HBA rows the tool may return.",
-    )
+class ServiceHbasRequest(ServiceRelationCollectionRequest):
+    pass
 
 
-class ServiceTargetsRequest(ServiceNameRequest):
+class ServiceTargetsRequest(ServiceRelationCollectionRequest):
     filters: dict[str, str] = Field(
         default_factory=dict,
         description=(
@@ -40,20 +28,6 @@ class ServiceTargetsRequest(ServiceNameRequest):
     array_name: str | None = Field(
         default=None, description="Exact storage array name filter."
     )
-    props: str | None = Field(
-        default=None,
-        description=(
-            "Comma-separated service target properties to return. Defaults to a "
-            "compact flat target view with node, HBA, target, and array fields."
-        ),
-    )
-    max_targets: int = Field(
-        default=10000,
-        ge=1,
-        le=100000,
-        description="Maximum number of service target rows the tool may return.",
-    )
-
     @model_validator(mode="after")
     def normalize_filters(self) -> "ServiceTargetsRequest":
         self.filters = {
@@ -79,21 +53,8 @@ class ServiceTargetsRequest(ServiceNameRequest):
         return merged
 
 
-class ServiceDisksRequest(ServiceNameRequest):
-    props: str | None = Field(
-        default=None,
-        description=(
-            "Comma-separated service disk properties to return. Defaults to a "
-            "compact flat disk view with node, size, local/SAN, diskinfo, and "
-            "storage array fields."
-        ),
-    )
-    max_disks: int = Field(
-        default=10000,
-        ge=1,
-        le=100000,
-        description="Maximum number of service disk rows the tool may return.",
-    )
+class ServiceDisksRequest(ServiceRelationCollectionRequest):
+    pass
 
 
 class ServiceHbaRow(BaseModel):

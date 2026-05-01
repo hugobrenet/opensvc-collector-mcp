@@ -57,25 +57,36 @@ class NodeFilterRequest(BaseModel):
         return merged
 
 
-class SearchNodesRequest(NodeFilterRequest):
-    nodename_contains: str | None = Field(
-        default=None,
-        description="Case-insensitive substring to find in nodenames.",
-    )
+class NodeCollectionRequest(NodeFilterRequest):
     props: str | None = Field(
         default=None,
         description="Comma-separated node properties to return.",
     )
+    orderby: str | None = Field(
+        default=None,
+        description="Collector orderby expression, for example nodename or ~updated.",
+    )
+    search: str | None = Field(
+        default=None,
+        description="Collector full-text search expression when supported by /nodes.",
+    )
     limit: int = Field(
         default=20,
         ge=1,
-        le=100,
+        le=1000,
         description="Maximum number of nodes to return.",
     )
     offset: int = Field(
         default=0,
         ge=0,
         description="Number of matching nodes to skip.",
+    )
+
+
+class SearchNodesRequest(NodeCollectionRequest):
+    nodename_contains: str | None = Field(
+        default=None,
+        description="Case-insensitive substring to find in nodenames.",
     )
     max_scan: int = Field(
         default=5000,
@@ -89,13 +100,8 @@ class CountNodesRequest(NodeFilterRequest):
     pass
 
 
-class ListNodesRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    props: str | None = Field(
-        default=None,
-        description="Comma-separated node properties to include in the response.",
-    )
+class ListNodesRequest(NodeCollectionRequest):
+    pass
 
 
 class NodePropsResponse(BaseModel):

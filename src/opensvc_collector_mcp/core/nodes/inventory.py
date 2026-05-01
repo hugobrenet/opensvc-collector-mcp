@@ -1,7 +1,8 @@
 from typing import Any
 from urllib.parse import quote
 
-from opensvc_collector_mcp.client import collector_get, collector_get_all
+from opensvc_collector_mcp.client import collector_get
+from opensvc_collector_mcp.core.utils import collection_params
 
 
 DEFAULT_SEARCH_NODE_PROPS = (
@@ -10,11 +11,27 @@ DEFAULT_SEARCH_NODE_PROPS = (
 )
 
 
-async def list_nodes(props: str | None = None) -> dict[str, Any]:
-    params: dict[str, Any] = {}
-    if props:
-        params["props"] = props
-    return await collector_get_all("/nodes", params=params or None)
+async def list_nodes(
+    filters: dict[str, str] | str | None = None,
+    props: str | None = None,
+    orderby: str | None = "nodename",
+    search: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> dict[str, Any]:
+    selected_props = props or DEFAULT_SEARCH_NODE_PROPS
+    parsed_filters = _node_search_filters(filters)
+    return await collector_get(
+        "/nodes",
+        params=_node_search_params(
+            filters=parsed_filters,
+            props=selected_props,
+            orderby=orderby,
+            search=search,
+            limit=limit,
+            offset=offset,
+        ),
+    )
 
 
 async def list_node_props() -> dict[str, Any]:
@@ -43,11 +60,13 @@ async def search_nodes(
     app: str | None = None,
     os_name: str | None = None,
     props: str | None = None,
+    orderby: str | None = "nodename",
+    search: str | None = None,
     limit: int = 20,
     offset: int = 0,
     max_scan: int = 5000,
 ) -> dict[str, Any]:
-    limit = max(1, min(limit, 100))
+    limit = max(1, min(limit, 1000))
     offset = max(0, offset)
     max_scan = max(limit + offset, min(max_scan, 50000))
     selected_props = _props_with_required(
@@ -69,6 +88,8 @@ async def search_nodes(
         params = _node_search_params(
             filters=parsed_filters,
             props=selected_props,
+            orderby=orderby,
+            search=search,
             limit=limit,
             offset=offset,
         )
@@ -90,6 +111,8 @@ async def search_nodes(
             params=_node_search_params(
                 filters=parsed_filters,
                 props=selected_props,
+                orderby=orderby,
+                search=search,
                 limit=min(page_size, max_scan - scanned),
                 offset=api_offset,
             ),
@@ -158,6 +181,8 @@ async def count_nodes(
         params=_node_search_params(
             filters=parsed_filters,
             props="nodename",
+            orderby=None,
+            search=None,
             limit=1,
             offset=0,
         ),
@@ -231,14 +256,16 @@ def _parse_node_filters(
 def _node_search_params(
     filters: list[tuple[str, str]],
     props: str,
+    orderby: str | None,
+    search: str | None,
     limit: int,
     offset: int,
 ) -> list[tuple[str, Any]]:
-    params: list[tuple[str, Any]] = [
-        ("props", props),
-        ("limit", limit),
-        ("offset", offset),
-    ]
-    for field, value in filters:
-        params.append(("filters", f"{field}={value}"))
-    return params
+    return collection_params(
+        filters=filters,
+        props=props,
+        orderby=orderby,
+        search=search,
+        limit=limit,
+        offset=offset,
+    )

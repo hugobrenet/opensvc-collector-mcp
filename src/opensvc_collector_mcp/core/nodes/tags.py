@@ -2,16 +2,44 @@ from typing import Any
 from urllib.parse import quote
 
 from opensvc_collector_mcp.client import collector_get, collector_get_all
+from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
 
 
-async def get_node_tags(nodename: str) -> dict[str, Any]:
+async def get_node_tags(
+    nodename: str,
+    filters: dict[str, str] | str | None = None,
+    props: str | None = None,
+    orderby: str | None = "tag_name",
+    search: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> dict[str, Any]:
     nodename = nodename.strip()
     if not nodename:
         raise ValueError("nodename must not be empty")
 
-    return await collector_get_all(
+    parsed_filters = parse_collector_filters(filters)
+    response = await collector_get(
         f"/nodes/{quote(nodename, safe='')}/tags",
+        params=collection_params(
+            filters=parsed_filters,
+            props=props,
+            orderby=orderby,
+            search=search,
+            limit=limit,
+            offset=offset,
+        ),
     )
+    meta = dict(response.get("meta", {}))
+    meta.update(
+        {
+            "source": "node_tags",
+            "filter": {"nodename": nodename, **{field: value for field, value in parsed_filters}},
+            "included_props": props.split(",") if props else meta.get("included_props", []),
+            "output_count": len(response.get("data", [])),
+        }
+    )
+    return {"nodename": nodename, "meta": meta, "data": response.get("data", [])}
 
 
 async def search_node_by_tag(tag_name: str) -> dict[str, Any]:

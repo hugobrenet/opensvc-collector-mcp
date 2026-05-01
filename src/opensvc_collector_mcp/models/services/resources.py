@@ -2,10 +2,10 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from ._common import ServiceNameRequest, _is_none
+from ._common import ServiceRelationCollectionRequest, _is_none
 
 
-class ServiceResourceStatusRequest(ServiceNameRequest):
+class ServiceResourceStatusRequest(ServiceRelationCollectionRequest):
     filters: dict[str, str] = Field(
         default_factory=dict,
         description=(
@@ -40,21 +40,6 @@ class ServiceResourceStatusRequest(ServiceNameRequest):
     res_monitor: str | None = Field(
         default=None, description="Exact resource monitor flag filter."
     )
-    props: str | None = Field(
-        default=None,
-        description=(
-            "Comma-separated runtime resource properties to return. Defaults to "
-            "a compact resource status view with node, rid, type, status, flags, "
-            "description, and timestamps."
-        ),
-    )
-    max_resources: int = Field(
-        default=10000,
-        ge=1,
-        le=100000,
-        description="Maximum number of runtime resource rows the tool may return.",
-    )
-
     @model_validator(mode="after")
     def normalize_filters(self) -> "ServiceResourceStatusRequest":
         self.filters = {

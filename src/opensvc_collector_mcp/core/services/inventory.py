@@ -2,7 +2,9 @@ from configparser import ConfigParser, Error as ConfigParserError
 from typing import Any
 from urllib.parse import quote
 
-from opensvc_collector_mcp.client import collector_get, collector_get_all
+from opensvc_collector_mcp.client import collector_get
+
+from opensvc_collector_mcp.core.utils import collection_meta, collection_params
 
 from ._common import _parse_service_filters, _truncate_text
 
@@ -32,11 +34,26 @@ SERVICE_NODES_PROPS = (
 SERVICE_CONFIG_PROPS = "svcname,svc_config,svc_config_updated,updated"
 
 
-async def list_services(props: str | None = None) -> dict[str, Any]:
+async def list_services(
+    filters: dict[str, str] | str | None = None,
+    props: str | None = None,
+    orderby: str | None = "svcname",
+    search: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> dict[str, Any]:
     selected_props = props or DEFAULT_LIST_SERVICE_PROPS
-    return await collector_get_all(
+    parsed_filters = _service_search_filters(filters)
+    return await collector_get(
         "/services",
-        params={"props": selected_props},
+        params=_service_search_params(
+            filters=parsed_filters,
+            props=selected_props,
+            orderby=orderby,
+            search=search,
+            limit=limit,
+            offset=offset,
+        ),
     )
 
 
@@ -50,10 +67,12 @@ async def search_services(
     svc_topology: str | None = None,
     svc_frozen: str | None = None,
     props: str | None = None,
+    orderby: str | None = "svcname",
+    search: str | None = None,
     limit: int = 20,
     offset: int = 0,
 ) -> dict[str, Any]:
-    limit = max(1, min(limit, 100))
+    limit = max(1, min(limit, 1000))
     offset = max(0, offset)
     selected_props = props or DEFAULT_LIST_SERVICE_PROPS
     parsed_filters = _service_search_filters(
@@ -71,6 +90,8 @@ async def search_services(
         params=_service_search_params(
             filters=parsed_filters,
             props=selected_props,
+            orderby=orderby,
+            search=search,
             limit=limit,
             offset=offset,
         ),
@@ -102,6 +123,8 @@ async def count_services(
         params=_service_search_params(
             filters=parsed_filters,
             props="svcname",
+            orderby=None,
+            search=None,
             limit=1,
             offset=0,
         ),
@@ -176,29 +199,37 @@ async def get_service_config(
 
 async def get_service_instances(
     svcname: str,
-    page_size: int = 1000,
-    max_instances: int = 100000,
+    filters: dict[str, str] | str | None = None,
+    props: str | None = None,
+    orderby: str | None = "nodes.nodename",
+    search: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
 ) -> dict[str, Any]:
     svcname = svcname.strip()
     if not svcname:
         raise ValueError("svcname must not be empty")
 
-    response = await collector_get_all(
-        "/services_instances",
-        params=[
-            ("props", SERVICE_INSTANCES_PROPS),
-            ("filters", f"services.svcname={svcname}"),
-        ],
-        page_size=page_size,
-        max_items=max_instances,
+    selected_props = props or SERVICE_INSTANCES_PROPS
+    parsed_filters = _service_instance_filters(
+        [("svcname", svcname), *_parse_service_filters(filters)]
     )
-    meta = dict(response.get("meta", {}))
-    meta.update(
-        {
-            "source": "services_instances",
-            "filter": {"services.svcname": svcname},
-            "included_props": SERVICE_INSTANCES_PROPS.split(","),
-        }
+    response = await collector_get(
+        "/services_instances",
+        params=collection_params(
+            filters=parsed_filters,
+            props=selected_props,
+            orderby=orderby,
+            search=search,
+            limit=limit,
+            offset=offset,
+        ),
+    )
+    meta = collection_meta(
+        response,
+        source="services_instances",
+        filters=parsed_filters,
+        props=selected_props,
     )
     return {
         "svcname": svcname,
@@ -209,30 +240,37 @@ async def get_service_instances(
 
 async def get_service_nodes(
     svcname: str,
+    filters: dict[str, str] | str | None = None,
     props: str | None = None,
-    page_size: int = 1000,
-    max_nodes: int = 10000,
+    orderby: str | None = "nodes.nodename",
+    search: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
 ) -> dict[str, Any]:
     svcname = svcname.strip()
     if not svcname:
         raise ValueError("svcname must not be empty")
 
     selected_props = props or SERVICE_NODES_PROPS
-    response = await collector_get_all(
+    parsed_filters = _parse_service_filters(filters)
+    response = await collector_get(
         f"/services/{quote(svcname, safe='')}/nodes",
-        params={"props": selected_props},
-        page_size=page_size,
-        max_items=max_nodes,
+        params=collection_params(
+            filters=parsed_filters,
+            props=selected_props,
+            orderby=orderby,
+            search=search,
+            limit=limit,
+            offset=offset,
+        ),
     )
     rows = response.get("data", [])
-    meta = dict(response.get("meta", {}))
-    meta.update(
-        {
-            "source": "service_nodes",
-            "filter": {"svcname": svcname},
-            "included_props": selected_props.split(","),
-            "node_count": len(rows),
-        }
+    meta = collection_meta(
+        response,
+        source="service_nodes",
+        filters=parsed_filters,
+        props=selected_props,
+        extra={"svcname": svcname, "node_count": len(rows)},
     )
     return {
         "svcname": svcname,
@@ -312,14 +350,16 @@ def _service_instance_filter_field(field: str) -> str:
 def _service_search_params(
     filters: list[tuple[str, str]],
     props: str,
+    orderby: str | None,
+    search: str | None,
     limit: int,
     offset: int,
 ) -> list[tuple[str, Any]]:
-    params: list[tuple[str, Any]] = [
-        ("props", props),
-        ("limit", limit),
-        ("offset", offset),
-    ]
-    for field, value in filters:
-        params.append(("filters", f"{field}={value}"))
-    return params
+    return collection_params(
+        filters=filters,
+        props=props,
+        orderby=orderby,
+        search=search,
+        limit=limit,
+        offset=offset,
+    )

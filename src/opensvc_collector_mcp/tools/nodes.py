@@ -18,6 +18,7 @@ from opensvc_collector_mcp.models.nodes import (
     NodeHealthResponse,
     NodeLocationResponse,
     NodeNameRequest,
+    NodeRelationRequest,
     NodeNetworkResponse,
     NodesByTagResponse,
     NodesWithoutTagResponse,
@@ -25,6 +26,7 @@ from opensvc_collector_mcp.models.nodes import (
     NodeOsResponse,
     NodePropsResponse,
     NodeRowsResponse,
+    NodeServicesRequest,
     NodeServicesResponse,
     NodeTagsResponse,
     SearchNodesRequest,
@@ -78,7 +80,14 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         ] = ListNodesRequest(),
     ) -> NodeRowsResponse:
         """Return OpenSVC Collector nodes and their selected properties."""
-        response = await core_list_nodes(props=request.props)
+        response = await core_list_nodes(
+            filters=request.merged_filters(),
+            props=request.props,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
+        )
         return NodeRowsResponse.model_validate(response)
 
     @mcp.tool(
@@ -132,6 +141,8 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             filters=request.merged_filters(),
             nodename_contains=request.nodename_contains,
             props=request.props,
+            orderby=request.orderby,
+            search=request.search,
             limit=request.limit,
             offset=request.offset,
             max_scan=request.max_scan,
@@ -208,13 +219,21 @@ def register_nodes_tools(mcp: FastMCP) -> None:
     )
     async def get_node_tags(
         request: Annotated[
-            NodeNameRequest,
+            NodeRelationRequest,
             Field(description="Node identifier used to list attached tags."),
         ],
     ) -> NodeTagsResponse:
         """Return tags attached to one OpenSVC Collector node."""
         nodename = request.nodename.strip()
-        response = await core_get_node_tags(nodename=nodename)
+        response = await core_get_node_tags(
+            nodename=nodename,
+            filters=request.merged_filters(),
+            props=request.props,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
+        )
         return NodeTagsResponse.model_validate({"nodename": nodename, **response})
 
     @mcp.tool(
@@ -390,12 +409,20 @@ def register_nodes_tools(mcp: FastMCP) -> None:
     )
     async def get_node_network(
         request: Annotated[
-            NodeNameRequest,
+            NodeRelationRequest,
             Field(description="Node identifier used to retrieve network addresses."),
         ],
     ) -> NodeNetworkResponse:
         """Return network addresses for one OpenSVC Collector node."""
-        response = await core_get_node_network(nodename=request.nodename)
+        response = await core_get_node_network(
+            nodename=request.nodename,
+            filters=request.merged_filters(),
+            props=request.props,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
+        )
         return NodeNetworkResponse.model_validate(response)
 
     @mcp.tool(
@@ -414,14 +441,22 @@ def register_nodes_tools(mcp: FastMCP) -> None:
     )
     async def get_node_compliance(
         request: Annotated[
-            NodeNameRequest,
+            NodeRelationRequest,
             Field(
                 description="Node identifier used to retrieve compliance status rows."
             ),
         ],
     ) -> NodeComplianceResponse:
         """Return compliance status rows for one OpenSVC Collector node."""
-        response = await core_get_node_compliance(nodename=request.nodename)
+        response = await core_get_node_compliance(
+            nodename=request.nodename,
+            filters=request.merged_filters(),
+            props=request.props,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
+        )
         return NodeComplianceResponse.model_validate(response)
 
     @mcp.tool(
@@ -442,14 +477,22 @@ def register_nodes_tools(mcp: FastMCP) -> None:
     )
     async def get_node_checks(
         request: Annotated[
-            NodeNameRequest,
+            NodeRelationRequest,
             Field(
                 description="Node identifier used to retrieve live check result rows."
             ),
         ],
     ) -> NodeChecksResponse:
         """Return live check result rows for one OpenSVC Collector node."""
-        response = await core_get_node_checks(nodename=request.nodename)
+        response = await core_get_node_checks(
+            nodename=request.nodename,
+            filters=request.merged_filters(),
+            props=request.props,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
+        )
         return NodeChecksResponse.model_validate(response)
 
     @mcp.tool(
@@ -470,12 +513,20 @@ def register_nodes_tools(mcp: FastMCP) -> None:
     )
     async def get_node_disks(
         request: Annotated[
-            NodeNameRequest,
+            NodeRelationRequest,
             Field(description="Node identifier used to retrieve disk inventory rows."),
         ],
     ) -> NodeDisksResponse:
         """Return disk inventory rows for one OpenSVC Collector node."""
-        response = await core_get_node_disks(nodename=request.nodename)
+        response = await core_get_node_disks(
+            nodename=request.nodename,
+            filters=request.merged_filters(),
+            props=request.props,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
+        )
         return NodeDisksResponse.model_validate(response)
 
     @mcp.tool(
@@ -523,7 +574,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
     )
     async def get_node_services(
         request: Annotated[
-            NodeNameRequest,
+            NodeServicesRequest,
             Field(
                 description=(
                     "Node identifier used to list service instances hosted on this node "
@@ -533,7 +584,15 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         ],
     ) -> NodeServicesResponse:
         """Return service instances hosted on one OpenSVC Collector node."""
-        response = await core_get_node_services(nodename=request.nodename)
+        response = await core_get_node_services(
+            nodename=request.nodename,
+            filters=request.merged_filters(),
+            props=request.props,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
+        )
         return NodeServicesResponse.model_validate(response)
 
     @mcp.tool(

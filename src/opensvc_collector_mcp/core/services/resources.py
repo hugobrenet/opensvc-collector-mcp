@@ -1,8 +1,9 @@
 from typing import Any
 from urllib.parse import quote
 
-from opensvc_collector_mcp.client import collector_get_all
+from opensvc_collector_mcp.client import collector_get, collector_get_all
 from opensvc_collector_mcp.core.utils import (
+    collection_params,
     enrich_rows_with_nodenames,
     get_nodenames_by_node_ids,
 )
@@ -63,8 +64,10 @@ async def get_service_resource_status(
     res_optional: str | None = None,
     res_monitor: str | None = None,
     props: str | None = None,
-    page_size: int = 1000,
-    max_resources: int = 10000,
+    orderby: str | None = "rid",
+    search: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
 ) -> dict[str, Any]:
     svcname = svcname.strip()
     if not svcname:
@@ -82,14 +85,16 @@ async def get_service_resource_status(
         res_optional=res_optional,
         res_monitor=res_monitor,
     )
-    response = await collector_get_all(
+    response = await collector_get(
         f"/services/{quote(svcname, safe='')}/resources",
         params=_service_resource_status_params(
             filters=parsed_filters,
             props=selected_props,
+            orderby=orderby,
+            search=search,
+            limit=limit,
+            offset=offset,
         ),
-        page_size=page_size,
-        max_items=max_resources,
     )
     raw_rows = response.get("data", [])
     nodenames_by_node_id = await get_nodenames_by_node_ids(
@@ -107,6 +112,7 @@ async def get_service_resource_status(
             },
             "included_props": selected_props.split(","),
             "resource_count": len(rows),
+            "output_count": len(rows),
             "node_names_resolved": not unresolved_node_ids,
             "node_name_count": len(nodenames_by_node_id),
             "unresolved_node_ids": unresolved_node_ids,
@@ -219,8 +225,16 @@ def _service_resource_status_filter_field(field: str) -> str:
 def _service_resource_status_params(
     filters: list[tuple[str, str]],
     props: str,
+    orderby: str | None,
+    search: str | None,
+    limit: int,
+    offset: int,
 ) -> list[tuple[str, Any]]:
-    params: list[tuple[str, Any]] = [("props", props)]
-    for field, value in filters:
-        params.append(("filters", f"{field}={value}"))
-    return params
+    return collection_params(
+        filters=filters,
+        props=props,
+        orderby=orderby,
+        search=search,
+        limit=limit,
+        offset=offset,
+    )

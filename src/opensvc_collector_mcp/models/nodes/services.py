@@ -2,9 +2,15 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from ._common import NodeRelationRequest
+
+
+class NodeServicesRequest(NodeRelationRequest):
+    pass
+
 
 class NodeService(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="allow")
 
     nodename: str | None = None
     svcname: str | None = None

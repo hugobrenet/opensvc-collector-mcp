@@ -32,15 +32,23 @@ team_responsible
 
 Returns nodes from the OpenSVC Collector inventory.
 
-Optional argument:
+Common arguments:
 
+- `filters`: exact-match filters using node properties.
 - `props`: comma-separated node properties to include in the response.
+- `orderby`: Collector order expression, for example `nodename` or `~updated`.
+- `search`: Collector full-text search expression when supported by `/nodes`.
+- `limit`: maximum number of rows to return.
+- `offset`: number of matching rows to skip.
 
 Example:
 
 ```json
 {
-  "props": "nodename,status,asset_env,loc_city"
+  "props": "nodename,status,asset_env,loc_city",
+  "limit": 20,
+  "offset": 0,
+  "orderby": "nodename"
 }
 ```
 
@@ -54,6 +62,8 @@ Common arguments:
 
 - `filters`: exact-match filters using node properties.
 - `props`: comma-separated properties to return.
+- `orderby`: Collector order expression, for example `nodename` or `~updated`.
+- `search`: Collector full-text search expression when supported by `/nodes`.
 - `limit`: maximum number of rows to return.
 - `offset`: number of matching rows to skip.
 - `nodename_contains`: case-insensitive substring search on `nodename`.
