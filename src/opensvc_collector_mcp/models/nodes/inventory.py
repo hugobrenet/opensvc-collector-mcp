@@ -83,7 +83,7 @@ class NodeCollectionRequest(NodeFilterRequest):
     )
 
 
-class SearchNodesRequest(NodeCollectionRequest):
+class ListNodesRequest(NodeCollectionRequest):
     nodename_contains: str | None = Field(
         default=None,
         description="Case-insensitive substring to find in nodenames.",
@@ -97,10 +97,6 @@ class SearchNodesRequest(NodeCollectionRequest):
 
 
 class CountNodesRequest(NodeFilterRequest):
-    pass
-
-
-class ListNodesRequest(NodeCollectionRequest):
     pass
 
 

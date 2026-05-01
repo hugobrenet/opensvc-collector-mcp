@@ -12,7 +12,7 @@ MCP tool definitions live in `src/opensvc_collector_mcp/tools/nodes.py`.
 
 Returns the node properties exposed by the Collector.
 
-Use this before building generic filters for `search_nodes` or `count_nodes`.
+Use this before building generic filters for `list_nodes` or `count_nodes`.
 
 Typical properties include:
 
@@ -30,7 +30,8 @@ team_responsible
 
 ### `list_nodes`
 
-Returns nodes from the OpenSVC Collector inventory.
+Returns nodes from the OpenSVC Collector inventory. Use this when the user asks
+to list or search nodes matching criteria.
 
 Common arguments:
 
@@ -40,33 +41,8 @@ Common arguments:
 - `search`: Collector full-text search expression when supported by `/nodes`.
 - `limit`: maximum number of rows to return.
 - `offset`: number of matching rows to skip.
-
-Example:
-
-```json
-{
-  "props": "nodename,status,asset_env,loc_city",
-  "limit": 20,
-  "offset": 0,
-  "orderby": "nodename"
-}
-```
-
-### `search_nodes`
-
-Searches nodes and returns matching rows.
-
-Use this when the user asks to list nodes matching criteria.
-
-Common arguments:
-
-- `filters`: exact-match filters using node properties.
-- `props`: comma-separated properties to return.
-- `orderby`: Collector order expression, for example `nodename` or `~updated`.
-- `search`: Collector full-text search expression when supported by `/nodes`.
-- `limit`: maximum number of rows to return.
-- `offset`: number of matching rows to skip.
 - `nodename_contains`: case-insensitive substring search on `nodename`.
+- `max_scan`: maximum candidate rows to scan when using `nodename_contains`.
 
 Shortcut filter arguments are also available:
 
@@ -92,7 +68,9 @@ Example:
       "loc_rack": "LAB-RACK-01"
     },
     "props": "nodename,status,asset_env,loc_country,loc_rack",
-    "limit": 10
+    "limit": 10,
+    "offset": 0,
+    "orderby": "nodename"
   }
 }
 ```
@@ -576,7 +554,7 @@ You can override them:
 
 ## Generic Filters
 
-`search_nodes` and `count_nodes` support generic filters over node properties:
+`list_nodes` and `count_nodes` support generic filters over node properties:
 
 ```json
 {
@@ -629,7 +607,7 @@ Examples:
 ```
 
 Filters are exact matches. For nodename substring search, use
-`nodename_contains` on `search_nodes`.
+`nodename_contains` on `list_nodes`.
 
 The generic `filters` object can be combined with shortcut arguments.
 
@@ -657,7 +635,7 @@ These two calls are equivalent:
 
 ## Tool Selection
 
-Use `search_nodes` when the user wants rows:
+Use `list_nodes` when the user wants rows:
 
 ```text
 List lab nodes in Lab Country.

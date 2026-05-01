@@ -63,7 +63,6 @@ Current MCP node tool surface:
 
 - `list_node_props`
 - `list_nodes`
-- `search_nodes`
 - `count_nodes`
 - `get_node`
 - `get_node_tags`
@@ -239,7 +238,7 @@ Error and production-readiness notes:
 - TLS verification is currently disabled for the local lab. Before production
   use, add `OPENSVC_VERIFY_TLS` and/or `OPENSVC_CA_BUNDLE`.
 - Add focused tests as the tool surface grows, especially for model validation,
-  filter merging, `count_nodes`, `search_nodes`, `get_node_health`, and stats.
+  filter merging, `list_nodes`, `count_nodes`, `get_node_health`, and stats.
 
 Post-implementation validation:
 
@@ -268,7 +267,7 @@ Node tool design decisions:
 - Do not add wrapper tools like `get_nodes_by_status`,
   `get_nodes_by_env`, `get_nodes_by_location`, or `get_nodes_by_app`
   unless they add domain-specific logic beyond filtering.
-- `search_nodes` lists matching rows.
+- `list_nodes` lists rows and handles exact filters, Collector search, pagination, and bounded `nodename_contains` lookup.
 - `count_nodes` returns one optimized count using Collector `meta.total`.
 - `get_nodes_inventory_stats` returns distributions and possible values.
 - `get_node` returns raw full node detail.
@@ -277,7 +276,7 @@ Node tool design decisions:
 
 Generic node filters:
 
-- `search_nodes` and `count_nodes` support generic exact-match filters over
+- `list_nodes` and `count_nodes` support generic exact-match filters over
   Collector node properties.
 - Filter format:
 
@@ -317,7 +316,7 @@ os_name
 - Generic `filters` can be combined with shortcut arguments on the same request
   model.
 - Filters are exact matches. For nodename substring search, use
-  `nodename_contains` on `search_nodes`.
+  `nodename_contains` on `list_nodes`.
 - The Collector supports multiple filters through repeated query parameters:
 
 ```text

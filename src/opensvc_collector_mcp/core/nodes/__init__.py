@@ -3,7 +3,6 @@
 from .inventory import (
     list_nodes,
     list_node_props,
-    search_nodes,
     count_nodes,
     get_node,
 )
@@ -81,6 +80,5 @@ __all__ = [
     'list_node_props',
     'list_nodes',
     'search_node_by_tag',
-    'search_nodes',
     'search_nodes_without_tag',
 ]

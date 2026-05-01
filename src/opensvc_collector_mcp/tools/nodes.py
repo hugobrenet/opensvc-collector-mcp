@@ -29,7 +29,6 @@ from opensvc_collector_mcp.models.nodes import (
     NodeServicesRequest,
     NodeServicesResponse,
     NodeTagsResponse,
-    SearchNodesRequest,
     TagNameRequest,
 )
 from opensvc_collector_mcp.core.nodes import (
@@ -52,7 +51,6 @@ from opensvc_collector_mcp.core.nodes import (
     list_nodes as core_list_nodes,
     search_node_by_tag as core_search_node_by_tag,
     search_nodes_without_tag as core_search_nodes_without_tag,
-    search_nodes as core_search_nodes,
 )
 
 
@@ -61,9 +59,10 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         timeout=TOOL_TIMEOUT_SECONDS,
         name="list_nodes",
         description=(
-            "List nodes from the OpenSVC Collector inventory. "
-            "Use the optional props argument to limit the returned fields "
-            "and reduce response size."
+            "List or search nodes from the OpenSVC Collector inventory. "
+            "Use filters for exact-match lookup, search for Collector full-text "
+            "search, nodename_contains for partial nodename lookup, and props "
+            "to reduce response size."
         ),
         tags={"nodes", "inventory", "read"},
         annotations={
@@ -87,6 +86,8 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             search=request.search,
             limit=request.limit,
             offset=request.offset,
+            nodename_contains=request.nodename_contains,
+            max_scan=request.max_scan,
         )
         return NodeRowsResponse.model_validate(response)
 
@@ -95,7 +96,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         name="list_node_props",
         description=(
             "List available OpenSVC Collector node properties. "
-            "Use this before list_nodes or search tools to choose valid props."
+            "Use this before list_nodes to choose valid filters and props."
         ),
         tags={"nodes", "inventory", "schema", "read"},
         annotations={
@@ -109,45 +110,6 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         """Return the available node properties exposed by the Collector."""
         response = await core_list_node_props()
         return NodePropsResponse.model_validate(response)
-
-    @mcp.tool(
-        timeout=TOOL_TIMEOUT_SECONDS,
-        name="search_nodes",
-        description=(
-            "Search OpenSVC Collector nodes using exact-match inventory filters. "
-            "Use nodename_contains for a case-insensitive nodename substring search."
-        ),
-        tags={"nodes", "inventory", "search", "read"},
-        annotations={
-            "title": "Search OpenSVC Nodes",
-            "readOnlyHint": True,
-            "idempotentHint": True,
-            "openWorldHint": False,
-        },
-    )
-    async def search_nodes(
-        request: Annotated[
-            SearchNodesRequest,
-            Field(
-                description=(
-                    "Search criteria, pagination, and returned properties for "
-                    "node inventory lookup."
-                ),
-            ),
-        ],
-    ) -> NodeRowsResponse:
-        """Search nodes by common inventory fields."""
-        response = await core_search_nodes(
-            filters=request.merged_filters(),
-            nodename_contains=request.nodename_contains,
-            props=request.props,
-            orderby=request.orderby,
-            search=request.search,
-            limit=request.limit,
-            offset=request.offset,
-            max_scan=request.max_scan,
-        )
-        return NodeRowsResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

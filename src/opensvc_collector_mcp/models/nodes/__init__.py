@@ -7,7 +7,6 @@ from ._common import (
 
 from .inventory import (
     NodeFilterRequest,
-    SearchNodesRequest,
     CountNodesRequest,
     ListNodesRequest,
     NodePropsResponse,
@@ -130,6 +129,5 @@ __all__ = [
     'NodeTagsResponse',
     'NodesByTagResponse',
     'NodesWithoutTagResponse',
-    'SearchNodesRequest',
     'TagNameRequest',
 ]
