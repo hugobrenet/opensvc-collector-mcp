@@ -154,6 +154,13 @@ class ComplianceModulesetPublicationsRequest(ComplianceModulesetRelationRequest)
     )
 
 
+class ComplianceModulesetResponsiblesRequest(ComplianceModulesetRelationRequest):
+    orderby: str | None = Field(
+        default="role",
+        description="Collector orderby expression. Defaults to role.",
+    )
+
+
 class ComplianceModulesetRow(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -298,5 +305,15 @@ class ComplianceModulesetPublicationsResponse(BaseModel):
     object_id: str
     modset_name: str | None = None
     relation: str = Field(default="publications")
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ComplianceModulesetGroupRow]
+
+
+class ComplianceModulesetResponsiblesResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    object_id: str
+    modset_name: str | None = None
+    relation: str = Field(default="responsibles")
     meta: dict[str, Any] = Field(default_factory=dict)
     data: list[ComplianceModulesetGroupRow]

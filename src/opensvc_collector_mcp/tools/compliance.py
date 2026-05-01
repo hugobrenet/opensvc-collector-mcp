@@ -12,6 +12,7 @@ from opensvc_collector_mcp.core.compliance import (
     get_compliance_moduleset_modules as core_get_compliance_moduleset_modules,
     get_compliance_moduleset_nodes as core_get_compliance_moduleset_nodes,
     get_compliance_moduleset_publications as core_get_compliance_moduleset_publications,
+    get_compliance_moduleset_responsibles as core_get_compliance_moduleset_responsibles,
     get_compliance_moduleset_services as core_get_compliance_moduleset_services,
     get_compliance_moduleset_usage as core_get_compliance_moduleset_usage,
     list_compliance_modulesets as core_list_compliance_modulesets,
@@ -30,6 +31,8 @@ from opensvc_collector_mcp.models.compliance import (
     ComplianceModulesetPublicationsRequest,
     ComplianceModulesetPublicationsResponse,
     ComplianceModulesetRequest,
+    ComplianceModulesetResponsiblesRequest,
+    ComplianceModulesetResponsiblesResponse,
     ComplianceModulesetResponse,
     ComplianceModulesetServicesRequest,
     ComplianceModulesetServicesResponse,
@@ -276,6 +279,47 @@ def register_compliance_tools(mcp: FastMCP) -> None:
             offset=request.offset,
         )
         return ComplianceModulesetPublicationsResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_compliance_moduleset_responsibles",
+        description=(
+            "Return groups responsible for one OpenSVC Collector compliance "
+            "moduleset, selected by Collector moduleset id or exact moduleset "
+            "name. Use this to know which groups can maintain or administer a moduleset."
+        ),
+        tags={"compliance", "modulesets", "groups", "responsibles", "read"},
+        annotations={
+            "title": "Get OpenSVC Compliance Moduleset Responsibles",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_compliance_moduleset_responsibles(
+        request: Annotated[
+            ComplianceModulesetResponsiblesRequest,
+            Field(
+                description=(
+                    "Collector moduleset id or exact modset_name plus optional "
+                    "filters, properties, ordering, search, limit, and offset. "
+                    "Returns groups responsible for the moduleset."
+                ),
+            ),
+        ],
+    ) -> ComplianceModulesetResponsiblesResponse:
+        """Return groups responsible for one compliance moduleset."""
+        response = await core_get_compliance_moduleset_responsibles(
+            moduleset_id=request.moduleset_id,
+            modset_name=request.modset_name,
+            filters=request.filters,
+            props=request.props,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
+        )
+        return ComplianceModulesetResponsiblesResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
