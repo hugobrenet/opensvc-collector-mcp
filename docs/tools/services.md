@@ -731,6 +731,10 @@ Returns disk rows attached to one service selected by exact `svcname`.
 Use this tool to list service disks with their node, size, local/SAN state, disk
 identity, storage group, and array information. This is more direct than
 `get_service_resources` when the user asks which disks are attached to a service.
+Collector disk sizes such as `disk_size`, `disk_used`, and `disk_alloc` are
+expressed in MB. Use `disk_id` to deduplicate rows before summing totals,
+especially for failover services where the same SAN LUN can be visible on
+multiple nodes.
 
 Example:
 
@@ -757,13 +761,13 @@ nodename
 node_id
 disk_id
 disk_name
-disk_size
-disk_used
-disk_local
+disk_size        # MB
+disk_used        # MB
+disk_local       # true=local, false=SAN/shared
 disk_vendor
 disk_model
 disk_devid
-disk_alloc
+disk_alloc       # MB when returned
 disk_raid
 disk_group
 disk_arrayid

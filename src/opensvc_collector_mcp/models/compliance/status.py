@@ -36,8 +36,17 @@ class ComplianceStatusRequest(BaseModel):
         default=None,
         description="Comma-separated Collector compliance status properties to return.",
     )
-    limit: int = Field(default=50, ge=1, le=1000)
-    offset: int = Field(default=0, ge=0)
+    limit: int = Field(
+        default=50,
+        ge=1,
+        le=1000,
+        description="Maximum number of compliance status rows to return.",
+    )
+    offset: int = Field(
+        default=0,
+        ge=0,
+        description="Number of matching compliance status rows to skip.",
+    )
     latest: bool = Field(
         default=True,
         description="Return the latest/current status page by forcing offset 0 and run_date descending.",
@@ -121,7 +130,29 @@ class ComplianceLogsRequest(ComplianceStatusRequest):
         default_factory=dict,
         description="Exact-match Collector filters. Keys can be raw Collector compliance log properties.",
     )
-    limit: int = Field(default=20, ge=1, le=1000)
+    node_id: str | None = Field(
+        default=None,
+        description="Collector node id required to scope historical compliance logs, unless svc_id is provided.",
+    )
+    svc_id: str | None = Field(
+        default=None,
+        description="Collector service id required to scope historical compliance logs, unless node_id is provided.",
+    )
+    props: str | None = Field(
+        default=None,
+        description="Comma-separated Collector compliance log properties to return.",
+    )
+    limit: int = Field(
+        default=20,
+        ge=1,
+        le=1000,
+        description="Maximum number of historical compliance log rows to return.",
+    )
+    offset: int = Field(
+        default=0,
+        ge=0,
+        description="Number of matching historical compliance log rows to skip.",
+    )
     latest: bool = Field(
         default=False,
         description="When true, force the newest log page by using offset 0. Keep false to paginate historical logs.",

@@ -149,6 +149,8 @@ Tool implementation standard:
 - Tool request parameters should use
   `Annotated[RequestModel, Field(description="...")]`.
 - Parameter descriptions should explain both purpose and expected format
+- Parameter and field descriptions should document units such as MB, timestamps, and boolean meaning when the Collector field is ambiguous
+- Response models should describe nested raw Collector objects when they are returned alongside flattened fields
 - Prefer descriptions that help an MCP client choose the tool correctly, not just descriptions of the Python implementation
 - Treat this as the default standard for all future tools in this repository
 

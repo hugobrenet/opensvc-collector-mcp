@@ -408,6 +408,14 @@ data
 
 Returns disk inventory rows for one node selected by exact `nodename`.
 
+Use this tool to answer node storage questions. Collector disk sizes such as
+`disk_size`, `disk_used`, and `disk_alloc` are expressed in MB. Use `disk_id` to
+deduplicate rows before summing totals. `disk_local=true` indicates local node
+storage; `disk_local=false` usually indicates SAN/shared storage. Some Collector
+responses include nested raw objects (`svcdisks`, `diskinfo`, `stor_array`) in
+addition to the flattened fields; prefer the flattened fields when present and
+fall back to nested values when needed.
+
 The Collector endpoint used is:
 
 ```text

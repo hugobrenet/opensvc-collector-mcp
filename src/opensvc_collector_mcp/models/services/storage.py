@@ -28,6 +28,7 @@ class ServiceTargetsRequest(ServiceRelationCollectionRequest):
     array_name: str | None = Field(
         default=None, description="Exact storage array name filter."
     )
+
     @model_validator(mode="after")
     def normalize_filters(self) -> "ServiceTargetsRequest":
         self.filters = {
@@ -203,12 +204,12 @@ class ServiceDiskRow(BaseModel):
     )
     disk_size: int | float | str | None = Field(
         default=None,
-        description="Disk size as exposed by Collector.",
+        description="Disk size in MB as exposed by Collector.",
         exclude_if=_is_none,
     )
     disk_used: int | float | str | None = Field(
         default=None,
-        description="Disk used size as exposed by Collector.",
+        description="Disk used or presented size in MB as exposed by Collector.",
         exclude_if=_is_none,
     )
     disk_local: bool | str | None = Field(
@@ -243,7 +244,7 @@ class ServiceDiskRow(BaseModel):
     )
     disk_alloc: int | float | str | None = Field(
         default=None,
-        description="Allocated disk size or allocation metric from diskinfo.",
+        description="Allocated disk size or allocation metric in MB from diskinfo.",
         exclude_if=_is_none,
     )
     disk_raid: str | None = Field(
