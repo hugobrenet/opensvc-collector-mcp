@@ -19,6 +19,7 @@ from .rulesets import (
     get_compliance_ruleset,
     get_compliance_ruleset_items,
     get_compliance_ruleset_usage,
+    get_compliance_ruleset_variables,
     get_compliance_ruleset_variable,
     list_compliance_rulesets,
 )
@@ -45,6 +46,7 @@ __all__ = [
     "get_compliance_ruleset",
     "get_compliance_ruleset_items",
     "get_compliance_ruleset_usage",
+    "get_compliance_ruleset_variables",
     "get_compliance_ruleset_variable",
     "get_compliance_run_detail",
     "get_compliance_status",

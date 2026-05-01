@@ -132,6 +132,47 @@ data
 ```
 
 
+### `get_compliance_ruleset_variables`
+
+Returns variables attached to one compliance ruleset selected by Collector
+ruleset id or exact `ruleset_name`.
+
+Use `ruleset_name` for natural human requests. The tool resolves the ruleset id
+through `/compliance/rulesets`, then calls:
+
+```text
+/compliance/rulesets/<ruleset_id>/variables
+```
+
+Variable values are hidden by default. Set `include_var_value=true` only when the
+question requires the actual values. The tool follows the standard Collector
+collection contract with `limit`, `offset`, `orderby`, `filters`, `search`, and
+`props`.
+
+Example:
+
+```json
+{
+  "request": {
+    "ruleset_name": "02-aits.nodes.opensvc.tags",
+    "include_var_value": false,
+    "limit": 20,
+    "offset": 0
+  }
+}
+```
+
+Output fields:
+
+```text
+object_id
+relation
+ruleset_name
+meta
+data
+```
+
+
 ### `get_compliance_moduleset`
 
 Returns one compliance moduleset selected by Collector moduleset id or exact moduleset name.

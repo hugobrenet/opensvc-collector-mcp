@@ -149,6 +149,48 @@ async def get_compliance_ruleset_items(
     )
 
 
+async def get_compliance_ruleset_variables(
+    ruleset_id: int | str | None = None,
+    ruleset_name: str | None = None,
+    filters: dict[str, str] | str | None = None,
+    props: str | None = None,
+    orderby: str | None = "var_name",
+    search: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+    include_var_value: bool = False,
+) -> dict[str, Any]:
+    resolved = await _resolve_ruleset_identity(
+        ruleset_id=ruleset_id,
+        ruleset_name=ruleset_name,
+    )
+    resolved_id = str(resolved["id"])
+    resolved_name = resolved.get("ruleset_name")
+    response = await get_compliance_ruleset_items(
+        ruleset_id=resolved_id,
+        relation="variables",
+        filters=filters,
+        props=props,
+        orderby=orderby,
+        search=search,
+        limit=limit,
+        offset=offset,
+        include_var_value=include_var_value,
+    )
+    response["ruleset_name"] = resolved_name
+    response["meta"].update(
+        {
+            "requested_ruleset_id": str(ruleset_id).strip()
+            if ruleset_id is not None
+            else None,
+            "requested_ruleset_name": ruleset_name,
+            "resolved_ruleset_id": resolved_id,
+            "resolved_ruleset_name": resolved_name,
+        }
+    )
+    return response
+
+
 async def get_compliance_ruleset_variable(
     ruleset_id: int | str,
     variable_id: int | str,
