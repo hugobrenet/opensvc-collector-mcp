@@ -8,8 +8,7 @@ from .inventory import DEFAULT_LIST_SERVICE_PROPS
 
 
 SERVICE_TAGS_PROPS = (
-    "tags.tag_name,tags.tag_id,tags.tag_data,tags.tag_exclude,"
-    "tags.tag_created"
+    "tags.tag_name,tags.tag_id,tags.tag_data,tags.tag_exclude,tags.tag_created"
 )
 TAG_LOOKUP_PROPS = "tag_name,tag_id,tag_data,tag_exclude,tag_created"
 
@@ -56,11 +55,12 @@ async def search_services_by_tag(
             "data": [],
         }
 
-    selected_props = _ensure_props_include(props or DEFAULT_LIST_SERVICE_PROPS, "svcname")
+    selected_props = _ensure_props_include(
+        props or DEFAULT_LIST_SERVICE_PROPS, "svcname"
+    )
     response = await collector_get_all(
         f"/tags/{quote(tag_id, safe='')}/services",
         params={"props": selected_props},
-        strategy="paged",
         page_size=page_size,
         max_items=max_services,
     )
@@ -108,11 +108,12 @@ async def search_services_without_tag(
         if str(row.get("svcname", "")).strip()
     }
 
-    selected_props = _ensure_props_include(props or DEFAULT_LIST_SERVICE_PROPS, "svcname")
+    selected_props = _ensure_props_include(
+        props or DEFAULT_LIST_SERVICE_PROPS, "svcname"
+    )
     all_services = await collector_get_all(
         "/services",
         params={"props": selected_props},
-        strategy="paged",
         page_size=page_size,
         max_items=max_services,
     )
@@ -123,7 +124,9 @@ async def search_services_without_tag(
         if str(row.get("svcname", "")).strip() not in tagged_names
     ]
     all_meta = dict(all_services.get("meta", {}))
-    complete = bool(all_meta.get("complete")) and bool(tagged.get("meta", {}).get("complete"))
+    complete = bool(all_meta.get("complete")) and bool(
+        tagged.get("meta", {}).get("complete")
+    )
     meta = {
         "count": len(rows),
         "source": "services - tags/<tag_id>/services",
@@ -136,7 +139,6 @@ async def search_services_without_tag(
         "complete": complete,
         "page_size": all_meta.get("page_size"),
         "max_items": all_meta.get("max_items"),
-        "strategy": all_meta.get("strategy"),
     }
     return {
         "tag_name": tag_name,
@@ -174,7 +176,6 @@ async def get_service_tags(
             filters=parsed_filters,
             props=selected_props,
         ),
-        strategy="paged",
         page_size=page_size,
         max_items=max_tags,
     )

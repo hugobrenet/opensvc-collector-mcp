@@ -14,16 +14,14 @@ async def list_nodes(props: str | None = None) -> dict[str, Any]:
     params: dict[str, Any] = {}
     if props:
         params["props"] = props
-    return await collector_get_all("/nodes", params=params or None, strategy="paged")
+    return await collector_get_all("/nodes", params=params or None)
 
 
 async def list_node_props() -> dict[str, Any]:
     response = await collector_get("/nodes", params={"props": "nodename"})
     available_props = response.get("meta", {}).get("available_props", [])
     node_props = [
-        prop.removeprefix("nodes.")
-        for prop in available_props
-        if isinstance(prop, str)
+        prop.removeprefix("nodes.") for prop in available_props if isinstance(prop, str)
     ]
 
     return {
@@ -52,7 +50,9 @@ async def search_nodes(
     limit = max(1, min(limit, 100))
     offset = max(0, offset)
     max_scan = max(limit + offset, min(max_scan, 50000))
-    selected_props = _props_with_required(props or DEFAULT_SEARCH_NODE_PROPS, "nodename")
+    selected_props = _props_with_required(
+        props or DEFAULT_SEARCH_NODE_PROPS, "nodename"
+    )
     parsed_filters = _node_search_filters(
         filters,
         status=status,
@@ -200,7 +200,9 @@ def _node_search_filters(
     return filters
 
 
-def _parse_node_filters(raw_filters: dict[str, str] | str | None) -> list[tuple[str, str]]:
+def _parse_node_filters(
+    raw_filters: dict[str, str] | str | None,
+) -> list[tuple[str, str]]:
     if not raw_filters:
         return []
     if isinstance(raw_filters, dict):

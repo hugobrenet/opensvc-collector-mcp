@@ -205,22 +205,32 @@ Shared configuration standard:
 - Avoid duplicating the same global constant in multiple `tools/`, `core/`, or
   `client.py` modules. Import it from `config.py` instead.
 
-Collection retrieval standard for `*_core.py`:
+Collection and pagination standard:
 
-- When a core function reads a Collector endpoint returning a collection, pick
-  one of two explicit strategies:
-  `safe_limit_zero` or `prefer_pagination`.
-- `safe_limit_zero`:
-  use one Collector call with `limit=0` only for object-like or small, stable
-  collections whose cardinality is expected to stay bounded in practice.
-- `prefer_pagination`:
-  use internal `limit/offset` pagination for any collection whose size can grow
-  significantly or is not reliably bounded.
-- Do not assume a `/resource/<id>/subresource` endpoint is small only because
-  it is attached to one object. Validate with real Collector data first.
-- `limit=0` is the exception, not the default.
-- Prefer centralizing pagination mechanics in `client.py` helpers and keep
-  `core/` focused on choosing the strategy and shaping the domain response.
+- Raw Collector collection tools must expose the same public contract whenever
+  the Collector endpoint supports it:
+  `limit`, `offset`, `orderby`, `filters`, `search`, and `props`.
+- The LLM is responsible for paginating raw collection tools by calling the same
+  tool again with a higher `offset`. Do not hide full collection scans behind a
+  listing tool.
+- Object-detail tools should expose only the natural selector and optional
+  `props`: use `id | name` when users are likely to know a name but the Collector
+  endpoint requires an id. Resolve names to ids in `core/`, not in `tools/`.
+- Relation tools such as `/<domain>/<id>/<relation>` are collection tools. They
+  should expose `id | name` plus `limit`, `offset`, `orderby`, `filters`,
+  `search`, and `props`.
+- Internal pagination is allowed only for business tools that must reason across
+  multiple Collector pages: id/name resolution, joins, summaries, diagnostics,
+  or endpoints that cannot answer correctly with one raw page.
+- Business tools using internal pagination must expose domain limits such as
+  `max_items`, `max_logs`, `max_nodes`, or `include_details`, not technical
+  transport controls. Keep the server work bounded and document what is scanned.
+- Do not expose technical pagination controls in MCP request models: no
+  `strategy`, no `page_size`, and no `limit_zero`. These are implementation
+  details that belong in `core/` or `client.py` only.
+- `collector_get_all` may remain as an internal helper for bounded business
+  logic, but new raw listing/relation tools should prefer one Collector page per
+  MCP call.
 
 Error and production-readiness notes:
 

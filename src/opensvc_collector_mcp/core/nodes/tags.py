@@ -11,7 +11,6 @@ async def get_node_tags(nodename: str) -> dict[str, Any]:
 
     return await collector_get_all(
         f"/nodes/{quote(nodename, safe='')}/tags",
-        strategy="limit_zero",
     )
 
 
@@ -49,7 +48,6 @@ async def search_node_by_tag(tag_name: str) -> dict[str, Any]:
 
     response = await collector_get_all(
         f"/tags/{quote(str(tag_id), safe='')}/nodes",
-        strategy="paged",
     )
     data = response.get("data", [])
     return {
@@ -75,7 +73,6 @@ async def search_nodes_without_tag(tag_name: str) -> dict[str, Any]:
     all_nodes = await collector_get_all(
         "/nodes",
         params={"props": "nodename"},
-        strategy="paged",
     )
     all_rows = all_nodes.get("data", [])
     data = [

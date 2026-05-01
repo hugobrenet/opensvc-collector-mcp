@@ -11,7 +11,6 @@ async def get_node_checks(nodename: str) -> dict[str, Any]:
 
     response = await collector_get_all(
         f"/nodes/{quote(nodename, safe='')}/checks",
-        strategy="paged",
     )
     return {
         "nodename": nodename,

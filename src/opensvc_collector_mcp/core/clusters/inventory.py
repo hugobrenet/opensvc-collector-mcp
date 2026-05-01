@@ -18,7 +18,6 @@ async def get_cluster_nodes(cluster_name: str) -> dict[str, Any]:
             ("props", CLUSTER_NODES_PROPS),
             ("filters", f"clusters.cluster_name={cluster_name}"),
         ],
-        strategy="limit_zero",
     )
     data = response.get("data", [])
     meta = response.get("meta", {})
@@ -28,7 +27,6 @@ async def get_cluster_nodes(cluster_name: str) -> dict[str, Any]:
             "count": len(data),
             "total": meta.get("total"),
             "complete": meta.get("complete"),
-            "strategy": meta.get("strategy"),
             "source": "nodes",
             "filter": {"clusters.cluster_name": cluster_name},
             "included_props": CLUSTER_NODES_PROPS.split(","),

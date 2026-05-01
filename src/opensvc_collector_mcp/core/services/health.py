@@ -77,7 +77,6 @@ async def get_service_checks(
             filters=parsed_filters,
             props=selected_props,
         ),
-        strategy="paged",
         page_size=page_size,
         max_items=max_checks,
     )
@@ -205,7 +204,6 @@ async def get_service_status_history(
             filters=[("svc_id", svc_id), *parsed_filters],
             props=selected_props,
         ),
-        strategy="paged",
         page_size=page_size,
         max_items=max_history,
     )
@@ -370,7 +368,6 @@ async def search_frozen_services(
     response = await collector_get_all(
         "/services_instances",
         params=params,
-        strategy="paged",
         page_size=page_size,
         max_items=max_instances,
     )
@@ -448,7 +445,9 @@ def _service_instance_status_history_filters(
             continue
         value = value.strip()
         if value:
-            filters.append((_service_instance_status_history_filter_field(field), value))
+            filters.append(
+                (_service_instance_status_history_filter_field(field), value)
+            )
     return filters
 
 
@@ -549,7 +548,6 @@ async def _get_service_instance_status_history_page(
             "page_size": page_size,
             "max_items": max_history,
             "scanned": scanned,
-            "strategy": "paged",
         }
     )
     return {"meta": merged_meta, "data": rows}

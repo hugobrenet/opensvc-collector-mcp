@@ -37,7 +37,6 @@ async def list_services(props: str | None = None) -> dict[str, Any]:
     return await collector_get_all(
         "/services",
         params={"props": selected_props},
-        strategy="paged",
     )
 
 
@@ -141,7 +140,11 @@ async def get_service_config(
     row = rows[0] if rows else {}
     raw_config = row.get("svc_config")
     config_text = raw_config if isinstance(raw_config, str) else ""
-    config = _truncate_text(config_text, raw_config_max_chars) if include_raw_config else None
+    config = (
+        _truncate_text(config_text, raw_config_max_chars)
+        if include_raw_config
+        else None
+    )
     sections = _parse_service_config_sections(config_text) if include_sections else []
     meta = dict(response.get("meta", {}))
     meta.update(
@@ -186,7 +189,6 @@ async def get_service_instances(
             ("props", SERVICE_INSTANCES_PROPS),
             ("filters", f"services.svcname={svcname}"),
         ],
-        strategy="paged",
         page_size=page_size,
         max_items=max_instances,
     )
@@ -219,7 +221,6 @@ async def get_service_nodes(
     response = await collector_get_all(
         f"/services/{quote(svcname, safe='')}/nodes",
         params={"props": selected_props},
-        strategy="paged",
         page_size=page_size,
         max_items=max_nodes,
     )
@@ -274,9 +275,7 @@ def _parse_service_config_sections(config_text: str) -> list[dict[str, Any]]:
     for section_name in parser.sections():
         section = parser[section_name]
         options = {
-            key: value
-            for key, value in section.items()
-            if key not in parser.defaults()
+            key: value for key, value in section.items() if key not in parser.defaults()
         }
         sections.append({"name": section_name, "options": options})
     return sections

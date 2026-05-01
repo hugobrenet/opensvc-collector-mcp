@@ -40,33 +40,9 @@ async def collector_get(
 async def collector_get_all(
     path: str,
     params: dict[str, Any] | Sequence[tuple[str, Any]] | None = None,
-    strategy: str = "paged",
     page_size: int = 1000,
     max_items: int = 200000,
 ) -> dict[str, Any]:
-    if strategy == "limit_zero":
-        response = await collector_get(
-            path,
-            params=_with_limit_offset(params=params, limit=0, offset=0),
-        )
-        meta = dict(response.get("meta", {}))
-        data = response.get("data", [])
-        meta.update(
-            {
-                "count": len(data),
-                "offset": 0,
-                "complete": True,
-                "strategy": strategy,
-            }
-        )
-        return {
-            "meta": meta,
-            "data": data,
-        }
-
-    if strategy != "paged":
-        raise ValueError(f"Unsupported collector_get_all strategy: {strategy}")
-
     page_size = max(1, min(page_size, 5000))
     max_items = max(1, min(max_items, 500000))
     rows: list[dict[str, Any]] = []
@@ -107,10 +83,8 @@ async def collector_get_all(
             "total": total if complete else None,
             "offset": 0,
             "complete": complete,
-            "page_size": page_size,
             "max_items": max_items,
             "scanned": offset,
-            "strategy": strategy,
         }
     )
     return {
@@ -132,11 +106,7 @@ def _with_limit_offset(
         merged["offset"] = offset
         return merged
 
-    filtered = [
-        (key, value)
-        for key, value in params
-        if key not in {"limit", "offset"}
-    ]
+    filtered = [(key, value) for key, value in params if key not in {"limit", "offset"}]
     filtered.append(("limit", limit))
     filtered.append(("offset", offset))
     return filtered

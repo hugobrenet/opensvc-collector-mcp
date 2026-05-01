@@ -10,9 +10,7 @@ from opensvc_collector_mcp.core.utils import (
 from ._common import _parse_service_filters, _unresolved_node_ids
 
 
-SERVICE_RESOURCES_PROPS = (
-    "nodes.nodename:nodename,rid,res_key,res_value,updated"
-)
+SERVICE_RESOURCES_PROPS = "nodes.nodename:nodename,rid,res_key,res_value,updated"
 SERVICE_RESOURCE_STATUS_PROPS = (
     "node_id,rid,vmname,res_type,res_status,res_desc,res_disable,"
     "res_optional,res_monitor,changed,updated"
@@ -31,7 +29,6 @@ async def get_service_resources(
     response = await collector_get_all(
         f"/services/{quote(svcname, safe='')}/resinfo",
         params={"props": SERVICE_RESOURCES_PROPS},
-        strategy="paged",
         page_size=page_size,
         max_items=max_items,
     )
@@ -91,7 +88,6 @@ async def get_service_resource_status(
             filters=parsed_filters,
             props=selected_props,
         ),
-        strategy="paged",
         page_size=page_size,
         max_items=max_resources,
     )

@@ -11,7 +11,6 @@ async def get_node_compliance(nodename: str) -> dict[str, Any]:
 
     response = await collector_get_all(
         f"/nodes/{quote(nodename, safe='')}/compliance/status",
-        strategy="paged",
     )
     return {
         "nodename": nodename,

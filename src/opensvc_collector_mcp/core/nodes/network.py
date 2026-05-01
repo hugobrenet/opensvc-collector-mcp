@@ -19,7 +19,6 @@ async def get_node_network(nodename: str) -> dict[str, Any]:
     response = await collector_get_all(
         f"/nodes/{quote(nodename, safe='')}/ips",
         params={"props": NODE_NETWORK_PROPS},
-        strategy="paged",
     )
     return {
         "nodename": nodename,

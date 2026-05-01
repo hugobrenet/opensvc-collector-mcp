@@ -47,7 +47,6 @@ async def get_service_hbas(
     response = await collector_get_all(
         f"/services/{quote(svcname, safe='')}/hbas",
         params={"props": selected_props},
-        strategy="paged",
         page_size=page_size,
         max_items=max_hbas,
     )
@@ -97,7 +96,6 @@ async def get_service_targets(
             filters=parsed_filters,
             props=selected_props,
         ),
-        strategy="paged",
         page_size=page_size,
         max_items=max_targets,
     )
@@ -135,7 +133,6 @@ async def get_service_disks(
     response = await collector_get_all(
         f"/services/{quote(svcname, safe='')}/disks",
         params={"props": selected_props},
-        strategy="paged",
         page_size=page_size,
         max_items=max_disks,
     )

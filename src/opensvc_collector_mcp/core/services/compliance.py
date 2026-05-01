@@ -63,7 +63,6 @@ async def get_service_compliance_status(
             filters=parsed_filters,
             props=selected_props,
         ),
-        strategy="paged",
         page_size=page_size,
         max_items=max_status,
     )
@@ -317,7 +316,6 @@ async def _get_service_compliance_log_page(
             "page_size": page_size,
             "max_items": max_logs,
             "scanned": scanned,
-            "strategy": "paged",
         }
     )
     return {"meta": merged_meta, "data": rows}
