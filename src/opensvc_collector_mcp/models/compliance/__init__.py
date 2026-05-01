@@ -1,6 +1,8 @@
 """Pydantic contracts for compliance tools."""
 
 from .inventory import (
+    ComplianceModulesetCandidateNodesRequest,
+    ComplianceModulesetCandidateNodesResponse,
     ComplianceModulesetDefinitionRequest,
     ComplianceModulesetDefinitionResponse,
     ComplianceModulesetModuleRow,
@@ -19,6 +21,8 @@ from .inventory import (
 )
 
 __all__ = [
+    "ComplianceModulesetCandidateNodesRequest",
+    "ComplianceModulesetCandidateNodesResponse",
     "ComplianceModulesetDefinitionRequest",
     "ComplianceModulesetDefinitionResponse",
     "ComplianceModulesetModuleRow",

@@ -2,6 +2,7 @@
 
 from .inventory import (
     get_compliance_moduleset,
+    get_compliance_moduleset_candidate_nodes,
     get_compliance_moduleset_definition,
     get_compliance_moduleset_items,
     get_compliance_moduleset_module,
@@ -24,6 +25,7 @@ from .status import (
 __all__ = [
     "get_compliance_logs",
     "get_compliance_moduleset",
+    "get_compliance_moduleset_candidate_nodes",
     "get_compliance_moduleset_definition",
     "get_compliance_moduleset_items",
     "get_compliance_moduleset_module",

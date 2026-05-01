@@ -126,6 +126,13 @@ class ComplianceModulesetNodesRequest(ComplianceModulesetRelationRequest):
     )
 
 
+class ComplianceModulesetCandidateNodesRequest(ComplianceModulesetRelationRequest):
+    orderby: str | None = Field(
+        default="nodename",
+        description="Collector orderby expression. Defaults to nodename.",
+    )
+
+
 class ComplianceModulesetRow(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -209,5 +216,15 @@ class ComplianceModulesetNodesResponse(BaseModel):
     object_id: str
     modset_name: str | None = None
     relation: str = Field(default="nodes")
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ComplianceModulesetNodeRow]
+
+
+class ComplianceModulesetCandidateNodesResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    object_id: str
+    modset_name: str | None = None
+    relation: str = Field(default="candidate_nodes")
     meta: dict[str, Any] = Field(default_factory=dict)
     data: list[ComplianceModulesetNodeRow]

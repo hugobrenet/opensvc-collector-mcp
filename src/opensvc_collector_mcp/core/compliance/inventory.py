@@ -259,6 +259,29 @@ async def get_compliance_moduleset_nodes(
     )
 
 
+async def get_compliance_moduleset_candidate_nodes(
+    moduleset_id: int | str | None = None,
+    modset_name: str | None = None,
+    filters: dict[str, str] | str | None = None,
+    props: str | None = None,
+    orderby: str | None = None,
+    search: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> dict[str, Any]:
+    return await get_compliance_moduleset_items(
+        moduleset_id=moduleset_id,
+        modset_name=modset_name,
+        relation="candidate_nodes",
+        filters=filters,
+        props=props,
+        orderby=orderby,
+        search=search,
+        limit=limit,
+        offset=offset,
+    )
+
+
 async def get_compliance_moduleset_module(
     moduleset_id: int | str,
     module_id: int | str,
