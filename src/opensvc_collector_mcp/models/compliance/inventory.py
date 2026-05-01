@@ -147,6 +147,13 @@ class ComplianceModulesetCandidateServicesRequest(ComplianceModulesetRelationReq
     )
 
 
+class ComplianceModulesetPublicationsRequest(ComplianceModulesetRelationRequest):
+    orderby: str | None = Field(
+        default="role",
+        description="Collector orderby expression. Defaults to role.",
+    )
+
+
 class ComplianceModulesetRow(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -274,3 +281,22 @@ class ComplianceModulesetCandidateServicesResponse(BaseModel):
     relation: str = Field(default="candidate_services")
     meta: dict[str, Any] = Field(default_factory=dict)
     data: list[ComplianceModulesetServiceRow]
+
+
+class ComplianceModulesetGroupRow(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    id: int | str | None = Field(default=None, description="Collector group id.")
+    role: str | None = Field(default=None, description="Collector group role/name.")
+    description: str | None = Field(default=None, description="Collector group description.")
+    privilege: bool | None = Field(default=None, description="Whether the group is privileged.")
+
+
+class ComplianceModulesetPublicationsResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    object_id: str
+    modset_name: str | None = None
+    relation: str = Field(default="publications")
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ComplianceModulesetGroupRow]

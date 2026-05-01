@@ -11,6 +11,7 @@ from opensvc_collector_mcp.core.compliance import (
     get_compliance_moduleset_definition as core_get_compliance_moduleset_definition,
     get_compliance_moduleset_modules as core_get_compliance_moduleset_modules,
     get_compliance_moduleset_nodes as core_get_compliance_moduleset_nodes,
+    get_compliance_moduleset_publications as core_get_compliance_moduleset_publications,
     get_compliance_moduleset_services as core_get_compliance_moduleset_services,
     get_compliance_moduleset_usage as core_get_compliance_moduleset_usage,
     list_compliance_modulesets as core_list_compliance_modulesets,
@@ -26,6 +27,8 @@ from opensvc_collector_mcp.models.compliance import (
     ComplianceModulesetModulesResponse,
     ComplianceModulesetNodesRequest,
     ComplianceModulesetNodesResponse,
+    ComplianceModulesetPublicationsRequest,
+    ComplianceModulesetPublicationsResponse,
     ComplianceModulesetRequest,
     ComplianceModulesetResponse,
     ComplianceModulesetServicesRequest,
@@ -232,6 +235,47 @@ def register_compliance_tools(mcp: FastMCP) -> None:
             offset=request.offset,
         )
         return ComplianceModulesetServicesResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_compliance_moduleset_publications",
+        description=(
+            "Return groups one OpenSVC Collector compliance moduleset is published "
+            "to, selected by Collector moduleset id or exact moduleset name. Use "
+            "this to know which groups can see or use a moduleset."
+        ),
+        tags={"compliance", "modulesets", "groups", "publications", "read"},
+        annotations={
+            "title": "Get OpenSVC Compliance Moduleset Publications",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_compliance_moduleset_publications(
+        request: Annotated[
+            ComplianceModulesetPublicationsRequest,
+            Field(
+                description=(
+                    "Collector moduleset id or exact modset_name plus optional "
+                    "filters, properties, ordering, search, limit, and offset. "
+                    "Returns groups the moduleset is published to."
+                ),
+            ),
+        ],
+    ) -> ComplianceModulesetPublicationsResponse:
+        """Return groups one compliance moduleset is published to."""
+        response = await core_get_compliance_moduleset_publications(
+            moduleset_id=request.moduleset_id,
+            modset_name=request.modset_name,
+            filters=request.filters,
+            props=request.props,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
+        )
+        return ComplianceModulesetPublicationsResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

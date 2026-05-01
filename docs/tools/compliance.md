@@ -156,6 +156,35 @@ data
 ```
 
 
+### `get_compliance_moduleset_publications`
+
+Returns groups one compliance moduleset is published to, selected by Collector
+moduleset id or exact `modset_name`.
+
+Use this when the question is about who can see or use a moduleset, or which
+groups have publication access.
+
+Example:
+
+```json
+{
+  "request": {
+    "modset_name": "aits.outils.controlm"
+  }
+}
+```
+
+Output fields:
+
+```text
+object_id
+modset_name
+relation
+meta
+data
+```
+
+
 ### `get_compliance_moduleset_candidate_services`
 
 Returns services eligible or attachable to one compliance moduleset according to
