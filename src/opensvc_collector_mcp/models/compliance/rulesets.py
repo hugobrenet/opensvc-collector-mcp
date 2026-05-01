@@ -109,6 +109,33 @@ class ComplianceRulesetRow(BaseModel):
     )
 
 
+class ComplianceRulesetCandidateNodesRequest(ComplianceListRequest):
+    ruleset_id: int | str | None = Field(
+        default=None,
+        description="Collector compliance ruleset id, when already known.",
+    )
+    ruleset_name: str | None = Field(
+        default=None,
+        description="Exact compliance ruleset name to resolve to a Collector id.",
+        examples=["02-aits.nodes.opensvc.tags"],
+    )
+    orderby: str | None = Field(
+        default="nodename",
+        description="Collector orderby expression. Defaults to nodename.",
+    )
+
+    @model_validator(mode="after")
+    def require_selector(self) -> "ComplianceRulesetCandidateNodesRequest":
+        super().normalize_filters()
+        has_id = self.ruleset_id is not None and str(self.ruleset_id).strip()
+        has_name = self.ruleset_name is not None and self.ruleset_name.strip()
+        if not has_id and not has_name:
+            raise ValueError("ruleset_id or ruleset_name must be provided")
+        if self.ruleset_name is not None:
+            self.ruleset_name = self.ruleset_name.strip() or None
+        return self
+
+
 class ComplianceRulesetVariableRow(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -144,6 +171,27 @@ class ComplianceRulesetUsageResponse(BaseModel):
     ruleset_name: str | None = None
     meta: dict[str, Any] = Field(default_factory=dict)
     data: dict[str, Any] = Field(default_factory=dict)
+
+
+class ComplianceRulesetNodeRow(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    node_id: str | None = Field(default=None, description="Collector node id.")
+    nodename: str | None = Field(default=None, description="OpenSVC node name.")
+    app: str | None = Field(default=None, description="Node application.")
+    node_env: str | None = Field(default=None, description="Node environment.")
+    status: str | None = Field(default=None, description="Node status.")
+    updated: str | None = Field(default=None, description="Node update timestamp.")
+
+
+class ComplianceRulesetCandidateNodesResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    object_id: str
+    relation: str = Field(default="candidate_nodes")
+    ruleset_name: str | None = None
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ComplianceRulesetNodeRow]
 
 
 class ComplianceRulesetVariablesResponse(BaseModel):

@@ -17,6 +17,7 @@ from .inventory import (
 )
 from .rulesets import (
     get_compliance_ruleset,
+    get_compliance_ruleset_candidate_nodes,
     get_compliance_ruleset_items,
     get_compliance_ruleset_usage,
     get_compliance_ruleset_variables,
@@ -44,6 +45,7 @@ __all__ = [
     "get_compliance_moduleset_services",
     "get_compliance_moduleset_usage",
     "get_compliance_ruleset",
+    "get_compliance_ruleset_candidate_nodes",
     "get_compliance_ruleset_items",
     "get_compliance_ruleset_usage",
     "get_compliance_ruleset_variables",

@@ -30,6 +30,9 @@ from .inventory import (
     ComplianceModulesetsResponse,
 )
 from .rulesets import (
+    ComplianceRulesetCandidateNodesRequest,
+    ComplianceRulesetCandidateNodesResponse,
+    ComplianceRulesetNodeRow,
     ComplianceRulesetRequest,
     ComplianceRulesetResponse,
     ComplianceRulesetUsageRequest,
@@ -43,6 +46,9 @@ from .rulesets import (
 )
 
 __all__ = [
+    "ComplianceRulesetCandidateNodesRequest",
+    "ComplianceRulesetCandidateNodesResponse",
+    "ComplianceRulesetNodeRow",
     "ComplianceRulesetRequest",
     "ComplianceRulesetResponse",
     "ComplianceRulesetUsageRequest",

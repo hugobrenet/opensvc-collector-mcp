@@ -173,6 +173,47 @@ data
 ```
 
 
+### `get_compliance_ruleset_candidate_nodes`
+
+Returns candidate nodes eligible for one compliance ruleset selected by
+Collector ruleset id or exact `ruleset_name`. This does not return directly
+attached nodes.
+
+Use `ruleset_name` for natural human requests. The tool resolves the ruleset id
+through `/compliance/rulesets`, then calls:
+
+```text
+/compliance/rulesets/<ruleset_id>/candidate_nodes
+```
+
+The tool follows the standard Collector collection contract with `limit`,
+`offset`, `orderby`, `filters`, `search`, and `props`. Use `offset` to request
+the next page when `meta.total` is greater than the returned count.
+
+Example:
+
+```json
+{
+  "request": {
+    "ruleset_name": "02-aits.nodes.opensvc.tags",
+    "props": "node_id,nodename,app,node_env,status,updated",
+    "limit": 20,
+    "offset": 0
+  }
+}
+```
+
+Output fields:
+
+```text
+object_id
+relation
+ruleset_name
+meta
+data
+```
+
+
 ### `get_compliance_moduleset`
 
 Returns one compliance moduleset selected by Collector moduleset id or exact moduleset name.
