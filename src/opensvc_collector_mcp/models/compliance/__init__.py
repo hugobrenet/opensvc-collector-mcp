@@ -31,8 +31,11 @@ from .inventory import (
 )
 from .rulesets import (
     ComplianceRulesetCandidateNodesRequest,
+    ComplianceRulesetCandidateServicesRequest,
+    ComplianceRulesetCandidateServicesResponse,
     ComplianceRulesetCandidateNodesResponse,
     ComplianceRulesetNodeRow,
+    ComplianceRulesetServiceRow,
     ComplianceRulesetRequest,
     ComplianceRulesetResponse,
     ComplianceRulesetUsageRequest,
@@ -47,8 +50,11 @@ from .rulesets import (
 
 __all__ = [
     "ComplianceRulesetCandidateNodesRequest",
+    "ComplianceRulesetCandidateServicesRequest",
+    "ComplianceRulesetCandidateServicesResponse",
     "ComplianceRulesetCandidateNodesResponse",
     "ComplianceRulesetNodeRow",
+    "ComplianceRulesetServiceRow",
     "ComplianceRulesetRequest",
     "ComplianceRulesetResponse",
     "ComplianceRulesetUsageRequest",

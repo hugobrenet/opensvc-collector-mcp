@@ -136,6 +136,33 @@ class ComplianceRulesetCandidateNodesRequest(ComplianceListRequest):
         return self
 
 
+class ComplianceRulesetCandidateServicesRequest(ComplianceListRequest):
+    ruleset_id: int | str | None = Field(
+        default=None,
+        description="Collector compliance ruleset id, when already known.",
+    )
+    ruleset_name: str | None = Field(
+        default=None,
+        description="Exact compliance ruleset name to resolve to a Collector id.",
+        examples=["02-aits.nodes.opensvc.tags"],
+    )
+    orderby: str | None = Field(
+        default="svcname",
+        description="Collector orderby expression. Defaults to svcname.",
+    )
+
+    @model_validator(mode="after")
+    def require_selector(self) -> "ComplianceRulesetCandidateServicesRequest":
+        super().normalize_filters()
+        has_id = self.ruleset_id is not None and str(self.ruleset_id).strip()
+        has_name = self.ruleset_name is not None and self.ruleset_name.strip()
+        if not has_id and not has_name:
+            raise ValueError("ruleset_id or ruleset_name must be provided")
+        if self.ruleset_name is not None:
+            self.ruleset_name = self.ruleset_name.strip() or None
+        return self
+
+
 class ComplianceRulesetVariableRow(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -192,6 +219,28 @@ class ComplianceRulesetCandidateNodesResponse(BaseModel):
     ruleset_name: str | None = None
     meta: dict[str, Any] = Field(default_factory=dict)
     data: list[ComplianceRulesetNodeRow]
+
+
+class ComplianceRulesetServiceRow(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    svc_id: str | None = Field(default=None, description="Collector service id.")
+    svcname: str | None = Field(default=None, description="OpenSVC service name.")
+    svc_app: str | None = Field(default=None, description="Service application.")
+    svc_env: str | None = Field(default=None, description="Service environment.")
+    svc_status: str | None = Field(default=None, description="Service status.")
+    svc_availstatus: str | None = Field(default=None, description="Service availability status.")
+    updated: str | None = Field(default=None, description="Service update timestamp.")
+
+
+class ComplianceRulesetCandidateServicesResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    object_id: str
+    relation: str = Field(default="candidate_services")
+    ruleset_name: str | None = None
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ComplianceRulesetServiceRow]
 
 
 class ComplianceRulesetVariablesResponse(BaseModel):

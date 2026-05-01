@@ -17,6 +17,7 @@ from opensvc_collector_mcp.core.compliance import (
     get_compliance_moduleset_usage as core_get_compliance_moduleset_usage,
     get_compliance_ruleset as core_get_compliance_ruleset,
     get_compliance_ruleset_candidate_nodes as core_get_compliance_ruleset_candidate_nodes,
+    get_compliance_ruleset_candidate_services as core_get_compliance_ruleset_candidate_services,
     get_compliance_ruleset_usage as core_get_compliance_ruleset_usage,
     get_compliance_ruleset_variables as core_get_compliance_ruleset_variables,
     list_compliance_modulesets as core_list_compliance_modulesets,
@@ -46,6 +47,8 @@ from opensvc_collector_mcp.models.compliance import (
     ComplianceModulesetsRequest,
     ComplianceModulesetsResponse,
     ComplianceRulesetCandidateNodesRequest,
+    ComplianceRulesetCandidateServicesRequest,
+    ComplianceRulesetCandidateServicesResponse,
     ComplianceRulesetCandidateNodesResponse,
     ComplianceRulesetRequest,
     ComplianceRulesetResponse,
@@ -154,6 +157,8 @@ def register_compliance_tools(mcp: FastMCP) -> None:
     async def get_compliance_ruleset(
         request: Annotated[
             ComplianceRulesetCandidateNodesRequest,
+    ComplianceRulesetCandidateServicesRequest,
+    ComplianceRulesetCandidateServicesResponse,
     ComplianceRulesetCandidateNodesResponse,
     ComplianceRulesetRequest,
             Field(
@@ -266,6 +271,8 @@ def register_compliance_tools(mcp: FastMCP) -> None:
     async def get_compliance_ruleset_candidate_nodes(
         request: Annotated[
             ComplianceRulesetCandidateNodesRequest,
+    ComplianceRulesetCandidateServicesRequest,
+    ComplianceRulesetCandidateServicesResponse,
             Field(
                 description=(
                     "Collector ruleset id or exact ruleset_name plus optional "
@@ -287,6 +294,47 @@ def register_compliance_tools(mcp: FastMCP) -> None:
             offset=request.offset,
         )
         return ComplianceRulesetCandidateNodesResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_compliance_ruleset_candidate_services",
+        description=(
+            "Return candidate services eligible for one OpenSVC Collector "
+            "compliance ruleset selected by Collector ruleset id or exact "
+            "ruleset name. This does not return directly attached services."
+        ),
+        tags={"compliance", "rulesets", "services", "candidate", "read"},
+        annotations={
+            "title": "Get OpenSVC Compliance Ruleset Candidate Services",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_compliance_ruleset_candidate_services(
+        request: Annotated[
+            ComplianceRulesetCandidateServicesRequest,
+            Field(
+                description=(
+                    "Collector ruleset id or exact ruleset_name plus optional "
+                    "filters, properties, ordering, search, limit, and offset. "
+                    "Returns candidate services only."
+                ),
+            ),
+        ],
+    ) -> ComplianceRulesetCandidateServicesResponse:
+        """Return candidate services eligible for one compliance ruleset."""
+        response = await core_get_compliance_ruleset_candidate_services(
+            ruleset_id=request.ruleset_id,
+            ruleset_name=request.ruleset_name,
+            filters=request.filters,
+            props=request.props,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
+        )
+        return ComplianceRulesetCandidateServicesResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
