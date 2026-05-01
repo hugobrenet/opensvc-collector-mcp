@@ -133,6 +133,13 @@ class ComplianceModulesetCandidateNodesRequest(ComplianceModulesetRelationReques
     )
 
 
+class ComplianceModulesetServicesRequest(ComplianceModulesetRelationRequest):
+    orderby: str | None = Field(
+        default="svcname",
+        description="Collector orderby expression. Defaults to svcname.",
+    )
+
+
 class ComplianceModulesetRow(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -228,3 +235,25 @@ class ComplianceModulesetCandidateNodesResponse(BaseModel):
     relation: str = Field(default="candidate_nodes")
     meta: dict[str, Any] = Field(default_factory=dict)
     data: list[ComplianceModulesetNodeRow]
+
+
+class ComplianceModulesetServiceRow(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    svc_id: str | None = Field(default=None, description="Collector service id.")
+    svcname: str | None = Field(default=None, description="OpenSVC service name.")
+    svc_app: str | None = Field(default=None, description="Service application.")
+    svc_env: str | None = Field(default=None, description="Service environment.")
+    svc_status: str | None = Field(default=None, description="Service status.")
+    svc_availstatus: str | None = Field(default=None, description="Service availability status.")
+    updated: str | None = Field(default=None, description="Service update timestamp.")
+
+
+class ComplianceModulesetServicesResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    object_id: str
+    modset_name: str | None = None
+    relation: str = Field(default="services")
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ComplianceModulesetServiceRow]

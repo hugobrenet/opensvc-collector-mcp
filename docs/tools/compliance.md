@@ -126,6 +126,36 @@ data
 ```
 
 
+### `get_compliance_moduleset_services`
+
+Returns services directly attached to one compliance moduleset, selected by
+Collector moduleset id or exact `modset_name`.
+
+Use this when the question is about effective service attachments. This is
+distinct from candidate services, which are eligible services according to
+Collector targeting rules but not necessarily attached.
+
+Example:
+
+```json
+{
+  "request": {
+    "modset_name": "aits.outils.controlm"
+  }
+}
+```
+
+Output fields:
+
+```text
+object_id
+modset_name
+relation
+meta
+data
+```
+
+
 ### `get_compliance_moduleset_candidate_nodes`
 
 Returns nodes eligible or attachable to one compliance moduleset according to
