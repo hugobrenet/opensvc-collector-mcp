@@ -68,6 +68,50 @@ data
 ```
 
 
+### `get_compliance_status`
+
+Returns current/latest global OpenSVC compliance status rows from Collector.
+Use this tool for questions such as which compliance modules are currently OK or
+NOK, optionally filtered by `run_module`, `run_status`, `node_id`, `svc_id`, or
+`rset_md5`.
+
+The tool reads:
+
+```text
+/compliance/status
+```
+
+Observed `run_status` values are `0` for OK and `1` for error/NOK. The response
+is paginated with `limit` and `offset`, and `meta.total` tells the caller whether
+more pages are available. By default `latest=true`, so the tool returns the
+latest/current status page with newest rows first.
+
+Run logs are hidden by default. Set `include_run_log_preview=true` for a bounded
+diagnostic preview, or `include_run_log=true` only when the full log is explicitly
+needed.
+
+Example:
+
+```json
+{
+  "request": {
+    "run_status": 1,
+    "include_run_log_preview": true,
+    "run_log_max_chars": 500,
+    "limit": 10,
+    "offset": 0
+  }
+}
+```
+
+Output fields:
+
+```text
+meta
+data
+```
+
+
 ### `get_compliance_ruleset`
 
 Returns one compliance ruleset selected by Collector ruleset id or exact

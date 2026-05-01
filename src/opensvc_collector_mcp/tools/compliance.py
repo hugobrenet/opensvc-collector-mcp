@@ -23,6 +23,7 @@ from opensvc_collector_mcp.core.compliance import (
     get_compliance_ruleset_usage as core_get_compliance_ruleset_usage,
     get_compliance_ruleset_variable as core_get_compliance_ruleset_variable,
     get_compliance_ruleset_variables as core_get_compliance_ruleset_variables,
+    get_compliance_status as core_get_compliance_status,
     list_compliance_modulesets as core_list_compliance_modulesets,
     list_compliance_rulesets as core_list_compliance_rulesets,
 )
@@ -67,6 +68,8 @@ from opensvc_collector_mcp.models.compliance import (
     ComplianceRulesetVariablesResponse,
     ComplianceRulesetsRequest,
     ComplianceRulesetsResponse,
+    ComplianceStatusRequest,
+    ComplianceStatusResponse,
 )
 
 
@@ -149,6 +152,56 @@ def register_compliance_tools(mcp: FastMCP) -> None:
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_compliance_status",
+        description=(
+            "Return current/latest OpenSVC Collector compliance status rows. "
+            "Use this for current compliance OK/NOK checks. Logs are hidden "
+            "by default; request run_log_preview or full run_log only when "
+            "needed. For historical runs use get_compliance_logs when exposed, "
+            "and for one run detail use get_compliance_run_detail when exposed."
+        ),
+        tags={"compliance", "status", "runs", "read"},
+        annotations={
+            "title": "Get OpenSVC Compliance Status",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_compliance_status(
+        request: Annotated[
+            ComplianceStatusRequest,
+            Field(
+                description=(
+                    "Compliance status parameters: exact filters, run_module, "
+                    "run_status, node_id, svc_id, pagination, latest/current "
+                    "selection, and optional run log preview/full log."
+                ),
+            ),
+        ] = ComplianceStatusRequest(),
+    ) -> ComplianceStatusResponse:
+        """Return current/latest compliance status rows."""
+        response = await core_get_compliance_status(
+            filters=request.filters,
+            run_module=request.run_module,
+            run_status=request.run_status,
+            run_action=request.run_action,
+            node_id=request.node_id,
+            svc_id=request.svc_id,
+            rset_md5=request.rset_md5,
+            props=request.props,
+            limit=request.limit,
+            offset=request.offset,
+            latest=request.latest,
+            latest_first=request.latest_first,
+            include_run_log=request.include_run_log,
+            include_run_log_preview=request.include_run_log_preview,
+            run_log_max_chars=request.run_log_max_chars,
+        )
+        return ComplianceStatusResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="get_compliance_ruleset",
         description=(
             "Return one OpenSVC Collector compliance ruleset selected by "
@@ -165,15 +218,7 @@ def register_compliance_tools(mcp: FastMCP) -> None:
     )
     async def get_compliance_ruleset(
         request: Annotated[
-            ComplianceRulesetCandidateNodesRequest,
-    ComplianceRulesetCandidateServicesRequest,
-    ComplianceRulesetCandidateServicesResponse,
-    ComplianceRulesetCandidateNodesResponse,
-    ComplianceRulesetPublicationsRequest,
-    ComplianceRulesetPublicationsResponse,
-    ComplianceRulesetRequest,
-    ComplianceRulesetResponsiblesRequest,
-    ComplianceRulesetResponsiblesResponse,
+            ComplianceRulesetRequest,
             Field(
                 description=(
                     "Collector ruleset id or exact ruleset_name plus optional "
@@ -209,8 +254,6 @@ def register_compliance_tools(mcp: FastMCP) -> None:
     async def get_compliance_ruleset_usage(
         request: Annotated[
             ComplianceRulesetUsageRequest,
-    ComplianceRulesetVariableRequest,
-    ComplianceRulesetVariableResponse,
             Field(
                 description=(
                     "Collector ruleset id or exact ruleset_name used to retrieve "
@@ -323,8 +366,6 @@ def register_compliance_tools(mcp: FastMCP) -> None:
     async def get_compliance_ruleset_candidate_nodes(
         request: Annotated[
             ComplianceRulesetCandidateNodesRequest,
-    ComplianceRulesetCandidateServicesRequest,
-    ComplianceRulesetCandidateServicesResponse,
             Field(
                 description=(
                     "Collector ruleset id or exact ruleset_name plus optional "

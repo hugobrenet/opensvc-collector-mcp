@@ -1,0 +1,123 @@
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+
+class ComplianceStatusRequest(BaseModel):
+    filters: dict[str, str] = Field(
+        default_factory=dict,
+        description="Exact-match Collector filters. Keys can be raw Collector compliance status properties.",
+    )
+    run_module: str | None = Field(
+        default=None,
+        description="Exact compliance module name to filter on, for example aits.nodes.opensvc.tags.",
+    )
+    run_status: int | str | None = Field(
+        default=None,
+        description="Compliance run status to filter on. Observed values: 0 means OK, 1 means error/NOK.",
+    )
+    run_action: str | None = Field(
+        default=None,
+        description="Compliance action to filter on when known.",
+    )
+    node_id: str | None = Field(
+        default=None,
+        description="Collector node id to filter compliance status rows.",
+    )
+    svc_id: str | None = Field(
+        default=None,
+        description="Collector service id to filter compliance status rows.",
+    )
+    rset_md5: str | None = Field(
+        default=None,
+        description="Ruleset md5 identifier to filter compliance status rows.",
+    )
+    props: str | None = Field(
+        default=None,
+        description="Comma-separated Collector compliance status properties to return.",
+    )
+    limit: int = Field(default=50, ge=1, le=1000)
+    offset: int = Field(default=0, ge=0)
+    latest: bool = Field(
+        default=True,
+        description="Return the latest/current status page by forcing offset 0 and run_date descending.",
+    )
+    latest_first: bool = Field(
+        default=True,
+        description="Sort returned rows newest first.",
+    )
+    include_run_log: bool = Field(
+        default=False,
+        description="Include full run_log in rows. Keep false unless the user explicitly needs full logs.",
+    )
+    include_run_log_preview: bool = Field(
+        default=False,
+        description="Include bounded run_log_preview for quick diagnostics without returning full logs.",
+    )
+    run_log_max_chars: int = Field(
+        default=1000,
+        ge=0,
+        le=20000,
+        description="Maximum characters returned in run_log_preview.",
+    )
+
+    @model_validator(mode="after")
+    def normalize_status_filters(self) -> "ComplianceStatusRequest":
+        self.filters = {
+            key.strip(): value.strip()
+            for key, value in self.filters.items()
+            if key.strip() and value.strip()
+        }
+        for field_name in (
+            "run_module",
+            "run_action",
+            "node_id",
+            "svc_id",
+            "rset_md5",
+            "props",
+        ):
+            value = getattr(self, field_name)
+            if isinstance(value, str):
+                setattr(self, field_name, value.strip() or None)
+        if isinstance(self.run_status, str):
+            self.run_status = self.run_status.strip() or None
+        return self
+
+
+class ComplianceStatusRow(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    id: int | str | None = Field(
+        default=None, description="Collector compliance run id."
+    )
+    svc_id: str | None = Field(default=None, description="Collector service id.")
+    svcname: str | None = Field(
+        default=None, description="OpenSVC service name when available."
+    )
+    node_id: str | None = Field(default=None, description="Collector node id.")
+    nodename: str | None = Field(
+        default=None, description="OpenSVC node name when available."
+    )
+    run_module: str | None = Field(default=None, description="Compliance module name.")
+    run_action: str | None = Field(default=None, description="Compliance action.")
+    run_status: int | str | None = Field(
+        default=None, description="Compliance run status. 0 is OK, 1 is error/NOK."
+    )
+    run_date: str | None = Field(default=None, description="Compliance run date.")
+    rset_md5: str | None = Field(default=None, description="Ruleset md5 identifier.")
+    run_log_preview: str | None = Field(
+        default=None, description="Bounded run log preview when requested."
+    )
+    run_log_truncated: bool | None = Field(
+        default=None, description="Whether run_log_preview was truncated."
+    )
+    run_log: str | None = Field(
+        default=None, description="Full run log when explicitly requested."
+    )
+
+
+class ComplianceStatusResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ComplianceStatusRow]
