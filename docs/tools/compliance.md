@@ -160,6 +160,46 @@ data
 ```
 
 
+### `get_compliance_run_detail`
+
+Returns details for one compliance run selected by `run_id`. Use this after
+`get_compliance_status` or `get_compliance_logs` when the user asks for the
+complete detail of one listed run.
+
+The tool reads one of these endpoints depending on `source`:
+
+```text
+/compliance/status/<run_id>
+/compliance/logs/<run_id>
+```
+
+Use `source="status"` when the `run_id` comes from `get_compliance_status`, and
+`source="logs"` when the `run_id` comes from `get_compliance_logs`. A bounded
+`run_log_preview` is included by default. Set `include_run_log=true` only when
+the full raw log is explicitly needed.
+
+Example:
+
+```json
+{
+  "request": {
+    "source": "logs",
+    "run_id": 65120347,
+    "include_run_log_preview": true,
+    "run_log_max_chars": 2000
+  }
+}
+```
+
+Output fields:
+
+```text
+run_id
+meta
+data
+```
+
+
 ### `get_compliance_ruleset`
 
 Returns one compliance ruleset selected by Collector ruleset id or exact

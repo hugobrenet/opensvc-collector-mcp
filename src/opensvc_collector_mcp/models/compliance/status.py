@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -150,6 +150,53 @@ class ComplianceLogsRequest(ComplianceStatusRequest):
 class ComplianceLogsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ComplianceStatusRow]
+
+
+class ComplianceRunDetailRequest(BaseModel):
+    source: Literal["status", "logs"] = Field(
+        description="Compliance run source collection: status for current status runs, logs for historical log runs.",
+        examples=["logs"],
+    )
+    run_id: int | str = Field(
+        description="Collector compliance run id returned by get_compliance_status or get_compliance_logs.",
+        examples=[65120347],
+    )
+    props: str | None = Field(
+        default=None,
+        description="Comma-separated Collector compliance run properties to return.",
+    )
+    include_run_log: bool = Field(
+        default=False,
+        description="Include full run_log. Keep false unless the user explicitly needs the complete raw log.",
+    )
+    include_run_log_preview: bool = Field(
+        default=True,
+        description="Include bounded run_log_preview for quick diagnostics.",
+    )
+    run_log_max_chars: int = Field(
+        default=2000,
+        ge=0,
+        le=20000,
+        description="Maximum characters returned in run_log_preview.",
+    )
+
+    @model_validator(mode="after")
+    def normalize_detail_request(self) -> "ComplianceRunDetailRequest":
+        if isinstance(self.run_id, str):
+            self.run_id = self.run_id.strip()
+        if not str(self.run_id).strip():
+            raise ValueError("run_id must not be empty")
+        if isinstance(self.props, str):
+            self.props = self.props.strip() or None
+        return self
+
+
+class ComplianceRunDetailResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    run_id: str
     meta: dict[str, Any] = Field(default_factory=dict)
     data: list[ComplianceStatusRow]
 

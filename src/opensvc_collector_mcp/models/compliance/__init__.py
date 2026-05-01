@@ -30,6 +30,8 @@ from .inventory import (
     ComplianceModulesetsResponse,
 )
 from .status import (
+    ComplianceRunDetailResponse,
+    ComplianceRunDetailRequest,
     ComplianceLogsResponse,
     ComplianceLogsRequest,
     ComplianceStatusRequest,
@@ -63,6 +65,8 @@ from .rulesets import (
 )
 
 __all__ = [
+    "ComplianceRunDetailResponse",
+    "ComplianceRunDetailRequest",
     "ComplianceLogsResponse",
     "ComplianceLogsRequest",
     "ComplianceStatusRow",
