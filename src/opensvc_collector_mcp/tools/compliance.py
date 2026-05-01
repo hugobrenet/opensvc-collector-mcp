@@ -16,6 +16,7 @@ from opensvc_collector_mcp.core.compliance import (
     get_compliance_moduleset_services as core_get_compliance_moduleset_services,
     get_compliance_moduleset_usage as core_get_compliance_moduleset_usage,
     list_compliance_modulesets as core_list_compliance_modulesets,
+    list_compliance_rulesets as core_list_compliance_rulesets,
 )
 from opensvc_collector_mcp.models.compliance import (
     ComplianceModulesetCandidateNodesRequest,
@@ -40,6 +41,8 @@ from opensvc_collector_mcp.models.compliance import (
     ComplianceModulesetUsageResponse,
     ComplianceModulesetsRequest,
     ComplianceModulesetsResponse,
+    ComplianceRulesetsRequest,
+    ComplianceRulesetsResponse,
 )
 
 
@@ -81,6 +84,44 @@ def register_compliance_tools(mcp: FastMCP) -> None:
             offset=request.offset,
         )
         return ComplianceModulesetsResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="list_compliance_rulesets",
+        description=(
+            "List OpenSVC Collector compliance rulesets published to the "
+            "requesting user's groups. Use filters for exact-match Collector "
+            "filters and props to choose returned ruleset fields."
+        ),
+        tags={"compliance", "rulesets", "inventory", "read"},
+        annotations={
+            "title": "List OpenSVC Compliance Rulesets",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def list_compliance_rulesets(
+        request: Annotated[
+            ComplianceRulesetsRequest,
+            Field(
+                description=(
+                    "Compliance ruleset listing parameters: exact-match filters, "
+                    "returned properties, ordering, search, limit, and offset."
+                ),
+            ),
+        ] = ComplianceRulesetsRequest(),
+    ) -> ComplianceRulesetsResponse:
+        """Return compliance rulesets visible to the Collector account."""
+        response = await core_list_compliance_rulesets(
+            filters=request.filters,
+            props=request.props,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
+        )
+        return ComplianceRulesetsResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

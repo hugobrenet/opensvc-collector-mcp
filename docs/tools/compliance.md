@@ -38,6 +38,36 @@ data
 ```
 
 
+### `list_compliance_rulesets`
+
+Returns compliance rulesets published to the requesting Collector user's groups.
+
+Use exact filters on Collector ruleset fields, such as `ruleset_name` or `id`,
+to narrow the result. Default output returns a compact ruleset inventory view:
+
+```text
+id,ruleset_name,ruleset_type,ruleset_public
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "search": "opensvc",
+    "limit": 10
+  }
+}
+```
+
+Output fields:
+
+```text
+meta
+data
+```
+
+
 ### `get_compliance_moduleset`
 
 Returns one compliance moduleset selected by Collector moduleset id or exact moduleset name.
