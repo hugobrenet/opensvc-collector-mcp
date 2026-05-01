@@ -28,7 +28,6 @@ from opensvc_collector_mcp.core.services import (
     list_service_props as core_list_service_props,
     list_services as core_list_services,
     search_frozen_services as core_search_frozen_services,
-    search_services as core_search_services,
     search_services_by_tag as core_search_services_by_tag,
     search_services_without_tag as core_search_services_without_tag,
 )
@@ -38,7 +37,6 @@ from opensvc_collector_mcp.models.services import (
     FrozenServicesRequest,
     FrozenServicesResponse,
     ListServicesRequest,
-    SearchServicesRequest,
     ServiceActionsRequest,
     ServiceActionsResponse,
     ServiceAlertsRequest,
@@ -87,9 +85,9 @@ def register_services_tools(mcp: FastMCP) -> None:
         timeout=TOOL_TIMEOUT_SECONDS,
         name="list_services",
         description=(
-            "List all OpenSVC Collector services using a compact inventory view "
-            "by default. Use props to choose returned fields. Do not use this "
-            "for filtered lookup; use search_services instead."
+            "List or search OpenSVC Collector services using exact-match "
+            "filters, Collector search, pagination, ordering, and selectable "
+            "props. Defaults to a compact service inventory view."
         ),
         tags={"services", "inventory", "read"},
         annotations={
@@ -139,44 +137,6 @@ def register_services_tools(mcp: FastMCP) -> None:
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
-        name="search_services",
-        description=(
-            "Search OpenSVC Collector services using exact-match filters only, "
-            "with explicit limit and offset. Use list_service_props to discover "
-            "valid filter and props fields."
-        ),
-        tags={"services", "inventory", "search", "read"},
-        annotations={
-            "title": "Search OpenSVC Services",
-            "readOnlyHint": True,
-            "idempotentHint": True,
-            "openWorldHint": False,
-        },
-    )
-    async def search_services(
-        request: Annotated[
-            SearchServicesRequest,
-            Field(
-                description=(
-                    "Search criteria, pagination, and returned properties for "
-                    "service inventory lookup."
-                ),
-            ),
-        ],
-    ) -> ServiceRowsResponse:
-        """Search services by exact-match service fields."""
-        response = await core_search_services(
-            filters=request.merged_filters(),
-            props=request.props,
-            orderby=request.orderby,
-            search=request.search,
-            limit=request.limit,
-            offset=request.offset,
-        )
-        return ServiceRowsResponse.model_validate(response)
-
-    @mcp.tool(
-        timeout=TOOL_TIMEOUT_SECONDS,
         name="count_services",
         description=(
             "Count OpenSVC Collector services matching exact-match service filters. "
@@ -205,7 +165,7 @@ def register_services_tools(mcp: FastMCP) -> None:
         name="search_frozen_services",
         description=(
             "Search OpenSVC services with currently frozen monitor instances. "
-            "Accepts the same exact-match service filters as search_services, "
+            "Accepts the same exact-match service filters as list_services, "
             "plus min_frozen_days to find services frozen longer than a threshold."
         ),
         tags={"services", "frozen", "inventory", "health", "read"},
@@ -240,7 +200,7 @@ def register_services_tools(mcp: FastMCP) -> None:
         name="get_service",
         description=(
             "Return full OpenSVC Collector details for one service selected by "
-            "exact svcname. Use search_services first when the exact svcname is "
+            "exact svcname. Use list_services first when the exact svcname is "
             "unknown."
         ),
         tags={"services", "inventory", "read"},

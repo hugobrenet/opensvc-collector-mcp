@@ -7,7 +7,6 @@ from ._common import (
 from .inventory import (
     ServiceFilterRequest,
     ListServicesRequest,
-    SearchServicesRequest,
     CountServicesRequest,
     ServiceConfigRequest,
     ServiceNodesRequest,
@@ -101,7 +100,6 @@ __all__ = [
     'FrozenServicesRequest',
     'FrozenServicesResponse',
     'ListServicesRequest',
-    'SearchServicesRequest',
     'ServiceActionRow',
     'ServiceActionsRequest',
     'ServiceActionsResponse',

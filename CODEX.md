@@ -105,7 +105,6 @@ Current MCP service tool surface:
 
 - `list_services`
 - `list_service_props`
-- `search_services`
 - `count_services`
 - `search_frozen_services`
 - `get_service`

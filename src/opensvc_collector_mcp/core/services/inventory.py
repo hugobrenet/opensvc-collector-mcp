@@ -42,49 +42,10 @@ async def list_services(
     limit: int = 20,
     offset: int = 0,
 ) -> dict[str, Any]:
-    selected_props = props or DEFAULT_LIST_SERVICE_PROPS
-    parsed_filters = _service_search_filters(filters)
-    return await collector_get(
-        "/services",
-        params=_service_search_params(
-            filters=parsed_filters,
-            props=selected_props,
-            orderby=orderby,
-            search=search,
-            limit=limit,
-            offset=offset,
-        ),
-    )
-
-
-async def search_services(
-    filters: dict[str, str] | str | None = None,
-    svcname: str | None = None,
-    svc_app: str | None = None,
-    svc_env: str | None = None,
-    svc_status: str | None = None,
-    svc_availstatus: str | None = None,
-    svc_topology: str | None = None,
-    svc_frozen: str | None = None,
-    props: str | None = None,
-    orderby: str | None = "svcname",
-    search: str | None = None,
-    limit: int = 20,
-    offset: int = 0,
-) -> dict[str, Any]:
     limit = max(1, min(limit, 1000))
     offset = max(0, offset)
     selected_props = props or DEFAULT_LIST_SERVICE_PROPS
-    parsed_filters = _service_search_filters(
-        filters,
-        svcname=svcname,
-        svc_app=svc_app,
-        svc_env=svc_env,
-        svc_status=svc_status,
-        svc_availstatus=svc_availstatus,
-        svc_topology=svc_topology,
-        svc_frozen=svc_frozen,
-    )
+    parsed_filters = _service_search_filters(filters)
     return await collector_get(
         "/services",
         params=_service_search_params(

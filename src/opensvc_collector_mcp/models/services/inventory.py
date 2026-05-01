@@ -100,10 +100,6 @@ class ListServicesRequest(ServiceCollectionRequest):
     pass
 
 
-class SearchServicesRequest(ServiceCollectionRequest):
-    pass
-
-
 class CountServicesRequest(ServiceFilterRequest):
     pass
 

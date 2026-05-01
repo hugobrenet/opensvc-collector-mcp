@@ -2,7 +2,6 @@
 
 from .inventory import (
     list_services,
-    search_services,
     count_services,
     get_service,
     get_service_config,
@@ -71,7 +70,6 @@ __all__ = [
     'list_service_props',
     'list_services',
     'search_frozen_services',
-    'search_services',
     'search_services_by_tag',
     'search_services_without_tag',
 ]

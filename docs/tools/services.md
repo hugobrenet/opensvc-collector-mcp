@@ -17,6 +17,9 @@ does not include large fields such as `svc_config`.
 
 This tool follows the standard Collector collection contract: `limit`, `offset`,
 `orderby`, `filters`, `search`, and `props`. Use `offset` to request the next page.
+It is also the service search tool: use exact-match shortcut filters such as
+`svc_env`, `svc_status`, `svc_app`, `svc_availstatus`, `svc_topology`,
+`svc_frozen`, or generic `filters` discovered through `list_service_props`.
 
 Default props:
 
@@ -50,7 +53,7 @@ Counts OpenSVC Collector services matching exact-match filters without
 returning service rows.
 
 The request supports the same shortcut and generic filters as
-`search_services`.
+`list_services`.
 
 Example:
 
@@ -140,7 +143,7 @@ sections
 Returns services with currently frozen monitor instances.
 
 Use `filters` for exact service property filters, or the typed shortcut fields
-shared with `search_services` such as `svc_env`, `svc_status`, `svc_app`,
+shared with `list_services` such as `svc_env`, `svc_status`, `svc_app`,
 `svc_availstatus`, `svc_topology`, and `svc_frozen`. Use `min_frozen_days` to
 return only services frozen for at least that many days. In this Collector,
 production services use `svc_env=PRD`.
@@ -573,7 +576,7 @@ service_props
 Returns node-level OpenSVC Collector instances for one service selected by exact
 `svcname`.
 
-Use this after `search_services` or `get_service` to answer where a service is
+Use this after `list_services` or `get_service` to answer where a service is
 running and what its monitor state is on each node.
 
 The tool filters Collector `/services_instances` on `services.svcname` and
@@ -985,59 +988,4 @@ res_optional
 res_monitor
 changed
 updated
-```
-
-
-### `search_services`
-
-Searches OpenSVC Collector services with exact-match filters and explicit
-pagination. It does not perform substring, wildcard, or fuzzy search.
-
-Shortcut filters:
-
-```text
-svcname
-svc_app
-svc_env
-svc_status
-svc_availstatus
-svc_topology
-svc_frozen
-```
-
-Generic filters can be passed with service properties discovered through
-`list_service_props`.
-
-Example:
-
-```json
-{
-  "request": {
-    "svc_env": "LAB",
-    "svc_status": "up",
-    "limit": 20,
-    "offset": 0
-  }
-}
-```
-
-Generic filter example:
-
-```json
-{
-  "request": {
-    "filters": {
-      "svc_app": "LAB-APP",
-      "svc_topology": "failover"
-    },
-    "props": "svcname,svc_app,svc_env,svc_status"
-  }
-}
-```
-
-Output fields:
-
-```text
-meta
-data
 ```
