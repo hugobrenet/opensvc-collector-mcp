@@ -244,7 +244,9 @@ def register_services_tools(mcp: FastMCP) -> None:
     async def get_service(
         request: Annotated[
             ServiceNameRequest,
-            Field(description="Service identifier used to retrieve full Collector details."),
+            Field(
+                description="Service identifier used to retrieve full Collector details."
+            ),
         ],
     ) -> ServiceRowsResponse:
         """Return all available properties for one OpenSVC Collector service."""
@@ -278,7 +280,7 @@ def register_services_tools(mcp: FastMCP) -> None:
             ),
         ],
     ) -> ServiceConfigResponse:
-        'Return raw and parsed OpenSVC configuration for one service.'
+        "Return raw and parsed OpenSVC configuration for one service."
         response = await core_get_service_config(
             svcname=request.svcname,
             include_raw_config=request.include_raw_config,
@@ -286,7 +288,6 @@ def register_services_tools(mcp: FastMCP) -> None:
             raw_config_max_chars=request.raw_config_max_chars,
         )
         return ServiceConfigResponse.model_validate(response)
-
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
@@ -341,17 +342,16 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional returned properties, and "
-                    "internal pagination guardrails used to list Collector "
+                    "server-side scan bounds used to list Collector "
                     "node monitor rows through /services/<svcname>/nodes."
                 ),
             ),
         ],
     ) -> ServiceNodesResponse:
-        'Return node monitor rows for one OpenSVC Collector service.'
+        "Return node monitor rows for one OpenSVC Collector service."
         response = await core_get_service_nodes(
             svcname=request.svcname,
             props=request.props,
-            page_size=request.page_size,
             max_nodes=request.max_nodes,
         )
         return ServiceNodesResponse.model_validate(response)
@@ -378,17 +378,16 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional returned properties, and "
-                    "internal pagination guardrails used to list HBAs through "
+                    "server-side scan bounds used to list HBAs through "
                     "Collector /services/<svcname>/hbas."
                 ),
             ),
         ],
     ) -> ServiceHbasResponse:
-        'Return HBA rows attached to one OpenSVC Collector service.'
+        "Return HBA rows attached to one OpenSVC Collector service."
         response = await core_get_service_hbas(
             svcname=request.svcname,
             props=request.props,
-            page_size=request.page_size,
             max_hbas=request.max_hbas,
         )
         return ServiceHbasResponse.model_validate(response)
@@ -415,18 +414,17 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional exact-match target filters, "
-                    "returned properties, and internal pagination guardrails "
+                    "returned properties, and server-side scan bounds "
                     "used to list targets through /services/<svcname>/targets."
                 ),
             ),
         ],
     ) -> ServiceTargetsResponse:
-        'Return storage target rows attached to one OpenSVC Collector service.'
+        "Return storage target rows attached to one OpenSVC Collector service."
         response = await core_get_service_targets(
             svcname=request.svcname,
             filters=request.merged_filters(),
             props=request.props,
-            page_size=request.page_size,
             max_targets=request.max_targets,
         )
         return ServiceTargetsResponse.model_validate(response)
@@ -454,17 +452,16 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional returned properties, and "
-                    "internal pagination guardrails used to list disks through "
+                    "server-side scan bounds used to list disks through "
                     "Collector /services/<svcname>/disks."
                 ),
             ),
         ],
     ) -> ServiceDisksResponse:
-        'Return disk rows attached to one OpenSVC Collector service.'
+        "Return disk rows attached to one OpenSVC Collector service."
         response = await core_get_service_disks(
             svcname=request.svcname,
             props=request.props,
-            page_size=request.page_size,
             max_disks=request.max_disks,
         )
         return ServiceDisksResponse.model_validate(response)
@@ -523,19 +520,18 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional exact-match compliance filters, "
-                    "returned properties, pagination guardrails, and run_log "
+                    "returned properties, server-side scan bounds, and run_log "
                     "output options used to inspect current service compliance "
                     "status through Collector /services/<svcname>/compliance/status."
                 ),
             ),
         ],
     ) -> ServiceComplianceStatusResponse:
-        'Return current compliance status rows for one OpenSVC Collector service.'
+        "Return current compliance status rows for one OpenSVC Collector service."
         response = await core_get_service_compliance_status(
             svcname=request.svcname,
             filters=request.merged_filters(),
             props=request.props,
-            page_size=request.page_size,
             max_status=request.max_status,
             include_run_log=request.include_run_log,
             include_run_log_preview=request.include_run_log_preview,
@@ -543,14 +539,13 @@ def register_services_tools(mcp: FastMCP) -> None:
         )
         return ServiceComplianceStatusResponse.model_validate(response)
 
-
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
         name="get_service_compliance_logs",
         description=(
             "Return OpenSVC compliance run history for one service selected by "
             "exact svcname. The tool reads /services/<svcname>/compliance/logs, "
-            "uses internal pagination, returns the latest matching logs by default, "
+            "uses bounded server-side reads, returns the latest matching logs by default, "
             "and includes bounded run_log previews for diagnostics."
         ),
         tags={"services", "compliance", "logs", "history", "read"},
@@ -567,19 +562,18 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional exact-match compliance log filters, "
-                    "returned properties, internal pagination guardrails, latest-log "
+                    "returned properties, server-side scan bounds, latest-log "
                     "selection, and run_log output options used to inspect historical "
                     "service compliance runs through Collector /services/<svcname>/compliance/logs."
                 ),
             ),
         ],
     ) -> ServiceComplianceLogsResponse:
-        'Return compliance run history rows for one OpenSVC Collector service.'
+        "Return compliance run history rows for one OpenSVC Collector service."
         response = await core_get_service_compliance_logs(
             svcname=request.svcname,
             filters=request.merged_filters(),
             props=request.props,
-            page_size=request.page_size,
             max_logs=request.max_logs,
             offset=request.offset,
             latest=request.latest,
@@ -613,19 +607,17 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional exact-match runtime resource "
-                    "filters, returned properties, and internal pagination "
-                    "guardrails used to list resource status through Collector "
+                    "filters, returned properties, and server-side scan bounds used to list resource status through Collector "
                     "/services/<svcname>/resources."
                 ),
             ),
         ],
     ) -> ServiceResourceStatusResponse:
-        'Return runtime resource status rows for one OpenSVC Collector service.'
+        "Return runtime resource status rows for one OpenSVC Collector service."
         response = await core_get_service_resource_status(
             svcname=request.svcname,
             filters=request.merged_filters(),
             props=request.props,
-            page_size=request.page_size,
             max_resources=request.max_resources,
         )
         return ServiceResourceStatusResponse.model_validate(response)
@@ -636,7 +628,7 @@ def register_services_tools(mcp: FastMCP) -> None:
         description=(
             "Return OpenSVC services that have one exact Collector tag attached. "
             "The tool resolves tag_name through /tags, then lists services via "
-            "/tags/<tag_id>/services using internal paged reads."
+            "/tags/<tag_id>/services using bounded server-side reads."
         ),
         tags={"services", "tags", "search", "read"},
         annotations={
@@ -651,17 +643,15 @@ def register_services_tools(mcp: FastMCP) -> None:
             ServiceTagSearchRequest,
             Field(
                 description=(
-                    "Exact tag name, returned service properties, and internal "
-                    "pagination guardrails."
+                    "Exact tag name, returned service properties, and server-side scan bounds."
                 ),
             ),
         ],
     ) -> ServicesByTagResponse:
-        'Return services attached to one exact OpenSVC Collector tag.'
+        "Return services attached to one exact OpenSVC Collector tag."
         response = await core_search_services_by_tag(
             tag_name=request.tag_name,
             props=request.props,
-            page_size=request.page_size,
             max_services=request.max_services,
         )
         return ServicesByTagResponse.model_validate(response)
@@ -688,28 +678,25 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact tag name to exclude, returned service properties, "
-                    "and internal pagination guardrails."
+                    "and server-side scan bounds."
                 ),
             ),
         ],
     ) -> ServicesWithoutTagResponse:
-        'Return services that do not have one exact OpenSVC Collector tag.'
+        "Return services that do not have one exact OpenSVC Collector tag."
         response = await core_search_services_without_tag(
             tag_name=request.tag_name,
             props=request.props,
-            page_size=request.page_size,
             max_services=request.max_services,
         )
         return ServicesWithoutTagResponse.model_validate(response)
-
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
         name="get_service_tags",
         description=(
             "Return OpenSVC Collector tags attached to one service selected by "
-            "exact svcname. The tool retrieves all matching tags using internal "
-            "paged Collector reads and compact tag properties by default."
+            "exact svcname. The tool retrieves all matching tags using bounded Collector reads and compact tag properties by default."
         ),
         tags={"services", "tags", "inventory", "read"},
         annotations={
@@ -725,28 +712,26 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional exact-match tag filters, "
-                    "returned properties, and internal pagination guardrails."
+                    "returned properties, and server-side scan bounds."
                 ),
             ),
         ],
     ) -> ServiceTagsResponse:
-        'Return tags attached to one OpenSVC Collector service.'
+        "Return tags attached to one OpenSVC Collector service."
         response = await core_get_service_tags(
             svcname=request.svcname,
             filters=request.merged_filters(),
             props=request.props,
-            page_size=request.page_size,
             max_tags=request.max_tags,
         )
         return ServiceTagsResponse.model_validate(response)
-
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
         name="get_service_checks",
         description=(
             "Return live OpenSVC Collector checks for one service selected by exact "
-            "svcname. The tool retrieves all matching checks using internal paged "
+            "svcname. The tool retrieves all matching checks using bounded server-side "
             "Collector reads and compact check properties by default."
         ),
         tags={"services", "checks", "health", "read"},
@@ -763,21 +748,19 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional exact-match check filters, "
-                    "returned properties, and internal pagination guardrails."
+                    "returned properties, and server-side scan bounds."
                 ),
             ),
         ],
     ) -> ServiceChecksResponse:
-        'Return live Collector checks for one OpenSVC service.'
+        "Return live Collector checks for one OpenSVC service."
         response = await core_get_service_checks(
             svcname=request.svcname,
             filters=request.merged_filters(),
             props=request.props,
-            page_size=request.page_size,
             max_checks=request.max_checks,
         )
         return ServiceChecksResponse.model_validate(response)
-
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
@@ -806,7 +789,7 @@ def register_services_tools(mcp: FastMCP) -> None:
             ),
         ],
     ) -> ServiceAlertsResponse:
-        'Return current dashboard alerts for one OpenSVC Collector service.'
+        "Return current dashboard alerts for one OpenSVC Collector service."
         response = await core_get_service_alerts(
             svcname=request.svcname,
             filters=request.merged_filters(),
@@ -815,7 +798,6 @@ def register_services_tools(mcp: FastMCP) -> None:
             offset=request.offset,
         )
         return ServiceAlertsResponse.model_validate(response)
-
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
@@ -845,7 +827,7 @@ def register_services_tools(mcp: FastMCP) -> None:
             ),
         ],
     ) -> ServiceActionsResponse:
-        'Return service action history for one OpenSVC Collector service.'
+        "Return service action history for one OpenSVC Collector service."
         response = await core_get_service_actions(
             svcname=request.svcname,
             filters=request.merged_filters(),
@@ -888,7 +870,7 @@ def register_services_tools(mcp: FastMCP) -> None:
             ),
         ],
     ) -> ServiceUnacknowledgedErrorsResponse:
-        'Return unacknowledged service action errors for one service.'
+        "Return unacknowledged service action errors for one service."
         response = await core_get_service_unacknowledged_errors(
             svcname=request.svcname,
             filters=request.merged_filters(),
@@ -901,7 +883,6 @@ def register_services_tools(mcp: FastMCP) -> None:
             status_log_max_chars=request.status_log_max_chars,
         )
         return ServiceUnacknowledgedErrorsResponse.model_validate(response)
-
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
@@ -925,13 +906,13 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional availability status filters, "
-                    "pagination, and internal scan guardrails used to inspect "
+                    "pagination, and server-side scan bounds used to inspect "
                     "service availability status history."
                 ),
             ),
         ],
     ) -> ServiceStatusHistoryResponse:
-        'Return availability status history for one OpenSVC Collector service.'
+        "Return availability status history for one OpenSVC Collector service."
         response = await core_get_service_status_history(
             svcname=request.svcname,
             filters=request.merged_filters(),
@@ -940,7 +921,6 @@ def register_services_tools(mcp: FastMCP) -> None:
             offset=request.offset,
             latest=request.latest,
             latest_first=request.latest_first,
-            page_size=request.page_size,
             max_history=request.max_history,
         )
         return ServiceStatusHistoryResponse.model_validate(response)
@@ -968,13 +948,13 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional node and monitor status filters, "
-                    "pagination, and internal scan guardrails used to inspect "
+                    "pagination, and server-side scan bounds used to inspect "
                     "per-node service instance status history."
                 ),
             ),
         ],
     ) -> ServiceInstanceStatusHistoryResponse:
-        'Return per-node status history for one OpenSVC Collector service.'
+        "Return per-node status history for one OpenSVC Collector service."
         response = await core_get_service_instance_status_history(
             svcname=request.svcname,
             filters=request.merged_filters(),
@@ -983,7 +963,6 @@ def register_services_tools(mcp: FastMCP) -> None:
             offset=request.offset,
             latest=request.latest,
             latest_first=request.latest_first,
-            page_size=request.page_size,
             max_history=request.max_history,
         )
         return ServiceInstanceStatusHistoryResponse.model_validate(response)

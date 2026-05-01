@@ -171,7 +171,7 @@ services
 Returns services that have one exact OpenSVC Collector tag attached.
 
 The tool resolves the tag through Collector `/tags`, then calls
-`/tags/<tag_id>/services` using internal paged retrieval. Returned services are
+`/tags/<tag_id>/services` using bounded server-side retrieval. Returned services are
 deduplicated by `svcname` because Collector can expose several rows for the same
 service/tag relation.
 
@@ -242,7 +242,7 @@ Returns OpenSVC Collector tags attached to one service selected by exact
 
 Use this tool when the question is about service classification, ownership,
 policy markers, or other metadata represented as Collector tags. The tool reads
-Collector `/services/<svcname>/tags` using internal paged retrieval, so it is
+Collector `/services/<svcname>/tags` using bounded server-side retrieval, so it is
 not limited to the first Collector page.
 
 Use exact filters such as `tag_name`, `tag_id`, or `tag_exclude` to narrow the
@@ -274,7 +274,7 @@ Returns live OpenSVC Collector checks for one service selected by exact
 `svcname`.
 
 Use this tool to inspect check values, thresholds, and error flags for a service.
-The tool reads Collector `/services/<svcname>/checks` using internal paged
+The tool reads Collector `/services/<svcname>/checks` using bounded server-side
 retrieval, so it is not limited to the first Collector page. Use exact filters
 such as `chk_type`, `chk_err`, `chk_instance`, or `node_id` to narrow the result.
 
@@ -805,7 +805,7 @@ not OK. The tool returns summary counts in `meta`, including `ok_count`,
 `error_count`, `unknown_count`, and `failed_modules`.
 
 The tool reads Collector `/services/<svcname>/compliance/status` using internal
-paged retrieval. By default it includes a bounded `run_log_preview` when a log is
+bounded server-side retrieval. By default it includes a bounded `run_log_preview` when a log is
 available, but omits full `run_log` values. Set `include_run_log` to `true` only
 when the full diagnostic log is needed.
 
@@ -870,7 +870,7 @@ module and the user needs history: recent failures, recurrence, previous run
 logs, or the timeline of a specific module/action/ruleset.
 
 The tool reads Collector `/services/<svcname>/compliance/logs` using internal
-paged retrieval. Because this endpoint can return many rows, it returns the most
+bounded server-side retrieval. Because this endpoint can return many rows, it returns the most
 recent matching logs by default (`latest=true`) and is bounded by `max_logs`.
 Set `latest=false` with `offset` to walk older pages from the Collector order.
 
@@ -942,7 +942,7 @@ nodes: which resources are `up`, `down`, `n/a`, disabled, optional, or monitored
 This differs from `get_service_resources`, which reads `/resinfo` and returns
 configuration-style resource key/value data grouped by resource id and node.
 
-The tool reads Collector `/services/<svcname>/resources` using internal paged
+The tool reads Collector `/services/<svcname>/resources` using bounded server-side
 retrieval. Use exact filters such as `rid`, `node_id`, `vmname`, `res_type`,
 `res_status`, `res_disable`, `res_optional`, or `res_monitor` to narrow the
 result.

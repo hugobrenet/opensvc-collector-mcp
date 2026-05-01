@@ -59,7 +59,6 @@ async def get_node_services(
             "scanned": scanned,
             "collector_total": total,
             "complete": complete,
-            "page_size": page_size,
             "max_instances": max_instances,
             "source": "services_instances",
             "filter": {"nodes.nodename": nodename},

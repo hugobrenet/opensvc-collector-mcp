@@ -182,7 +182,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
     async def get_node(
         request: Annotated[
             NodeNameRequest,
-            Field(description="Node identifier used to retrieve full Collector details."),
+            Field(
+                description="Node identifier used to retrieve full Collector details."
+            ),
         ],
     ) -> NodeRowsResponse:
         """Return all available properties for one OpenSVC Collector node."""
@@ -335,7 +337,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
     async def get_node_hardware(
         request: Annotated[
             NodeNameRequest,
-            Field(description="Node identifier used to retrieve hardware inventory fields."),
+            Field(
+                description="Node identifier used to retrieve hardware inventory fields."
+            ),
         ],
     ) -> NodeHardwareResponse:
         """Return hardware inventory details for one OpenSVC Collector node."""
@@ -360,7 +364,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
     async def get_node_os(
         request: Annotated[
             NodeNameRequest,
-            Field(description="Node identifier used to retrieve operating system fields."),
+            Field(
+                description="Node identifier used to retrieve operating system fields."
+            ),
         ],
     ) -> NodeOsResponse:
         """Return operating system details for one OpenSVC Collector node."""
@@ -409,7 +415,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
     async def get_node_compliance(
         request: Annotated[
             NodeNameRequest,
-            Field(description="Node identifier used to retrieve compliance status rows."),
+            Field(
+                description="Node identifier used to retrieve compliance status rows."
+            ),
         ],
     ) -> NodeComplianceResponse:
         """Return compliance status rows for one OpenSVC Collector node."""
@@ -435,7 +443,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
     async def get_node_checks(
         request: Annotated[
             NodeNameRequest,
-            Field(description="Node identifier used to retrieve live check result rows."),
+            Field(
+                description="Node identifier used to retrieve live check result rows."
+            ),
         ],
     ) -> NodeChecksResponse:
         """Return live check result rows for one OpenSVC Collector node."""
@@ -487,7 +497,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
     async def get_node_cluster(
         request: Annotated[
             NodeNameRequest,
-            Field(description="Node identifier used to retrieve the associated cluster."),
+            Field(
+                description="Node identifier used to retrieve the associated cluster."
+            ),
         ],
     ) -> NodeClusterResponse:
         """Return cluster id and name for one OpenSVC Collector node."""
@@ -569,13 +581,14 @@ def register_nodes_tools(mcp: FastMCP) -> None:
     async def get_nodes_inventory_stats(
         request: Annotated[
             InventoryStatsRequest,
-            Field(description="Aggregation fields and scan bounds for node inventory stats."),
+            Field(
+                description="Aggregation fields and scan bounds for node inventory stats."
+            ),
         ] = InventoryStatsRequest(),
     ) -> InventoryStatsResponse:
         """Return aggregate node inventory counts."""
         response = await core_get_nodes_inventory_stats(
             fields=request.fields,
-            page_size=request.page_size,
             max_nodes=request.max_nodes,
         )
         return InventoryStatsResponse.model_validate(response)

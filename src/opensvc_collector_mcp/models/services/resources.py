@@ -15,17 +15,31 @@ class ServiceResourceStatusRequest(ServiceNameRequest):
         ),
         examples=[{"res_status": "down"}, {"rid": "container#0"}],
     )
-    rid: str | None = Field(default=None, description="Exact OpenSVC resource id filter.")
-    node_id: str | None = Field(default=None, description="Exact Collector node uuid filter.")
+    rid: str | None = Field(
+        default=None, description="Exact OpenSVC resource id filter."
+    )
+    node_id: str | None = Field(
+        default=None, description="Exact Collector node uuid filter."
+    )
     vmname: str | None = Field(
         default=None,
         description="Exact VM or encapsulated instance name filter.",
     )
-    res_type: str | None = Field(default=None, description="Exact resource type filter.")
-    res_status: str | None = Field(default=None, description="Exact runtime resource status filter.")
-    res_disable: str | None = Field(default=None, description="Exact resource disabled flag filter.")
-    res_optional: str | None = Field(default=None, description="Exact resource optional flag filter.")
-    res_monitor: str | None = Field(default=None, description="Exact resource monitor flag filter.")
+    res_type: str | None = Field(
+        default=None, description="Exact resource type filter."
+    )
+    res_status: str | None = Field(
+        default=None, description="Exact runtime resource status filter."
+    )
+    res_disable: str | None = Field(
+        default=None, description="Exact resource disabled flag filter."
+    )
+    res_optional: str | None = Field(
+        default=None, description="Exact resource optional flag filter."
+    )
+    res_monitor: str | None = Field(
+        default=None, description="Exact resource monitor flag filter."
+    )
     props: str | None = Field(
         default=None,
         description=(
@@ -33,12 +47,6 @@ class ServiceResourceStatusRequest(ServiceNameRequest):
             "a compact resource status view with node, rid, type, status, flags, "
             "description, and timestamps."
         ),
-    )
-    page_size: int = Field(
-        default=1000,
-        ge=1,
-        le=5000,
-        description="Internal Collector page size used to retrieve all resource rows.",
     )
     max_resources: int = Field(
         default=10000,

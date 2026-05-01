@@ -313,7 +313,6 @@ async def _get_service_compliance_log_page(
             "total": total if complete else None,
             "offset": offset,
             "complete": complete,
-            "page_size": page_size,
             "max_items": max_logs,
             "scanned": scanned,
         }

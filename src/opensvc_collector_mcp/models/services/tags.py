@@ -21,12 +21,6 @@ class ServiceTagSearchRequest(BaseModel):
             "included because it is required to identify services."
         ),
     )
-    page_size: int = Field(
-        default=1000,
-        ge=1,
-        le=5000,
-        description="Internal Collector page size used for paged reads.",
-    )
     max_services: int = Field(
         default=200000,
         ge=1,
@@ -45,20 +39,18 @@ class ServiceTagsRequest(ServiceNameRequest):
         examples=[{"tag_name": "LAB-TAG"}],
     )
     tag_name: str | None = Field(default=None, description="Exact tag name filter.")
-    tag_id: str | None = Field(default=None, description="Exact Collector tag id filter.")
-    tag_exclude: str | None = Field(default=None, description="Exact tag exclude filter.")
+    tag_id: str | None = Field(
+        default=None, description="Exact Collector tag id filter."
+    )
+    tag_exclude: str | None = Field(
+        default=None, description="Exact tag exclude filter."
+    )
     props: str | None = Field(
         default=None,
         description=(
             "Comma-separated tag properties to return. Defaults to a compact "
             "service tag view."
         ),
-    )
-    page_size: int = Field(
-        default=1000,
-        ge=1,
-        le=5000,
-        description="Internal Collector page size used to retrieve all matching tags.",
     )
     max_tags: int = Field(
         default=10000,

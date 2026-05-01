@@ -22,10 +22,7 @@ async def get_nodes_inventory_stats(
     selected_fields = _parse_stats_fields(fields)
     page_size = max(1, min(page_size, 5000))
     max_nodes = max(1, min(max_nodes, 500000))
-    counters: dict[str, dict[str, int]] = {
-        field: {}
-        for field in selected_fields
-    }
+    counters: dict[str, dict[str, int]] = {field: {} for field in selected_fields}
     scanned = 0
     offset = 0
     total: int | None = None
@@ -61,7 +58,6 @@ async def get_nodes_inventory_stats(
             "total": total,
             "scanned": scanned,
             "complete": complete,
-            "page_size": page_size,
             "max_nodes": max_nodes,
             "fields": selected_fields,
         },

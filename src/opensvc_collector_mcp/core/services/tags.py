@@ -137,7 +137,6 @@ async def search_services_without_tag(
         "tagged_raw_count": tagged.get("meta", {}).get("raw_count"),
         "total_services": all_meta.get("total", len(all_rows)),
         "complete": complete,
-        "page_size": all_meta.get("page_size"),
         "max_items": all_meta.get("max_items"),
     }
     return {

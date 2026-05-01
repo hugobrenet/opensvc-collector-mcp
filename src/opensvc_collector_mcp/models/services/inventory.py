@@ -27,8 +27,12 @@ class ServiceFilterRequest(BaseModel):
         default=None,
         description="Exact service availability status.",
     )
-    svc_topology: str | None = Field(default=None, description="Exact service topology.")
-    svc_frozen: str | None = Field(default=None, description="Exact service frozen state.")
+    svc_topology: str | None = Field(
+        default=None, description="Exact service topology."
+    )
+    svc_frozen: str | None = Field(
+        default=None, description="Exact service frozen state."
+    )
 
     @model_validator(mode="after")
     def normalize_filters(self) -> "ServiceFilterRequest":
@@ -127,12 +131,6 @@ class ServiceNodesRequest(ServiceNameRequest):
             "Comma-separated service node properties to return. Defaults to a "
             "compact per-node monitor view with nodename and key statuses."
         ),
-    )
-    page_size: int = Field(
-        default=1000,
-        ge=1,
-        le=5000,
-        description="Internal Collector page size used to retrieve all service nodes.",
     )
     max_nodes: int = Field(
         default=10000,
@@ -265,7 +263,9 @@ class ServiceRowsResponse(BaseModel):
 class ServiceConfigSection(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    name: str = Field(description="Configuration section name, for example DEFAULT or app#0.")
+    name: str = Field(
+        description="Configuration section name, for example DEFAULT or app#0."
+    )
     options: dict[str, str] = Field(
         default_factory=dict,
         description="Configuration key/value options for this section.",

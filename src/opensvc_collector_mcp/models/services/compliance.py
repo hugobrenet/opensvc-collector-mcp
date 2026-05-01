@@ -15,15 +15,23 @@ class ServiceComplianceStatusRequest(ServiceNameRequest):
         ),
         examples=[{"run_status": "1"}, {"run_module": "aits.outils.controlm"}],
     )
-    run_module: str | None = Field(default=None, description="Exact compliance module filter.")
+    run_module: str | None = Field(
+        default=None, description="Exact compliance module filter."
+    )
     run_status: int | None = Field(
         default=None,
         ge=0,
         description="Exact compliance run status filter. In this Collector, 0 is OK and non-zero is not OK.",
     )
-    run_action: str | None = Field(default=None, description="Exact compliance run action filter.")
-    node_id: str | None = Field(default=None, description="Exact Collector node uuid filter.")
-    rset_md5: str | None = Field(default=None, description="Exact compliance ruleset hash filter.")
+    run_action: str | None = Field(
+        default=None, description="Exact compliance run action filter."
+    )
+    node_id: str | None = Field(
+        default=None, description="Exact Collector node uuid filter."
+    )
+    rset_md5: str | None = Field(
+        default=None, description="Exact compliance ruleset hash filter."
+    )
     props: str | None = Field(
         default=None,
         description=(
@@ -31,12 +39,6 @@ class ServiceComplianceStatusRequest(ServiceNameRequest):
             "module, action, status, date, node, ruleset hash, and id. run_log "
             "is automatically requested when preview or full log output is enabled."
         ),
-    )
-    page_size: int = Field(
-        default=1000,
-        ge=1,
-        le=5000,
-        description="Internal Collector page size used to retrieve compliance status rows.",
     )
     max_status: int = Field(
         default=10000,
@@ -100,15 +102,23 @@ class ServiceComplianceLogsRequest(ServiceNameRequest):
         ),
         examples=[{"run_status": "1"}, {"run_module": "aits.outils.controlm"}],
     )
-    run_module: str | None = Field(default=None, description="Exact compliance module filter.")
+    run_module: str | None = Field(
+        default=None, description="Exact compliance module filter."
+    )
     run_status: int | None = Field(
         default=None,
         ge=0,
         description="Exact compliance run status filter. In this Collector, 0 is OK and non-zero is not OK.",
     )
-    run_action: str | None = Field(default=None, description="Exact compliance run action filter.")
-    node_id: str | None = Field(default=None, description="Exact Collector node uuid filter.")
-    rset_md5: str | None = Field(default=None, description="Exact compliance ruleset hash filter.")
+    run_action: str | None = Field(
+        default=None, description="Exact compliance run action filter."
+    )
+    node_id: str | None = Field(
+        default=None, description="Exact Collector node uuid filter."
+    )
+    rset_md5: str | None = Field(
+        default=None, description="Exact compliance ruleset hash filter."
+    )
     props: str | None = Field(
         default=None,
         description=(
@@ -116,12 +126,6 @@ class ServiceComplianceLogsRequest(ServiceNameRequest):
             "module, action, status, date, node, ruleset hash, and id. run_log "
             "is automatically requested when preview or full log output is enabled."
         ),
-    )
-    page_size: int = Field(
-        default=1000,
-        ge=1,
-        le=5000,
-        description="Internal Collector page size used to retrieve compliance log rows.",
     )
     max_logs: int = Field(
         default=1000,

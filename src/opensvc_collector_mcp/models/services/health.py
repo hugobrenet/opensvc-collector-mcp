@@ -31,20 +31,18 @@ class ServiceChecksRequest(ServiceNameRequest):
         ge=0,
         description="Exact check error flag filter, usually 0 or 1.",
     )
-    node_id: str | None = Field(default=None, description="Exact Collector node uuid filter.")
-    chk_instance: str | None = Field(default=None, description="Exact check instance filter.")
+    node_id: str | None = Field(
+        default=None, description="Exact Collector node uuid filter."
+    )
+    chk_instance: str | None = Field(
+        default=None, description="Exact check instance filter."
+    )
     props: str | None = Field(
         default=None,
         description=(
             "Comma-separated check properties to return. Defaults to a compact "
             "service check view."
         ),
-    )
-    page_size: int = Field(
-        default=1000,
-        ge=1,
-        le=5000,
-        description="Internal Collector page size used to retrieve all matching checks.",
     )
     max_checks: int = Field(
         default=10000,
@@ -100,7 +98,9 @@ class ServiceAlertsRequest(ServiceNameRequest):
         ge=0,
         description="Exact dashboard alert severity filter.",
     )
-    node_id: str | None = Field(default=None, description="Exact Collector node uuid filter.")
+    node_id: str | None = Field(
+        default=None, description="Exact Collector node uuid filter."
+    )
     props: str | None = Field(
         default=None,
         description=(
@@ -190,12 +190,6 @@ class ServiceStatusHistoryRequest(ServiceNameRequest):
         default=True,
         description="When true, sort status history newest first.",
     )
-    page_size: int = Field(
-        default=1000,
-        ge=1,
-        le=5000,
-        description="Internal Collector page size used to retrieve matching status history.",
-    )
     max_history: int = Field(
         default=10000,
         ge=1,
@@ -234,7 +228,9 @@ class ServiceInstanceStatusHistoryRequest(ServiceNameRequest):
         ),
         examples=[{"mon_availstatus": "down"}],
     )
-    node_id: str | None = Field(default=None, description="Exact Collector node uuid filter.")
+    node_id: str | None = Field(
+        default=None, description="Exact Collector node uuid filter."
+    )
     nodename: str | None = Field(default=None, description="Exact node name filter.")
     mon_availstatus: str | None = Field(
         default=None,
@@ -269,12 +265,6 @@ class ServiceInstanceStatusHistoryRequest(ServiceNameRequest):
     latest_first: bool = Field(
         default=True,
         description="When true, sort instance status history newest first.",
-    )
-    page_size: int = Field(
-        default=1000,
-        ge=1,
-        le=5000,
-        description="Internal Collector page size used to retrieve matching rows.",
     )
     max_history: int = Field(
         default=1000,
@@ -311,17 +301,39 @@ class ServiceInstanceStatusHistoryRequest(ServiceNameRequest):
 class ServiceCheckRow(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    id: int | None = Field(default=None, description="Collector check id.", exclude_if=_is_none)
-    node_id: str | None = Field(default=None, description="Collector node uuid.", exclude_if=_is_none)
-    chk_type: str | None = Field(default=None, description="Check type.", exclude_if=_is_none)
-    chk_instance: str | None = Field(default=None, description="Check instance.", exclude_if=_is_none)
-    chk_value: int | float | str | None = Field(default=None, description="Current check value.", exclude_if=_is_none)
-    chk_err: int | str | None = Field(default=None, description="Check error flag or state.", exclude_if=_is_none)
-    chk_low: int | float | str | None = Field(default=None, description="Low threshold.", exclude_if=_is_none)
-    chk_high: int | float | str | None = Field(default=None, description="High threshold.", exclude_if=_is_none)
-    chk_threshold_provider: str | None = Field(default=None, description="Threshold provider.", exclude_if=_is_none)
-    chk_created: str | None = Field(default=None, description="Check creation timestamp.", exclude_if=_is_none)
-    chk_updated: str | None = Field(default=None, description="Check update timestamp.", exclude_if=_is_none)
+    id: int | None = Field(
+        default=None, description="Collector check id.", exclude_if=_is_none
+    )
+    node_id: str | None = Field(
+        default=None, description="Collector node uuid.", exclude_if=_is_none
+    )
+    chk_type: str | None = Field(
+        default=None, description="Check type.", exclude_if=_is_none
+    )
+    chk_instance: str | None = Field(
+        default=None, description="Check instance.", exclude_if=_is_none
+    )
+    chk_value: int | float | str | None = Field(
+        default=None, description="Current check value.", exclude_if=_is_none
+    )
+    chk_err: int | str | None = Field(
+        default=None, description="Check error flag or state.", exclude_if=_is_none
+    )
+    chk_low: int | float | str | None = Field(
+        default=None, description="Low threshold.", exclude_if=_is_none
+    )
+    chk_high: int | float | str | None = Field(
+        default=None, description="High threshold.", exclude_if=_is_none
+    )
+    chk_threshold_provider: str | None = Field(
+        default=None, description="Threshold provider.", exclude_if=_is_none
+    )
+    chk_created: str | None = Field(
+        default=None, description="Check creation timestamp.", exclude_if=_is_none
+    )
+    chk_updated: str | None = Field(
+        default=None, description="Check update timestamp.", exclude_if=_is_none
+    )
 
 
 class ServiceChecksResponse(BaseModel):
@@ -618,7 +630,9 @@ class ServiceHealthIssue(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     severity: str = Field(description="Issue severity: warning, critical, or unknown.")
-    field: str = Field(description="Service or instance field that triggered the issue.")
+    field: str = Field(
+        description="Service or instance field that triggered the issue."
+    )
     message: str = Field(description="Human-readable health issue description.")
 
 

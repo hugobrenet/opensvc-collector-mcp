@@ -13,12 +13,6 @@ class ServiceHbasRequest(ServiceNameRequest):
             "compact flat HBA view with node, HBA id, HBA type, and update time."
         ),
     )
-    page_size: int = Field(
-        default=1000,
-        ge=1,
-        le=5000,
-        description="Internal Collector page size used to retrieve all service HBAs.",
-    )
     max_hbas: int = Field(
         default=10000,
         ge=1,
@@ -37,21 +31,21 @@ class ServiceTargetsRequest(ServiceNameRequest):
         examples=[{"hba_id": "LAB-HBA-01"}],
     )
     hba_id: str | None = Field(default=None, description="Exact HBA identifier filter.")
-    node_id: str | None = Field(default=None, description="Exact Collector node uuid filter.")
-    tgt_id: str | None = Field(default=None, description="Exact storage target identifier filter.")
-    array_name: str | None = Field(default=None, description="Exact storage array name filter.")
+    node_id: str | None = Field(
+        default=None, description="Exact Collector node uuid filter."
+    )
+    tgt_id: str | None = Field(
+        default=None, description="Exact storage target identifier filter."
+    )
+    array_name: str | None = Field(
+        default=None, description="Exact storage array name filter."
+    )
     props: str | None = Field(
         default=None,
         description=(
             "Comma-separated service target properties to return. Defaults to a "
             "compact flat target view with node, HBA, target, and array fields."
         ),
-    )
-    page_size: int = Field(
-        default=1000,
-        ge=1,
-        le=5000,
-        description="Internal Collector page size used to retrieve all service targets.",
     )
     max_targets: int = Field(
         default=10000,
@@ -93,12 +87,6 @@ class ServiceDisksRequest(ServiceNameRequest):
             "compact flat disk view with node, size, local/SAN, diskinfo, and "
             "storage array fields."
         ),
-    )
-    page_size: int = Field(
-        default=1000,
-        ge=1,
-        le=5000,
-        description="Internal Collector page size used to retrieve all service disks.",
     )
     max_disks: int = Field(
         default=10000,

@@ -13,12 +13,6 @@ class InventoryStatsRequest(BaseModel):
             "asset_env, node_env, loc_city, loc_country, app, and os_name."
         ),
     )
-    page_size: int = Field(
-        default=1000,
-        ge=1,
-        le=5000,
-        description="Number of nodes fetched per Collector request.",
-    )
     max_nodes: int = Field(
         default=200000,
         ge=1,
