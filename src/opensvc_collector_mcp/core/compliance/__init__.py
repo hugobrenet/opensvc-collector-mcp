@@ -13,11 +13,13 @@ from .inventory import (
     get_compliance_moduleset_responsibles,
     get_compliance_moduleset_services,
     get_compliance_moduleset_usage,
+    list_compliance_modulesets,
+)
+from .rulesets import (
     get_compliance_ruleset,
     get_compliance_ruleset_items,
     get_compliance_ruleset_usage,
     get_compliance_ruleset_variable,
-    list_compliance_modulesets,
     list_compliance_rulesets,
 )
 from .status import (

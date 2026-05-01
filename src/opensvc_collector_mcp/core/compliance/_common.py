@@ -3,6 +3,11 @@ from urllib.parse import quote
 
 from opensvc_collector_mcp.client import collector_get
 
+NODE_RELATION_PROPS = "node_id,nodename,app,node_env,status,updated"
+SERVICE_RELATION_PROPS = (
+    "svc_id,svcname,svc_app,svc_env,svc_status,svc_availstatus,updated"
+)
+
 
 def quote_path_id(value: int | str) -> str:
     text = str(value).strip()
@@ -112,3 +117,56 @@ def int_or_none(value: Any) -> int | None:
         return int(value)
     except (TypeError, ValueError):
         return None
+
+
+def collection_response(
+    response: dict[str, Any],
+    source: str,
+    filters: list[tuple[str, str]],
+    props: str | None,
+) -> dict[str, Any]:
+    rows = response.get("data", [])
+    meta = dict(response.get("meta", {}))
+    meta.update(
+        {
+            "source": source,
+            "filter": {field: value for field, value in filters},
+            "included_props": props.split(",") if props else meta.get("included_props", []),
+            "output_count": len(rows),
+        }
+    )
+    return {"meta": meta, "data": rows}
+
+
+def object_response(
+    response: dict[str, Any],
+    source: str,
+    object_id: int | str,
+    props: str | None,
+) -> dict[str, Any]:
+    rows = response.get("data", [])
+    meta = dict(response.get("meta", {}))
+    meta.update(
+        {
+            "source": source,
+            "object_id": str(object_id),
+            "included_props": props.split(",") if props else meta.get("included_props", []),
+            "output_count": len(rows),
+        }
+    )
+    return {"object_id": str(object_id), "meta": meta, "data": rows}
+
+
+def relation_response(
+    response: dict[str, Any],
+    source: str,
+    object_id: int | str,
+    relation: str,
+    filters: list[tuple[str, str]],
+    props: str | None,
+) -> dict[str, Any]:
+    data = collection_response(response, source, filters, props)
+    data["object_id"] = str(object_id)
+    data["relation"] = relation
+    data["meta"].update({"object_id": str(object_id), "relation": relation})
+    return data
