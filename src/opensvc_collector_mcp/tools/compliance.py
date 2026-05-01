@@ -15,6 +15,7 @@ from opensvc_collector_mcp.core.compliance import (
     get_compliance_moduleset_responsibles as core_get_compliance_moduleset_responsibles,
     get_compliance_moduleset_services as core_get_compliance_moduleset_services,
     get_compliance_moduleset_usage as core_get_compliance_moduleset_usage,
+    get_compliance_ruleset as core_get_compliance_ruleset,
     list_compliance_modulesets as core_list_compliance_modulesets,
     list_compliance_rulesets as core_list_compliance_rulesets,
 )
@@ -41,6 +42,8 @@ from opensvc_collector_mcp.models.compliance import (
     ComplianceModulesetUsageResponse,
     ComplianceModulesetsRequest,
     ComplianceModulesetsResponse,
+    ComplianceRulesetRequest,
+    ComplianceRulesetResponse,
     ComplianceRulesetsRequest,
     ComplianceRulesetsResponse,
 )
@@ -122,6 +125,41 @@ def register_compliance_tools(mcp: FastMCP) -> None:
             offset=request.offset,
         )
         return ComplianceRulesetsResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_compliance_ruleset",
+        description=(
+            "Return one OpenSVC Collector compliance ruleset selected by "
+            "Collector ruleset id or exact ruleset name. Use "
+            "list_compliance_rulesets first when the exact name is unknown."
+        ),
+        tags={"compliance", "rulesets", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Compliance Ruleset",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_compliance_ruleset(
+        request: Annotated[
+            ComplianceRulesetRequest,
+            Field(
+                description=(
+                    "Collector ruleset id or exact ruleset_name plus optional "
+                    "returned properties used to retrieve one compliance ruleset."
+                ),
+            ),
+        ],
+    ) -> ComplianceRulesetResponse:
+        """Return one compliance ruleset visible to the Collector account."""
+        response = await core_get_compliance_ruleset(
+            ruleset_id=request.ruleset_id,
+            ruleset_name=request.ruleset_name,
+            props=request.props,
+        )
+        return ComplianceRulesetResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

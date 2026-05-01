@@ -46,17 +46,71 @@ async def list_compliance_rulesets(
         limit=limit,
         offset=offset,
     )
-    return collection_response(response, "compliance_rulesets", parsed_filters, selected_props)
+    return collection_response(
+        response, "compliance_rulesets", parsed_filters, selected_props
+    )
 
 
 async def get_compliance_ruleset(
-    ruleset_id: int | str,
+    ruleset_id: int | str | None = None,
+    ruleset_name: str | None = None,
     props: str | None = None,
 ) -> dict[str, Any]:
     selected_props = props or RULESET_PROPS
-    path = f"/compliance/rulesets/{quote_path_id(ruleset_id)}"
+    resolved = await _resolve_ruleset_identity(
+        ruleset_id=ruleset_id,
+        ruleset_name=ruleset_name,
+    )
+    resolved_id = str(resolved["id"])
+    path = f"/compliance/rulesets/{quote_path_id(resolved_id)}"
     response = await get_object(path, props=selected_props)
-    return object_response(response, "compliance_ruleset", ruleset_id, selected_props)
+    data = object_response(response, "compliance_ruleset", resolved_id, selected_props)
+    rows = data.get("data", [])
+    resolved_name = resolved.get("ruleset_name") or (
+        rows[0].get("ruleset_name") if rows else None
+    )
+    data["ruleset_name"] = resolved_name
+    data["meta"].update(
+        {
+            "requested_ruleset_id": str(ruleset_id).strip()
+            if ruleset_id is not None
+            else None,
+            "requested_ruleset_name": ruleset_name,
+            "resolved_ruleset_id": resolved_id,
+            "resolved_ruleset_name": resolved_name,
+        }
+    )
+    return data
+
+
+async def _resolve_ruleset_identity(
+    ruleset_id: int | str | None,
+    ruleset_name: str | None,
+) -> dict[str, Any]:
+    requested_id = str(ruleset_id).strip() if ruleset_id is not None else ""
+    requested_name = ruleset_name.strip() if ruleset_name else ""
+    if requested_id:
+        return {"id": requested_id, "ruleset_name": requested_name or None}
+    if not requested_name:
+        raise ValueError("ruleset_id or ruleset_name must be provided")
+
+    response = await get_collection_page(
+        "/compliance/rulesets",
+        filters=[("ruleset_name", requested_name)],
+        props="id,ruleset_name",
+        limit=2,
+        offset=0,
+    )
+    rows = response.get("data", [])
+    if not rows:
+        raise ValueError(
+            f"No compliance ruleset found for ruleset_name {requested_name!r}"
+        )
+    if len(rows) > 1:
+        raise ValueError(
+            f"Multiple compliance rulesets found for ruleset_name {requested_name!r}"
+        )
+    return rows[0]
 
 
 async def get_compliance_ruleset_items(
@@ -107,7 +161,9 @@ async def get_compliance_ruleset_variable(
         f"/variables/{quote_path_id(variable_id)}"
     )
     response = await get_object(path, props=selected_props)
-    data = object_response(response, "compliance_ruleset_variable", variable_id, selected_props)
+    data = object_response(
+        response, "compliance_ruleset_variable", variable_id, selected_props
+    )
     data["ruleset_id"] = str(ruleset_id)
     data["meta"]["include_var_value"] = include_var_value
     return data

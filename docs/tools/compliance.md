@@ -68,6 +68,35 @@ data
 ```
 
 
+### `get_compliance_ruleset`
+
+Returns one compliance ruleset selected by Collector ruleset id or exact
+`ruleset_name`.
+
+Use `ruleset_name` for natural human requests. Use `list_compliance_rulesets`
+first when the exact name is unknown. Default output returns the same compact
+ruleset properties as the listing tool.
+
+Example:
+
+```json
+{
+  "request": {
+    "ruleset_name": "02-aits.nodes.opensvc.tags"
+  }
+}
+```
+
+Output fields:
+
+```text
+object_id
+ruleset_name
+meta
+data
+```
+
+
 ### `get_compliance_moduleset`
 
 Returns one compliance moduleset selected by Collector moduleset id or exact moduleset name.
