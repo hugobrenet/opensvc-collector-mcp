@@ -32,6 +32,8 @@ from .inventory import (
 from .rulesets import (
     ComplianceRulesetRequest,
     ComplianceRulesetResponse,
+    ComplianceRulesetUsageRequest,
+    ComplianceRulesetUsageResponse,
     ComplianceRulesetRow,
     ComplianceRulesetsRequest,
     ComplianceRulesetsResponse,
@@ -40,6 +42,8 @@ from .rulesets import (
 __all__ = [
     "ComplianceRulesetRequest",
     "ComplianceRulesetResponse",
+    "ComplianceRulesetUsageRequest",
+    "ComplianceRulesetUsageResponse",
     "ComplianceRulesetRow",
     "ComplianceRulesetsRequest",
     "ComplianceRulesetsResponse",

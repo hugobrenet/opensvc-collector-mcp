@@ -97,6 +97,41 @@ data
 ```
 
 
+### `get_compliance_ruleset_usage`
+
+Returns where one compliance ruleset is reused or referenced, selected by
+Collector ruleset id or exact `ruleset_name`.
+
+Use `ruleset_name` for natural human requests. The tool resolves the ruleset id
+through `/compliance/rulesets`, then calls:
+
+```text
+/compliance/rulesets/<ruleset_id>/usage
+```
+
+The returned sections depend on Collector data. Common sections include
+`modulesets`, `rulesets`, `nodes`, and `services`.
+
+Example:
+
+```json
+{
+  "request": {
+    "ruleset_name": "02-aits.nodes.opensvc.tags"
+  }
+}
+```
+
+Output fields:
+
+```text
+object_id
+ruleset_name
+meta
+data
+```
+
+
 ### `get_compliance_moduleset`
 
 Returns one compliance moduleset selected by Collector moduleset id or exact moduleset name.

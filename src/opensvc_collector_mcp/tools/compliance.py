@@ -16,6 +16,7 @@ from opensvc_collector_mcp.core.compliance import (
     get_compliance_moduleset_services as core_get_compliance_moduleset_services,
     get_compliance_moduleset_usage as core_get_compliance_moduleset_usage,
     get_compliance_ruleset as core_get_compliance_ruleset,
+    get_compliance_ruleset_usage as core_get_compliance_ruleset_usage,
     list_compliance_modulesets as core_list_compliance_modulesets,
     list_compliance_rulesets as core_list_compliance_rulesets,
 )
@@ -44,6 +45,8 @@ from opensvc_collector_mcp.models.compliance import (
     ComplianceModulesetsResponse,
     ComplianceRulesetRequest,
     ComplianceRulesetResponse,
+    ComplianceRulesetUsageRequest,
+    ComplianceRulesetUsageResponse,
     ComplianceRulesetsRequest,
     ComplianceRulesetsResponse,
 )
@@ -160,6 +163,40 @@ def register_compliance_tools(mcp: FastMCP) -> None:
             props=request.props,
         )
         return ComplianceRulesetResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_compliance_ruleset_usage",
+        description=(
+            "Return where one OpenSVC Collector compliance ruleset is reused "
+            "or referenced, selected by Collector ruleset id or exact ruleset "
+            "name. The returned sections depend on Collector /usage data."
+        ),
+        tags={"compliance", "rulesets", "usage", "read"},
+        annotations={
+            "title": "Get OpenSVC Compliance Ruleset Usage",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_compliance_ruleset_usage(
+        request: Annotated[
+            ComplianceRulesetUsageRequest,
+            Field(
+                description=(
+                    "Collector ruleset id or exact ruleset_name used to retrieve "
+                    "where the compliance ruleset is referenced."
+                ),
+            ),
+        ],
+    ) -> ComplianceRulesetUsageResponse:
+        """Return where one compliance ruleset is referenced."""
+        response = await core_get_compliance_ruleset_usage(
+            ruleset_id=request.ruleset_id,
+            ruleset_name=request.ruleset_name,
+        )
+        return ComplianceRulesetUsageResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

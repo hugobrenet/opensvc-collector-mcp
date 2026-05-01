@@ -169,13 +169,33 @@ async def get_compliance_ruleset_variable(
     return data
 
 
-async def get_compliance_ruleset_usage(ruleset_id: int | str) -> dict[str, Any]:
-    path = f"/compliance/rulesets/{quote_path_id(ruleset_id)}/usage"
+async def get_compliance_ruleset_usage(
+    ruleset_id: int | str | None = None,
+    ruleset_name: str | None = None,
+) -> dict[str, Any]:
+    resolved = await _resolve_ruleset_identity(
+        ruleset_id=ruleset_id,
+        ruleset_name=ruleset_name,
+    )
+    resolved_id = str(resolved["id"])
+    resolved_name = resolved.get("ruleset_name")
+    path = f"/compliance/rulesets/{quote_path_id(resolved_id)}/usage"
     response = await get_object(path)
+    usage = response.get("data", response)
     return {
-        "object_id": str(ruleset_id),
-        "source": "compliance_ruleset_usage",
-        "data": response.get("data", response),
+        "object_id": resolved_id,
+        "ruleset_name": resolved_name,
+        "meta": {
+            "source": "compliance_ruleset_usage",
+            "object_id": resolved_id,
+            "requested_ruleset_id": str(ruleset_id).strip()
+            if ruleset_id is not None
+            else None,
+            "requested_ruleset_name": ruleset_name,
+            "resolved_ruleset_id": resolved_id,
+            "resolved_ruleset_name": resolved_name,
+        },
+        "data": usage,
     }
 
 
