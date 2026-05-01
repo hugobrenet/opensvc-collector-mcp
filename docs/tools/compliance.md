@@ -255,6 +255,75 @@ data
 ```
 
 
+### `get_compliance_ruleset_publications`
+
+Returns groups one compliance ruleset is published to, selected by Collector
+ruleset id or exact `ruleset_name`. Use this to know which groups can see or use
+a ruleset.
+
+The tool resolves the ruleset id through `/compliance/rulesets`, then calls:
+
+```text
+/compliance/rulesets/<ruleset_id>/publications
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "ruleset_name": "02-aits.nodes.opensvc.tags",
+    "limit": 20,
+    "offset": 0
+  }
+}
+```
+
+Output fields:
+
+```text
+object_id
+relation
+ruleset_name
+meta
+data
+```
+
+
+### `get_compliance_ruleset_responsibles`
+
+Returns groups responsible for one compliance ruleset, selected by Collector
+ruleset id or exact `ruleset_name`.
+
+The tool resolves the ruleset id through `/compliance/rulesets`, then calls:
+
+```text
+/compliance/rulesets/<ruleset_id>/responsibles
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "ruleset_name": "02-aits.nodes.opensvc.tags",
+    "limit": 20,
+    "offset": 0
+  }
+}
+```
+
+Output fields:
+
+```text
+object_id
+relation
+ruleset_name
+meta
+data
+```
+
+
 ### `get_compliance_moduleset`
 
 Returns one compliance moduleset selected by Collector moduleset id or exact moduleset name.

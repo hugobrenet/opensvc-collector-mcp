@@ -163,6 +163,37 @@ class ComplianceRulesetCandidateServicesRequest(ComplianceListRequest):
         return self
 
 
+class ComplianceRulesetPublicationsRequest(ComplianceListRequest):
+    ruleset_id: int | str | None = Field(
+        default=None,
+        description="Collector compliance ruleset id, when already known.",
+    )
+    ruleset_name: str | None = Field(
+        default=None,
+        description="Exact compliance ruleset name to resolve to a Collector id.",
+        examples=["02-aits.nodes.opensvc.tags"],
+    )
+    orderby: str | None = Field(
+        default="role",
+        description="Collector orderby expression. Defaults to role.",
+    )
+
+    @model_validator(mode="after")
+    def require_selector(self) -> "ComplianceRulesetPublicationsRequest":
+        super().normalize_filters()
+        has_id = self.ruleset_id is not None and str(self.ruleset_id).strip()
+        has_name = self.ruleset_name is not None and self.ruleset_name.strip()
+        if not has_id and not has_name:
+            raise ValueError("ruleset_id or ruleset_name must be provided")
+        if self.ruleset_name is not None:
+            self.ruleset_name = self.ruleset_name.strip() or None
+        return self
+
+
+class ComplianceRulesetResponsiblesRequest(ComplianceRulesetPublicationsRequest):
+    pass
+
+
 class ComplianceRulesetVariableRow(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -241,6 +272,35 @@ class ComplianceRulesetCandidateServicesResponse(BaseModel):
     ruleset_name: str | None = None
     meta: dict[str, Any] = Field(default_factory=dict)
     data: list[ComplianceRulesetServiceRow]
+
+
+class ComplianceRulesetGroupRow(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    id: int | str | None = Field(default=None, description="Collector group id.")
+    role: str | None = Field(default=None, description="Collector group role name.")
+    privilege: bool | None = Field(default=None, description="Whether the group has privilege.")
+    description: str | None = Field(default=None, description="Collector group description.")
+
+
+class ComplianceRulesetPublicationsResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    object_id: str
+    relation: str = Field(default="publications")
+    ruleset_name: str | None = None
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ComplianceRulesetGroupRow]
+
+
+class ComplianceRulesetResponsiblesResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    object_id: str
+    relation: str = Field(default="responsibles")
+    ruleset_name: str | None = None
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ComplianceRulesetGroupRow]
 
 
 class ComplianceRulesetVariablesResponse(BaseModel):

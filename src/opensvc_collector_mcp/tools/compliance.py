@@ -18,6 +18,8 @@ from opensvc_collector_mcp.core.compliance import (
     get_compliance_ruleset as core_get_compliance_ruleset,
     get_compliance_ruleset_candidate_nodes as core_get_compliance_ruleset_candidate_nodes,
     get_compliance_ruleset_candidate_services as core_get_compliance_ruleset_candidate_services,
+    get_compliance_ruleset_publications as core_get_compliance_ruleset_publications,
+    get_compliance_ruleset_responsibles as core_get_compliance_ruleset_responsibles,
     get_compliance_ruleset_usage as core_get_compliance_ruleset_usage,
     get_compliance_ruleset_variables as core_get_compliance_ruleset_variables,
     list_compliance_modulesets as core_list_compliance_modulesets,
@@ -50,7 +52,11 @@ from opensvc_collector_mcp.models.compliance import (
     ComplianceRulesetCandidateServicesRequest,
     ComplianceRulesetCandidateServicesResponse,
     ComplianceRulesetCandidateNodesResponse,
+    ComplianceRulesetPublicationsRequest,
+    ComplianceRulesetPublicationsResponse,
     ComplianceRulesetRequest,
+    ComplianceRulesetResponsiblesRequest,
+    ComplianceRulesetResponsiblesResponse,
     ComplianceRulesetResponse,
     ComplianceRulesetUsageRequest,
     ComplianceRulesetUsageResponse,
@@ -160,7 +166,11 @@ def register_compliance_tools(mcp: FastMCP) -> None:
     ComplianceRulesetCandidateServicesRequest,
     ComplianceRulesetCandidateServicesResponse,
     ComplianceRulesetCandidateNodesResponse,
+    ComplianceRulesetPublicationsRequest,
+    ComplianceRulesetPublicationsResponse,
     ComplianceRulesetRequest,
+    ComplianceRulesetResponsiblesRequest,
+    ComplianceRulesetResponsiblesResponse,
             Field(
                 description=(
                     "Collector ruleset id or exact ruleset_name plus optional "
@@ -335,6 +345,87 @@ def register_compliance_tools(mcp: FastMCP) -> None:
             offset=request.offset,
         )
         return ComplianceRulesetCandidateServicesResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_compliance_ruleset_publications",
+        description=(
+            "Return groups one OpenSVC Collector compliance ruleset is published "
+            "to, selected by Collector ruleset id or exact ruleset name. Use "
+            "this to know which groups can see or use a ruleset."
+        ),
+        tags={"compliance", "rulesets", "groups", "publications", "read"},
+        annotations={
+            "title": "Get OpenSVC Compliance Ruleset Publications",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_compliance_ruleset_publications(
+        request: Annotated[
+            ComplianceRulesetPublicationsRequest,
+            Field(
+                description=(
+                    "Collector ruleset id or exact ruleset_name plus optional "
+                    "filters, properties, ordering, search, limit, and offset. "
+                    "Returns publication groups only."
+                ),
+            ),
+        ],
+    ) -> ComplianceRulesetPublicationsResponse:
+        """Return groups one compliance ruleset is published to."""
+        response = await core_get_compliance_ruleset_publications(
+            ruleset_id=request.ruleset_id,
+            ruleset_name=request.ruleset_name,
+            filters=request.filters,
+            props=request.props,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
+        )
+        return ComplianceRulesetPublicationsResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_compliance_ruleset_responsibles",
+        description=(
+            "Return groups responsible for one OpenSVC Collector compliance "
+            "ruleset, selected by Collector ruleset id or exact ruleset name."
+        ),
+        tags={"compliance", "rulesets", "groups", "responsibles", "read"},
+        annotations={
+            "title": "Get OpenSVC Compliance Ruleset Responsibles",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_compliance_ruleset_responsibles(
+        request: Annotated[
+            ComplianceRulesetResponsiblesRequest,
+            Field(
+                description=(
+                    "Collector ruleset id or exact ruleset_name plus optional "
+                    "filters, properties, ordering, search, limit, and offset. "
+                    "Returns responsible groups only."
+                ),
+            ),
+        ],
+    ) -> ComplianceRulesetResponsiblesResponse:
+        """Return groups responsible for one compliance ruleset."""
+        response = await core_get_compliance_ruleset_responsibles(
+            ruleset_id=request.ruleset_id,
+            ruleset_name=request.ruleset_name,
+            filters=request.filters,
+            props=request.props,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
+        )
+        return ComplianceRulesetResponsiblesResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
