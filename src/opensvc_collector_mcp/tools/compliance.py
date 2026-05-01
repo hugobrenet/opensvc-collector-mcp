@@ -5,6 +5,7 @@ from pydantic import Field
 
 from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.compliance import (
+    get_compliance_logs as core_get_compliance_logs,
     get_compliance_moduleset as core_get_compliance_moduleset,
     get_compliance_moduleset_candidate_nodes as core_get_compliance_moduleset_candidate_nodes,
     get_compliance_moduleset_candidate_services as core_get_compliance_moduleset_candidate_services,
@@ -28,6 +29,8 @@ from opensvc_collector_mcp.core.compliance import (
     list_compliance_rulesets as core_list_compliance_rulesets,
 )
 from opensvc_collector_mcp.models.compliance import (
+    ComplianceLogsRequest,
+    ComplianceLogsResponse,
     ComplianceModulesetCandidateNodesRequest,
     ComplianceModulesetCandidateNodesResponse,
     ComplianceModulesetCandidateServicesRequest,
@@ -199,6 +202,58 @@ def register_compliance_tools(mcp: FastMCP) -> None:
             run_log_max_chars=request.run_log_max_chars,
         )
         return ComplianceStatusResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_compliance_logs",
+        description=(
+            "Return historical OpenSVC Collector compliance run logs. Use this "
+            "when the user asks for compliance logs, run history, or past check "
+            "details for a focused node_id or svc_id. A bounded "
+            "run_log_preview is included by default; request "
+            "full run_log only when explicitly needed. Use get_compliance_status "
+            "for current/latest OK/NOK status checks."
+        ),
+        tags={"compliance", "logs", "runs", "history", "read"},
+        annotations={
+            "title": "Get OpenSVC Compliance Logs",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_compliance_logs(
+        request: Annotated[
+            ComplianceLogsRequest,
+            Field(
+                description=(
+                    "Compliance log parameters: required node_id or svc_id, "
+                    "exact filters, run_module, run_status, pagination, "
+                    "historical/latest "
+                    "selection, and optional run log preview/full log."
+                ),
+            ),
+        ],
+    ) -> ComplianceLogsResponse:
+        """Return historical compliance run logs."""
+        response = await core_get_compliance_logs(
+            filters=request.filters,
+            run_module=request.run_module,
+            run_status=request.run_status,
+            run_action=request.run_action,
+            node_id=request.node_id,
+            svc_id=request.svc_id,
+            rset_md5=request.rset_md5,
+            props=request.props,
+            limit=request.limit,
+            offset=request.offset,
+            latest=request.latest,
+            latest_first=request.latest_first,
+            include_run_log=request.include_run_log,
+            include_run_log_preview=request.include_run_log_preview,
+            run_log_max_chars=request.run_log_max_chars,
+        )
+        return ComplianceLogsResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

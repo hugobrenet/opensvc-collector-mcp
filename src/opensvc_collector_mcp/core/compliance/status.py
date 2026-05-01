@@ -82,6 +82,11 @@ async def get_compliance_logs(
     include_run_log_preview: bool = True,
     run_log_max_chars: int = 1000,
 ) -> dict[str, Any]:
+    if not _has_run_log_scope(filters=filters, node_id=node_id, svc_id=svc_id):
+        raise ValueError(
+            "get_compliance_logs requires node_id or svc_id to avoid slow global "
+            "Collector /compliance/logs queries"
+        )
     return await _get_compliance_runs(
         source="logs",
         filters=filters,
@@ -213,6 +218,21 @@ async def _get_compliance_runs(
     return {"meta": meta, "data": rows}
 
 
+def _has_run_log_scope(
+    filters: dict[str, str] | str | None,
+    node_id: str | None,
+    svc_id: str | None,
+) -> bool:
+    if node_id and node_id.strip():
+        return True
+    if svc_id and svc_id.strip():
+        return True
+    for field, _value in parse_filters(filters):
+        if field.rsplit(".", 1)[-1] in {"node_id", "svc_id"}:
+            return True
+    return False
+
+
 def _default_run_props(source: RunSource) -> str:
     if source == "status":
         return COMPLIANCE_STATUS_PROPS
@@ -281,12 +301,16 @@ async def _shape_run_rows(
     )
     rows_with_nodes = enrich_rows_with_nodenames(shaped, nodenames_by_node_id)
     svcnames_by_svc_id = await get_svcnames_by_svc_ids(
-        str(row.get("svc_id") or "") for row in rows_with_nodes if not row.get("svcname")
+        str(row.get("svc_id") or "")
+        for row in rows_with_nodes
+        if not row.get("svcname")
     )
     return enrich_rows_with_svcnames(rows_with_nodes, svcnames_by_svc_id)
 
 
-def _sort_run_rows(rows: list[dict[str, Any]], latest_first: bool) -> list[dict[str, Any]]:
+def _sort_run_rows(
+    rows: list[dict[str, Any]], latest_first: bool
+) -> list[dict[str, Any]]:
     return sorted(
         rows,
         key=lambda row: (

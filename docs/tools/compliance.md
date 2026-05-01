@@ -112,6 +112,54 @@ data
 ```
 
 
+### `get_compliance_logs`
+
+Returns historical global OpenSVC compliance run logs from Collector. Use this
+tool when the user asks for compliance logs, run history, previous executions, or
+past check details for a focused node or service. The tool requires `node_id` or
+`svc_id` because global `/compliance/logs` queries are too expensive on the
+Collector side. Use `get_compliance_status` first to identify the failing row and
+its node or service id when needed.
+
+The tool reads:
+
+```text
+/compliance/logs
+```
+
+The response is paginated with `limit` and `offset`, and `meta.total` tells the
+caller whether more pages are available. By default `latest=false`, so `offset`
+works for historical pagination while rows are still returned newest first via
+`latest_first=true`. Set `latest=true` only to force the newest log page.
+
+A bounded `run_log_preview` is included by default. Set `include_run_log=false`
+to keep full logs hidden, or `include_run_log=true` only when the full raw log is
+explicitly needed.
+
+Example:
+
+```json
+{
+  "request": {
+    "node_id": "1c4e7e32-7814-4aa9-92f3-2b486ad41ec0",
+    "run_status": 1,
+    "run_module": "aits.nodes.opensvc",
+    "include_run_log_preview": true,
+    "run_log_max_chars": 1000,
+    "limit": 20,
+    "offset": 0
+  }
+}
+```
+
+Output fields:
+
+```text
+meta
+data
+```
+
+
 ### `get_compliance_ruleset`
 
 Returns one compliance ruleset selected by Collector ruleset id or exact

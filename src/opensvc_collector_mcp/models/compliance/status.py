@@ -116,6 +116,44 @@ class ComplianceStatusRow(BaseModel):
     )
 
 
+class ComplianceLogsRequest(ComplianceStatusRequest):
+    filters: dict[str, str] = Field(
+        default_factory=dict,
+        description="Exact-match Collector filters. Keys can be raw Collector compliance log properties.",
+    )
+    limit: int = Field(default=20, ge=1, le=1000)
+    latest: bool = Field(
+        default=False,
+        description="When true, force the newest log page by using offset 0. Keep false to paginate historical logs.",
+    )
+    include_run_log_preview: bool = Field(
+        default=True,
+        description="Include bounded run_log_preview by default for historical log diagnostics.",
+    )
+
+    @model_validator(mode="after")
+    def require_log_scope(self) -> "ComplianceLogsRequest":
+        has_node = bool(self.node_id)
+        has_service = bool(self.svc_id)
+        for field in self.filters:
+            if field.rsplit(".", 1)[-1] == "node_id":
+                has_node = True
+            if field.rsplit(".", 1)[-1] == "svc_id":
+                has_service = True
+        if not has_node and not has_service:
+            raise ValueError(
+                "node_id or svc_id must be provided to query compliance logs"
+            )
+        return self
+
+
+class ComplianceLogsResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ComplianceStatusRow]
+
+
 class ComplianceStatusResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
