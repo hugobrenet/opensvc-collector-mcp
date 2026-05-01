@@ -7,6 +7,7 @@ from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.compliance import (
     get_compliance_moduleset as core_get_compliance_moduleset,
     get_compliance_moduleset_candidate_nodes as core_get_compliance_moduleset_candidate_nodes,
+    get_compliance_moduleset_candidate_services as core_get_compliance_moduleset_candidate_services,
     get_compliance_moduleset_definition as core_get_compliance_moduleset_definition,
     get_compliance_moduleset_modules as core_get_compliance_moduleset_modules,
     get_compliance_moduleset_nodes as core_get_compliance_moduleset_nodes,
@@ -17,6 +18,8 @@ from opensvc_collector_mcp.core.compliance import (
 from opensvc_collector_mcp.models.compliance import (
     ComplianceModulesetCandidateNodesRequest,
     ComplianceModulesetCandidateNodesResponse,
+    ComplianceModulesetCandidateServicesRequest,
+    ComplianceModulesetCandidateServicesResponse,
     ComplianceModulesetDefinitionRequest,
     ComplianceModulesetDefinitionResponse,
     ComplianceModulesetModulesRequest,
@@ -229,6 +232,49 @@ def register_compliance_tools(mcp: FastMCP) -> None:
             offset=request.offset,
         )
         return ComplianceModulesetServicesResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_compliance_moduleset_candidate_services",
+        description=(
+            "Return services eligible or attachable to one OpenSVC Collector compliance "
+            "moduleset according to Collector targeting rules. This does not mean "
+            "the services are directly attached; use get_compliance_moduleset_services "
+            "for direct attachments. Use this when users ask which services are "
+            "targeted, eligible, candidate, concerned, or could receive a moduleset."
+        ),
+        tags={"compliance", "modulesets", "services", "candidate", "read"},
+        annotations={
+            "title": "Get OpenSVC Compliance Moduleset Candidate Services",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_compliance_moduleset_candidate_services(
+        request: Annotated[
+            ComplianceModulesetCandidateServicesRequest,
+            Field(
+                description=(
+                    "Collector moduleset id or exact modset_name plus optional "
+                    "filters, properties, ordering, search, limit, and offset. "
+                    "Returns eligible/attachable candidate services, not direct attachments."
+                ),
+            ),
+        ],
+    ) -> ComplianceModulesetCandidateServicesResponse:
+        """Return services eligible or attachable to one compliance moduleset."""
+        response = await core_get_compliance_moduleset_candidate_services(
+            moduleset_id=request.moduleset_id,
+            modset_name=request.modset_name,
+            filters=request.filters,
+            props=request.props,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
+        )
+        return ComplianceModulesetCandidateServicesResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

@@ -3,6 +3,8 @@
 from .inventory import (
     ComplianceModulesetCandidateNodesRequest,
     ComplianceModulesetCandidateNodesResponse,
+    ComplianceModulesetCandidateServicesRequest,
+    ComplianceModulesetCandidateServicesResponse,
     ComplianceModulesetDefinitionRequest,
     ComplianceModulesetDefinitionResponse,
     ComplianceModulesetModuleRow,
@@ -26,6 +28,8 @@ from .inventory import (
 __all__ = [
     "ComplianceModulesetCandidateNodesRequest",
     "ComplianceModulesetCandidateNodesResponse",
+    "ComplianceModulesetCandidateServicesRequest",
+    "ComplianceModulesetCandidateServicesResponse",
     "ComplianceModulesetDefinitionRequest",
     "ComplianceModulesetDefinitionResponse",
     "ComplianceModulesetModuleRow",

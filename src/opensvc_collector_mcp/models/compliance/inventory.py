@@ -140,6 +140,13 @@ class ComplianceModulesetServicesRequest(ComplianceModulesetRelationRequest):
     )
 
 
+class ComplianceModulesetCandidateServicesRequest(ComplianceModulesetRelationRequest):
+    orderby: str | None = Field(
+        default="svcname",
+        description="Collector orderby expression. Defaults to svcname.",
+    )
+
+
 class ComplianceModulesetRow(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -255,5 +262,15 @@ class ComplianceModulesetServicesResponse(BaseModel):
     object_id: str
     modset_name: str | None = None
     relation: str = Field(default="services")
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ComplianceModulesetServiceRow]
+
+
+class ComplianceModulesetCandidateServicesResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    object_id: str
+    modset_name: str | None = None
+    relation: str = Field(default="candidate_services")
     meta: dict[str, Any] = Field(default_factory=dict)
     data: list[ComplianceModulesetServiceRow]
