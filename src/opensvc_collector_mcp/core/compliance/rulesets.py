@@ -359,22 +359,45 @@ async def _get_compliance_ruleset_relation(
 
 
 async def get_compliance_ruleset_variable(
-    ruleset_id: int | str,
-    variable_id: int | str,
+    ruleset_id: int | str | None = None,
+    ruleset_name: str | None = None,
+    variable_id: int | str | None = None,
     props: str | None = None,
     include_var_value: bool = False,
 ) -> dict[str, Any]:
+    if variable_id is None or not str(variable_id).strip():
+        raise ValueError("variable_id must be provided")
+
+    resolved = await _resolve_ruleset_identity(
+        ruleset_id=ruleset_id,
+        ruleset_name=ruleset_name,
+    )
+    resolved_id = str(resolved["id"])
+    resolved_name = resolved.get("ruleset_name")
+    resolved_variable_id = str(variable_id).strip()
     selected_props = props or _ruleset_variable_props(include_var_value)
     path = (
-        f"/compliance/rulesets/{quote_path_id(ruleset_id)}"
-        f"/variables/{quote_path_id(variable_id)}"
+        f"/compliance/rulesets/{quote_path_id(resolved_id)}"
+        f"/variables/{quote_path_id(resolved_variable_id)}"
     )
     response = await get_object(path, props=selected_props)
     data = object_response(
-        response, "compliance_ruleset_variable", variable_id, selected_props
+        response, "compliance_ruleset_variable", resolved_variable_id, selected_props
     )
-    data["ruleset_id"] = str(ruleset_id)
-    data["meta"]["include_var_value"] = include_var_value
+    data["ruleset_id"] = resolved_id
+    data["ruleset_name"] = resolved_name
+    data["meta"].update(
+        {
+            "include_var_value": include_var_value,
+            "requested_ruleset_id": str(ruleset_id).strip()
+            if ruleset_id is not None
+            else None,
+            "requested_ruleset_name": ruleset_name,
+            "resolved_ruleset_id": resolved_id,
+            "resolved_ruleset_name": resolved_name,
+            "variable_id": resolved_variable_id,
+        }
+    )
     return data
 
 

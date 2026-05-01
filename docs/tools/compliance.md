@@ -173,6 +173,44 @@ data
 ```
 
 
+### `get_compliance_ruleset_variable`
+
+Returns one variable attached to one compliance ruleset, selected by Collector
+ruleset id or exact `ruleset_name` and a `variable_id` returned by
+`get_compliance_ruleset_variables`.
+
+The tool resolves the ruleset id through `/compliance/rulesets`, then calls:
+
+```text
+/compliance/rulesets/<ruleset_id>/variables/<variable_id>
+```
+
+Variable values are hidden by default. Set `include_var_value=true` only when the
+question requires the actual value.
+
+Example:
+
+```json
+{
+  "request": {
+    "ruleset_name": "02-aits.nodes.opensvc.tags",
+    "variable_id": 303,
+    "include_var_value": false
+  }
+}
+```
+
+Output fields:
+
+```text
+object_id
+ruleset_id
+ruleset_name
+meta
+data
+```
+
+
 ### `get_compliance_ruleset_candidate_nodes`
 
 Returns candidate nodes eligible for one compliance ruleset selected by

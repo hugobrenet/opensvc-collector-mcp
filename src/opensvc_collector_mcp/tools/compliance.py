@@ -21,6 +21,7 @@ from opensvc_collector_mcp.core.compliance import (
     get_compliance_ruleset_publications as core_get_compliance_ruleset_publications,
     get_compliance_ruleset_responsibles as core_get_compliance_ruleset_responsibles,
     get_compliance_ruleset_usage as core_get_compliance_ruleset_usage,
+    get_compliance_ruleset_variable as core_get_compliance_ruleset_variable,
     get_compliance_ruleset_variables as core_get_compliance_ruleset_variables,
     list_compliance_modulesets as core_list_compliance_modulesets,
     list_compliance_rulesets as core_list_compliance_rulesets,
@@ -59,6 +60,8 @@ from opensvc_collector_mcp.models.compliance import (
     ComplianceRulesetResponsiblesResponse,
     ComplianceRulesetResponse,
     ComplianceRulesetUsageRequest,
+    ComplianceRulesetVariableRequest,
+    ComplianceRulesetVariableResponse,
     ComplianceRulesetUsageResponse,
     ComplianceRulesetVariablesRequest,
     ComplianceRulesetVariablesResponse,
@@ -206,6 +209,8 @@ def register_compliance_tools(mcp: FastMCP) -> None:
     async def get_compliance_ruleset_usage(
         request: Annotated[
             ComplianceRulesetUsageRequest,
+    ComplianceRulesetVariableRequest,
+    ComplianceRulesetVariableResponse,
             Field(
                 description=(
                     "Collector ruleset id or exact ruleset_name used to retrieve "
@@ -261,6 +266,43 @@ def register_compliance_tools(mcp: FastMCP) -> None:
             include_var_value=request.include_var_value,
         )
         return ComplianceRulesetVariablesResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_compliance_ruleset_variable",
+        description=(
+            "Return one variable from one OpenSVC Collector compliance ruleset, "
+            "selected by ruleset id or exact ruleset name and variable id. "
+            "Variable values are hidden by default."
+        ),
+        tags={"compliance", "rulesets", "variables", "read"},
+        annotations={
+            "title": "Get OpenSVC Compliance Ruleset Variable",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_compliance_ruleset_variable(
+        request: Annotated[
+            ComplianceRulesetVariableRequest,
+            Field(
+                description=(
+                    "Collector ruleset id or exact ruleset_name, variable_id, "
+                    "optional props, and include_var_value for one variable."
+                ),
+            ),
+        ],
+    ) -> ComplianceRulesetVariableResponse:
+        """Return one variable attached to one compliance ruleset."""
+        response = await core_get_compliance_ruleset_variable(
+            ruleset_id=request.ruleset_id,
+            ruleset_name=request.ruleset_name,
+            variable_id=request.variable_id,
+            props=request.props,
+            include_var_value=request.include_var_value,
+        )
+        return ComplianceRulesetVariableResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

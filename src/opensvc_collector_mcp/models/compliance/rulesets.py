@@ -194,6 +194,43 @@ class ComplianceRulesetResponsiblesRequest(ComplianceRulesetPublicationsRequest)
     pass
 
 
+class ComplianceRulesetVariableRequest(BaseModel):
+    ruleset_id: int | str | None = Field(
+        default=None,
+        description="Collector compliance ruleset id, when already known.",
+    )
+    ruleset_name: str | None = Field(
+        default=None,
+        description="Exact compliance ruleset name to resolve to a Collector id.",
+        examples=["02-aits.nodes.opensvc.tags"],
+    )
+    variable_id: int | str = Field(
+        description="Collector ruleset variable id returned by get_compliance_ruleset_variables.",
+        examples=[303],
+    )
+    props: str | None = Field(
+        default=None,
+        description="Comma-separated ruleset variable properties to return.",
+    )
+    include_var_value: bool = Field(
+        default=False,
+        description=(
+            "Include the variable value in the response. Disabled by default "
+            "because values can be large or sensitive."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def require_selector(self) -> "ComplianceRulesetVariableRequest":
+        has_id = self.ruleset_id is not None and str(self.ruleset_id).strip()
+        has_name = self.ruleset_name is not None and self.ruleset_name.strip()
+        if not has_id and not has_name:
+            raise ValueError("ruleset_id or ruleset_name must be provided")
+        if self.ruleset_name is not None:
+            self.ruleset_name = self.ruleset_name.strip() or None
+        return self
+
+
 class ComplianceRulesetVariableRow(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -301,6 +338,16 @@ class ComplianceRulesetResponsiblesResponse(BaseModel):
     ruleset_name: str | None = None
     meta: dict[str, Any] = Field(default_factory=dict)
     data: list[ComplianceRulesetGroupRow]
+
+
+class ComplianceRulesetVariableResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    object_id: str
+    ruleset_id: str
+    ruleset_name: str | None = None
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ComplianceRulesetVariableRow]
 
 
 class ComplianceRulesetVariablesResponse(BaseModel):

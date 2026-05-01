@@ -92,6 +92,7 @@ Current MCP compliance tool surface:
 - `get_compliance_ruleset`
 - `get_compliance_ruleset_usage`
 - `get_compliance_ruleset_variables`
+- `get_compliance_ruleset_variable`
 - `get_compliance_ruleset_candidate_nodes`
 - `get_compliance_ruleset_candidate_services`
 - `get_compliance_ruleset_publications`
