@@ -8,6 +8,31 @@ MCP tool definitions live in `src/opensvc_collector_mcp/tools/tags.py`.
 
 ## Tools
 
+
+### `get_tag`
+
+Returns one OpenSVC Collector tag selected by exact `tag_id` or exact
+`tag_name`. If `tag_name` is provided, the tool resolves it through `/tags`
+before calling `/tags/<id>`.
+
+Example:
+
+```json
+{
+  "request": {
+    "tag_name": "tag_name",
+    "props": "tag_id,tag_name,tag_exclude,tag_created"
+  }
+}
+```
+
+Output fields:
+
+```text
+meta
+data
+```
+
 ### `list_tag_props`
 
 Returns the tag properties exposed by the Collector.

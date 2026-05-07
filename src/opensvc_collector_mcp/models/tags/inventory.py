@@ -79,6 +79,34 @@ class ListTagsRequest(TagFilterRequest):
     )
 
 
+class TagSelectorRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    tag_id: str | None = Field(
+        default=None,
+        description="Exact Collector tag id. Provide either tag_id or tag_name, not both.",
+    )
+    tag_name: str | None = Field(
+        default=None,
+        description="Exact tag name to resolve to a Collector tag id. Provide either tag_id or tag_name, not both.",
+        examples=["tag_name"],
+    )
+    props: str | None = Field(
+        default=None,
+        description="Comma-separated tag properties to include in the response.",
+    )
+
+    @model_validator(mode="after")
+    def validate_selector(self) -> "TagSelectorRequest":
+        tag_id = self.tag_id.strip() if self.tag_id else None
+        tag_name = self.tag_name.strip() if self.tag_name else None
+        if bool(tag_id) == bool(tag_name):
+            raise ValueError("provide exactly one of tag_id or tag_name")
+        self.tag_id = tag_id
+        self.tag_name = tag_name
+        return self
+
+
 class TagPropsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

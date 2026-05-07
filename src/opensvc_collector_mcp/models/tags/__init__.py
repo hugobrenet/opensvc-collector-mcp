@@ -5,6 +5,7 @@ from .inventory import (
     TagFilterRequest,
     TagPropsResponse,
     TagRow,
+    TagSelectorRequest,
     TagRowsResponse,
 )
 
@@ -13,5 +14,6 @@ __all__ = [
     "TagFilterRequest",
     "TagPropsResponse",
     "TagRow",
+    "TagSelectorRequest",
     "TagRowsResponse",
 ]

@@ -1,4 +1,5 @@
 from typing import Any
+from urllib.parse import quote
 
 from opensvc_collector_mcp.client import collector_get
 from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
@@ -30,6 +31,31 @@ async def list_tags(
     )
 
 
+async def get_tag(
+    tag_id: str | None = None,
+    tag_name: str | None = None,
+    props: str | None = None,
+) -> dict[str, Any]:
+    resolved = await _resolve_tag_selector(tag_id=tag_id, tag_name=tag_name)
+    params = {"props": props} if props else None
+    response = await collector_get(
+        f"/tags/{quote(resolved['tag_id'], safe='')}",
+        params=params,
+    )
+    meta = dict(response.get("meta", {}))
+    meta.update(
+        {
+            "source": "tag_detail",
+            "selector": resolved["selector"],
+            "resolution": resolved["resolution"],
+            "resolved_tag_id": resolved["tag_id"],
+            "resolved_tag_name": resolved.get("tag_name"),
+            "count": len(response.get("data", [])),
+        }
+    )
+    return {"meta": meta, "data": response.get("data", [])}
+
+
 async def list_tag_props() -> dict[str, Any]:
     response = await collector_get("/tags", params={"props": "tag_id", "limit": 1})
     available_props = response.get("meta", {}).get("available_props", [])
@@ -43,4 +69,51 @@ async def list_tag_props() -> dict[str, Any]:
         "count": len(available_props),
         "available_props": available_props,
         "tag_props": tag_props,
+    }
+
+
+async def _resolve_tag_selector(
+    tag_id: str | None = None,
+    tag_name: str | None = None,
+) -> dict[str, Any]:
+    cleaned_tag_id = tag_id.strip() if tag_id else None
+    cleaned_tag_name = tag_name.strip() if tag_name else None
+    if bool(cleaned_tag_id) == bool(cleaned_tag_name):
+        raise ValueError("provide exactly one of tag_id or tag_name")
+
+    if cleaned_tag_id:
+        return {
+            "selector": cleaned_tag_id,
+            "resolution": "tag_id",
+            "tag_id": cleaned_tag_id,
+        }
+
+    response = await collector_get(
+        "/tags",
+        params=collection_params(
+            filters=[("tag_name", cleaned_tag_name or "")],
+            props="tag_id,tag_name",
+            orderby=None,
+            search=None,
+            limit=2,
+            offset=0,
+        ),
+    )
+    rows = response.get("data", [])
+    if not isinstance(rows, list) or not rows:
+        raise ValueError(f"tag_name {cleaned_tag_name!r} not found")
+
+    exact_rows = [row for row in rows if str(row.get("tag_name") or "") == cleaned_tag_name]
+    if len(exact_rows) != 1:
+        raise ValueError(f"tag_name {cleaned_tag_name!r} matched {len(exact_rows)} tags")
+
+    row = exact_rows[0]
+    resolved_tag_id = str(row.get("tag_id") or "").strip()
+    if not resolved_tag_id:
+        raise ValueError(f"tag_name {cleaned_tag_name!r} resolved without tag_id")
+    return {
+        "selector": cleaned_tag_name,
+        "resolution": "tag_name",
+        "tag_id": resolved_tag_id,
+        "tag_name": row.get("tag_name"),
     }

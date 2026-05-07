@@ -123,6 +123,7 @@ Current MCP tag tool surface:
 
 - `list_tag_props`
 - `list_tags`
+- `get_tag`
 
 Current MCP user tool surface:
 

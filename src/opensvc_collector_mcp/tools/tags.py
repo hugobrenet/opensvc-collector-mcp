@@ -5,6 +5,7 @@ from pydantic import Field
 
 from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.tags import (
+    get_tag as core_get_tag,
     list_tag_props as core_list_tag_props,
     list_tags as core_list_tags,
 )
@@ -12,6 +13,7 @@ from opensvc_collector_mcp.models.tags import (
     ListTagsRequest,
     TagPropsResponse,
     TagRowsResponse,
+    TagSelectorRequest,
 )
 
 
@@ -46,6 +48,36 @@ def register_tags_tools(mcp: FastMCP) -> None:
             search=request.search,
             limit=request.limit,
             offset=request.offset,
+        )
+        return TagRowsResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_tag",
+        description=(
+            "Return OpenSVC Collector details for one tag selected by exact "
+            "tag id or exact tag name. Use list_tags first when the exact "
+            "identifier is unknown."
+        ),
+        tags={"tags", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Tag",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_tag(
+        request: Annotated[
+            TagSelectorRequest,
+            Field(description="Tag selector and optional property selection."),
+        ],
+    ) -> TagRowsResponse:
+        """Return one OpenSVC Collector tag by tag id or tag name."""
+        response = await core_get_tag(
+            tag_id=request.tag_id,
+            tag_name=request.tag_name,
+            props=request.props,
         )
         return TagRowsResponse.model_validate(response)
 
