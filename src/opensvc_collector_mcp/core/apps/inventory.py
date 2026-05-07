@@ -13,6 +13,7 @@ DEFAULT_APP_SERVICE_PROPS = (
     "svcname,svc_app,svc_env,svc_status,svc_availstatus,svc_topology,"
     "svc_nodes,svc_drpnodes,svc_frozen,svc_ha,svc_created,updated"
 )
+DEFAULT_APP_GROUP_PROPS = "id,role,privilege,description"
 
 
 async def list_apps(
@@ -127,6 +128,36 @@ async def get_app_services(
     }
 
 
+async def get_app_responsibles(
+    app: str,
+    props: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> dict[str, Any]:
+    return await _get_app_group_relation(
+        app=app,
+        relation="responsibles",
+        props=props,
+        limit=limit,
+        offset=offset,
+    )
+
+
+async def get_app_publications(
+    app: str,
+    props: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> dict[str, Any]:
+    return await _get_app_group_relation(
+        app=app,
+        relation="publications",
+        props=props,
+        limit=limit,
+        offset=offset,
+    )
+
+
 async def count_app_services(
     app: str,
 ) -> dict[str, Any]:
@@ -210,4 +241,43 @@ async def list_app_props() -> dict[str, Any]:
         "count": len(available_props),
         "available_props": available_props,
         "app_props": app_props,
+    }
+
+
+async def _get_app_group_relation(
+    app: str,
+    relation: str,
+    props: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> dict[str, Any]:
+    selector = app.strip()
+    if not selector:
+        raise ValueError("app must not be empty")
+    if relation not in {"responsibles", "publications"}:
+        raise ValueError(f"unsupported app group relation: {relation}")
+
+    selected_props = props or DEFAULT_APP_GROUP_PROPS
+    response = await collector_get(
+        f"/apps/{quote(selector, safe='')}/{relation}",
+        params={
+            "props": selected_props,
+            "limit": limit,
+            "offset": offset,
+        },
+    )
+    rows = response.get("data", [])
+    meta = dict(response.get("meta", {}))
+    meta.update(
+        {
+            "source": f"apps/<id>/{relation}",
+            "selector": selector,
+            "included_props": selected_props.split(","),
+            "group_count": len(rows) if isinstance(rows, list) else 0,
+        }
+    )
+    return {
+        "app": selector,
+        "meta": meta,
+        "data": rows if isinstance(rows, list) else [],
     }

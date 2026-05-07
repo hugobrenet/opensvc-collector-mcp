@@ -83,6 +83,58 @@ count
 meta
 ```
 
+### `get_app_responsibles`
+
+Returns responsible groups attached to one OpenSVC Collector application
+code selected by exact `app` code or Collector app row id.
+
+Example:
+
+```json
+{
+  "request": {
+    "app": "APP-CODE",
+    "props": "id,role,privilege,description",
+    "limit": 20,
+    "offset": 0
+  }
+}
+```
+
+Output fields:
+
+```text
+app
+meta
+data
+```
+
+### `get_app_publications`
+
+Returns publication groups attached to one OpenSVC Collector application
+code selected by exact `app` code or Collector app row id.
+
+Example:
+
+```json
+{
+  "request": {
+    "app": "APP-CODE",
+    "props": "id,role,privilege,description",
+    "limit": 20,
+    "offset": 0
+  }
+}
+```
+
+Output fields:
+
+```text
+app
+meta
+data
+```
+
 ### `get_app_services`
 
 Returns all services attached to one OpenSVC Collector application code

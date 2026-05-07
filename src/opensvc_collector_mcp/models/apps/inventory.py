@@ -110,6 +110,39 @@ class AppNodesResponse(BaseModel):
     data: list[dict[str, Any]]
 
 
+class AppGroupRelationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    app: str = Field(
+        min_length=1,
+        description="Collector app selector. Use an exact app code or Collector app row id.",
+        examples=["APP-CODE"],
+    )
+    props: str | None = Field(
+        default=None,
+        description="Comma-separated group properties to include in the response.",
+    )
+    limit: int = Field(
+        default=20,
+        ge=1,
+        le=1000,
+        description="Maximum number of groups to return.",
+    )
+    offset: int = Field(
+        default=0,
+        ge=0,
+        description="Number of matching groups to skip.",
+    )
+
+
+class AppGroupRelationResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    app: str
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[dict[str, Any]]
+
+
 class AppServicesRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

@@ -10,11 +10,15 @@ from opensvc_collector_mcp.core.apps import (
     count_apps as core_count_apps,
     get_app as core_get_app,
     get_app_nodes as core_get_app_nodes,
+    get_app_publications as core_get_app_publications,
+    get_app_responsibles as core_get_app_responsibles,
     get_app_services as core_get_app_services,
     list_app_props as core_list_app_props,
     list_apps as core_list_apps,
 )
 from opensvc_collector_mcp.models.apps import (
+    AppGroupRelationRequest,
+    AppGroupRelationResponse,
     AppNodesRequest,
     AppNodesResponse,
     AppPropsResponse,
@@ -176,6 +180,66 @@ def register_apps_tools(mcp: FastMCP) -> None:
         """Return the number of nodes attached to one app."""
         response = await core_count_app_nodes(app=request.app)
         return AppRelationCountResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_app_responsibles",
+        description=(
+            "Return OpenSVC Collector responsible groups attached to one "
+            "app selected by exact app code or Collector app row id."
+        ),
+        tags={"apps", "groups", "responsibles", "read"},
+        annotations={
+            "title": "Get OpenSVC App Responsibles",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_app_responsibles(
+        request: Annotated[
+            AppGroupRelationRequest,
+            Field(description="App selector and optional group property selection."),
+        ],
+    ) -> AppGroupRelationResponse:
+        """Return responsible groups attached to one OpenSVC Collector app."""
+        response = await core_get_app_responsibles(
+            app=request.app,
+            props=request.props,
+            limit=request.limit,
+            offset=request.offset,
+        )
+        return AppGroupRelationResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_app_publications",
+        description=(
+            "Return OpenSVC Collector publication groups attached to one "
+            "app selected by exact app code or Collector app row id."
+        ),
+        tags={"apps", "groups", "publications", "read"},
+        annotations={
+            "title": "Get OpenSVC App Publications",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_app_publications(
+        request: Annotated[
+            AppGroupRelationRequest,
+            Field(description="App selector and optional group property selection."),
+        ],
+    ) -> AppGroupRelationResponse:
+        """Return publication groups attached to one OpenSVC Collector app."""
+        response = await core_get_app_publications(
+            app=request.app,
+            props=request.props,
+            limit=request.limit,
+            offset=request.offset,
+        )
+        return AppGroupRelationResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
