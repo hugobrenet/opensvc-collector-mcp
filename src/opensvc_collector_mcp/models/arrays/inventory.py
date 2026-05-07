@@ -188,6 +188,74 @@ class ArrayDiskgroupsResponse(BaseModel):
     data: list[dict[str, Any]]
 
 
+class ArrayProxiesRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    array: str = Field(
+        min_length=1,
+        description=(
+            "Collector array selector. Use an exact storage array name "
+            "or Collector array row id."
+        ),
+        examples=["ARRAY-NAME"],
+    )
+    props: str | None = Field(
+        default=None,
+        description=(
+            "Comma-separated proxy properties to include in the response. "
+            "Defaults to a compact array proxy view."
+        ),
+    )
+    max_proxies: int = Field(
+        default=200000,
+        ge=1,
+        le=500000,
+        description="Maximum number of proxies to return from Collector pagination.",
+    )
+
+
+class ArrayProxiesResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    array: str
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[dict[str, Any]]
+
+
+class ArrayTargetsRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    array: str = Field(
+        min_length=1,
+        description=(
+            "Collector array selector. Use an exact storage array name "
+            "or Collector array row id."
+        ),
+        examples=["ARRAY-NAME"],
+    )
+    props: str | None = Field(
+        default=None,
+        description=(
+            "Comma-separated target properties to include in the response. "
+            "Defaults to a compact array target view."
+        ),
+    )
+    max_targets: int = Field(
+        default=200000,
+        ge=1,
+        le=500000,
+        description="Maximum number of targets to return from Collector pagination.",
+    )
+
+
+class ArrayTargetsResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    array: str
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[dict[str, Any]]
+
+
 class ArrayPropsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

@@ -12,6 +12,8 @@ DEFAULT_LIST_ARRAY_PROPS = (
 DEFAULT_ARRAY_DISKGROUP_PROPS = (
     "id,array_id,dg_name,dg_size,dg_free,dg_used,dg_reserved,dg_updated"
 )
+DEFAULT_ARRAY_PROXY_PROPS = "id,array_id,node_id"
+DEFAULT_ARRAY_TARGET_PROPS = "id,array_id,array_tgtid"
 
 
 async def list_arrays(
@@ -170,6 +172,70 @@ async def get_array_diskgroups(
             "selector": selector,
             "included_props": selected_props.split(","),
             "diskgroup_count": len(rows),
+        }
+    )
+    return {
+        "array": selector,
+        "meta": meta,
+        "data": rows,
+    }
+
+
+async def get_array_proxies(
+    array: str,
+    props: str | None = None,
+    max_proxies: int = 200000,
+) -> dict[str, Any]:
+    selector = array.strip()
+    if not selector:
+        raise ValueError("array must not be empty")
+
+    selected_props = props or DEFAULT_ARRAY_PROXY_PROPS
+    response = await collector_get_all(
+        f"/arrays/{quote(selector, safe='')}/proxies",
+        params={"props": selected_props},
+        max_items=max_proxies,
+    )
+    rows = response.get("data", [])
+    meta = dict(response.get("meta") or {})
+    meta.update(
+        {
+            "source": "arrays/<id>/proxies",
+            "selector": selector,
+            "included_props": selected_props.split(","),
+            "proxy_count": len(rows),
+        }
+    )
+    return {
+        "array": selector,
+        "meta": meta,
+        "data": rows,
+    }
+
+
+async def get_array_targets(
+    array: str,
+    props: str | None = None,
+    max_targets: int = 200000,
+) -> dict[str, Any]:
+    selector = array.strip()
+    if not selector:
+        raise ValueError("array must not be empty")
+
+    selected_props = props or DEFAULT_ARRAY_TARGET_PROPS
+    response = await collector_get_all(
+        f"/arrays/{quote(selector, safe='')}/targets",
+        params={"props": selected_props},
+        max_items=max_targets,
+    )
+    rows = response.get("data", [])
+    meta = dict(response.get("meta") or {})
+    meta.update(
+        {
+            "source": "arrays/<id>/targets",
+            "selector": selector,
+            "included_props": selected_props.split(","),
+            "target_count": len(rows),
         }
     )
     return {

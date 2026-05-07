@@ -6,6 +6,8 @@ from .inventory import (
     get_array,
     get_array_diskgroup,
     get_array_diskgroups,
+    get_array_proxies,
+    get_array_targets,
     list_array_props,
     list_arrays,
 )
@@ -16,6 +18,8 @@ __all__ = [
     "get_array",
     "get_array_diskgroup",
     "get_array_diskgroups",
+    "get_array_proxies",
+    "get_array_targets",
     "list_array_props",
     "list_arrays",
 ]

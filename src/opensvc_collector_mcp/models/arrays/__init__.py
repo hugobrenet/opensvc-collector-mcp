@@ -10,10 +10,14 @@ from .inventory import (
     CountArraysResponse,
     GetArrayRequest,
     ArrayPropsResponse,
+    ArrayProxiesRequest,
+    ArrayProxiesResponse,
     ArrayRelationCountRequest,
     ArrayRelationCountResponse,
     ArrayRow,
     ArrayRowsResponse,
+    ArrayTargetsRequest,
+    ArrayTargetsResponse,
     ListArraysRequest,
 )
 
@@ -27,9 +31,13 @@ __all__ = [
     "CountArraysResponse",
     "GetArrayRequest",
     "ArrayPropsResponse",
+    "ArrayProxiesRequest",
+    "ArrayProxiesResponse",
     "ArrayRelationCountRequest",
     "ArrayRelationCountResponse",
     "ArrayRow",
     "ArrayRowsResponse",
+    "ArrayTargetsRequest",
+    "ArrayTargetsResponse",
     "ListArraysRequest",
 ]

@@ -172,6 +172,72 @@ meta
 data
 ```
 
+### `get_array_proxies`
+
+Returns all proxy rows attached to one OpenSVC Collector storage array selected
+by exact `array_name` or Collector array row id. The tool calls
+`/arrays/<id>/proxies` and follows Collector pagination until `meta.complete`
+is true or `max_proxies` is reached.
+
+Default props:
+
+```text
+id,array_id,node_id
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "array": "ARRAY-NAME",
+    "props": "id,array_id,node_id",
+    "max_proxies": 200000
+  }
+}
+```
+
+Output fields:
+
+```text
+array
+meta
+data
+```
+
+### `get_array_targets`
+
+Returns all target id rows attached to one OpenSVC Collector storage array
+selected by exact `array_name` or Collector array row id. The tool calls
+`/arrays/<id>/targets` and follows Collector pagination until `meta.complete`
+is true or `max_targets` is reached.
+
+Default props:
+
+```text
+id,array_id,array_tgtid
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "array": "ARRAY-NAME",
+    "props": "id,array_id,array_tgtid",
+    "max_targets": 200000
+  }
+}
+```
+
+Output fields:
+
+```text
+array
+meta
+data
+```
+
 ### `list_arrays`
 
 Lists one page of OpenSVC Collector storage arrays.

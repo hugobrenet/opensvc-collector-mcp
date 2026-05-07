@@ -10,6 +10,8 @@ from opensvc_collector_mcp.core.arrays import (
     get_array as core_get_array,
     get_array_diskgroup as core_get_array_diskgroup,
     get_array_diskgroups as core_get_array_diskgroups,
+    get_array_proxies as core_get_array_proxies,
+    get_array_targets as core_get_array_targets,
     list_array_props as core_list_array_props,
     list_arrays as core_list_arrays,
 )
@@ -19,12 +21,16 @@ from opensvc_collector_mcp.models.arrays import (
     ArrayDiskgroupsRequest,
     ArrayDiskgroupsResponse,
     ArrayPropsResponse,
+    ArrayProxiesRequest,
+    ArrayProxiesResponse,
     ArrayRelationCountRequest,
     ArrayRelationCountResponse,
+    ArrayRowsResponse,
+    ArrayTargetsRequest,
+    ArrayTargetsResponse,
     CountArraysRequest,
     CountArraysResponse,
     GetArrayRequest,
-    ArrayRowsResponse,
     ListArraysRequest,
 )
 
@@ -195,9 +201,7 @@ def register_arrays_tools(mcp: FastMCP) -> None:
     )
     async def get_array_diskgroups(
         request: Annotated[
-            ArrayDiskgroupRequest,
-    ArrayDiskgroupResponse,
-    ArrayDiskgroupsRequest,
+            ArrayDiskgroupsRequest,
             Field(description="Array selector and optional diskgroup property selection."),
         ],
     ) -> ArrayDiskgroupsResponse:
@@ -208,6 +212,68 @@ def register_arrays_tools(mcp: FastMCP) -> None:
             max_diskgroups=request.max_diskgroups,
         )
         return ArrayDiskgroupsResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_array_proxies",
+        description=(
+            "Return all OpenSVC Collector proxy nodes attached to one storage "
+            "array selected by exact array name or Collector array row id. "
+            "The tool follows Collector pagination until complete or "
+            "max_proxies is reached."
+        ),
+        tags={"arrays", "storage", "proxies", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Storage Array Proxies",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_array_proxies(
+        request: Annotated[
+            ArrayProxiesRequest,
+            Field(description="Array selector and optional proxy property selection."),
+        ],
+    ) -> ArrayProxiesResponse:
+        """Return proxy rows attached to one OpenSVC Collector storage array."""
+        response = await core_get_array_proxies(
+            array=request.array,
+            props=request.props,
+            max_proxies=request.max_proxies,
+        )
+        return ArrayProxiesResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_array_targets",
+        description=(
+            "Return all OpenSVC Collector target ids attached to one storage "
+            "array selected by exact array name or Collector array row id. "
+            "The tool follows Collector pagination until complete or "
+            "max_targets is reached."
+        ),
+        tags={"arrays", "storage", "targets", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Storage Array Targets",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_array_targets(
+        request: Annotated[
+            ArrayTargetsRequest,
+            Field(description="Array selector and optional target property selection."),
+        ],
+    ) -> ArrayTargetsResponse:
+        """Return target id rows attached to one OpenSVC Collector storage array."""
+        response = await core_get_array_targets(
+            array=request.array,
+            props=request.props,
+            max_targets=request.max_targets,
+        )
+        return ArrayTargetsResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
