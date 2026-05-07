@@ -10,7 +10,7 @@
 - HTTP transport served with `uvicorn`
 - custom health route: `/health`
 - typed Pydantic input and output models for MCP tools
-- OpenSVC Collector read-only tool surface for nodes, services, clusters, and users
+- OpenSVC Collector read-only tool surface for nodes, services, clusters, users, and tags
 - architecture split between:
   - `tools/` for MCP tool definitions
   - `core/` for Collector workflows and business logic
@@ -53,17 +53,20 @@ src/opensvc_collector_mcp/
 |   |   |-- tags.py
 |   |   |-- health.py
 |   |   `-- storage.py
+|   |-- tags/
 |   `-- users/
 |       `-- inventory.py
 |-- models/            # Pydantic request and response models
 |   |-- clusters/
 |   |-- nodes/
 |   |-- services/
+|   |-- tags/
 |   `-- users/
 |-- tools/             # FastMCP tool definitions
 |   |-- clusters.py
 |   |-- nodes.py
 |   |-- services.py
+|   |-- tags.py
 |   `-- users.py
 `-- server.py          # FastMCP app + uvicorn entrypoint
 ```
@@ -127,6 +130,7 @@ Tool documentation is organized by Collector domain:
 - [Cluster tools](docs/tools/clusters.md)
 - [Service tools](docs/tools/services.md)
 - [User tools](docs/tools/users.md)
+- [Tag tools](docs/tools/tags.md)
 
 ## Tool Domains
 
@@ -136,6 +140,7 @@ The current tool surface covers:
 - service inventory, search, tags, config, instances, nodes, resources, disks, storage HBAs and targets, checks, alerts, actions, status history, frozen state, and health
 - cluster node membership
 - user inventory and user property discovery
+- tag inventory and tag property discovery
 
 All tools are intended to be read-only against OpenSVC Collector.
 
