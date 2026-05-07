@@ -5,12 +5,15 @@ from pydantic import Field
 
 from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.apps import (
+    count_apps as core_count_apps,
     list_app_props as core_list_app_props,
     list_apps as core_list_apps,
 )
 from opensvc_collector_mcp.models.apps import (
     AppPropsResponse,
     AppRowsResponse,
+    CountAppsRequest,
+    CountAppsResponse,
     ListAppsRequest,
 )
 
@@ -48,6 +51,35 @@ def register_apps_tools(mcp: FastMCP) -> None:
             offset=request.offset,
         )
         return AppRowsResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="count_apps",
+        description=(
+            "Count OpenSVC Collector application codes matching "
+            "exact-match app filters. Use this when only the number "
+            "of matching apps is needed."
+        ),
+        tags={"apps", "inventory", "count", "read"},
+        annotations={
+            "title": "Count OpenSVC Apps",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def count_apps(
+        request: Annotated[
+            CountAppsRequest,
+            Field(description="Exact-match filters used to count Collector apps."),
+        ] = CountAppsRequest(),
+    ) -> CountAppsResponse:
+        """Return the number of apps matching the provided filters."""
+        response = await core_count_apps(
+            filters=request.merged_filters(),
+            search=request.search,
+        )
+        return CountAppsResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

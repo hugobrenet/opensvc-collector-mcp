@@ -35,6 +35,32 @@ available_props
 app_props
 ```
 
+### `count_apps`
+
+Counts OpenSVC Collector application codes matching exact-match filters
+without returning app rows. This uses `/apps` collection metadata with
+`limit=1`.
+
+Example:
+
+```json
+{
+  "request": {
+    "filters": {
+      "app": "APP-CODE"
+    }
+  }
+}
+```
+
+Output fields:
+
+```text
+count
+filters
+search
+```
+
 ### `list_apps`
 
 Lists one page of OpenSVC Collector application codes.

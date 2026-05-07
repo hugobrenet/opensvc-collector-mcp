@@ -30,6 +30,30 @@ async def list_apps(
     )
 
 
+async def count_apps(
+    filters: dict[str, str] | str | None = None,
+    search: str | None = None,
+) -> dict[str, Any]:
+    parsed_filters = parse_collector_filters(filters)
+    response = await collector_get(
+        "/apps",
+        params=collection_params(
+            filters=parsed_filters,
+            props="app",
+            orderby=None,
+            search=search,
+            limit=1,
+            offset=0,
+        ),
+    )
+    meta = response.get("meta", {})
+    return {
+        "count": meta.get("total", len(response.get("data", []))),
+        "filters": {field: value for field, value in parsed_filters},
+        "search": search,
+    }
+
+
 async def list_app_props() -> dict[str, Any]:
     response = await collector_get("/apps", params={"props": "app", "limit": 1})
     available_props = response.get("meta", {}).get("available_props", [])

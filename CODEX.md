@@ -123,6 +123,7 @@ Current MCP app tool surface:
 
 - `list_app_props`
 - `list_apps`
+- `count_apps`
 
 Current MCP tag tool surface:
 

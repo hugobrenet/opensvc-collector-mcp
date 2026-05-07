@@ -50,6 +50,21 @@ class AppFilterRequest(BaseModel):
         return merged
 
 
+class CountAppsRequest(AppFilterRequest):
+    search: str | None = Field(
+        default=None,
+        description="Collector full-text search expression when supported by /apps.",
+    )
+
+
+class CountAppsResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    count: int | None
+    filters: dict[str, str]
+    search: str | None = None
+
+
 class ListAppsRequest(AppFilterRequest):
     props: str | None = Field(
         default=None,
