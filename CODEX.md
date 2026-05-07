@@ -66,6 +66,8 @@ Current package layout:
   user-domain Pydantic contracts
 - `src/opensvc_collector_mcp/models/tags/`
   tag-domain Pydantic contracts
+- `src/opensvc_collector_mcp/models/apps/`
+  app-domain Pydantic contracts
 
 Current MCP node tool surface:
 
@@ -116,6 +118,11 @@ Current MCP compliance tool surface:
 - `get_compliance_moduleset_responsibles`
 - `get_compliance_moduleset_usage`
 - `get_compliance_moduleset_definition`
+
+Current MCP app tool surface:
+
+- `list_app_props`
+- `list_apps`
 
 Current MCP tag tool surface:
 
