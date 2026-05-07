@@ -24,6 +24,7 @@ This repository is focused on:
 
 - clear tool contracts for MCP clients
 - predictable environment-based configuration
+- BM25 tool discovery for large MCP catalogs
 - read-only Collector access patterns
 - pagination-safe Collector reads
 - separation between MCP surface and Collector-specific logic
@@ -125,6 +126,15 @@ The MCP HTTP endpoint is exposed at:
 ```text
 http://127.0.0.1:8001/mcp
 ```
+
+## Tool Discovery
+
+BM25 tool search is enabled by default to avoid sending the full tool catalog to MCP clients. With the default configuration, `tools/list` exposes only:
+
+- `search_tools` to find relevant tools from natural-language or keyword queries
+- `call_tool` to execute a discovered tool by name
+
+The full tool catalog remains registered and callable. The number of returned search results is defined by the `MCP_TOOL_SEARCH_MAX_RESULTS` constant in `config.py`; the current value is `10`.
 
 ## Tool Documentation
 
