@@ -8,6 +8,7 @@ from opensvc_collector_mcp.tools.clusters import register_clusters_tools
 from opensvc_collector_mcp.tools.compliance import register_compliance_tools
 from opensvc_collector_mcp.tools.nodes import register_nodes_tools
 from opensvc_collector_mcp.tools.services import register_services_tools
+from opensvc_collector_mcp.tools.tags import register_tags_tools
 from opensvc_collector_mcp.tools.users import register_users_tools
 
 
@@ -29,6 +30,7 @@ register_clusters_tools(mcp)
 register_services_tools(mcp)
 register_compliance_tools(mcp)
 register_users_tools(mcp)
+register_tags_tools(mcp)
 
 
 def create_app():

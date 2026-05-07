@@ -54,6 +54,8 @@ Current package layout:
   global compliance-domain business logic
 - `src/opensvc_collector_mcp/core/users/`
   user-domain business logic
+- `src/opensvc_collector_mcp/core/tags/`
+  tag-domain business logic
 - `src/opensvc_collector_mcp/models/services/`
   service-domain Pydantic contracts split with the same concern boundaries
 - `src/opensvc_collector_mcp/models/nodes/`
@@ -62,6 +64,8 @@ Current package layout:
   cluster-domain Pydantic contracts
 - `src/opensvc_collector_mcp/models/users/`
   user-domain Pydantic contracts
+- `src/opensvc_collector_mcp/models/tags/`
+  tag-domain Pydantic contracts
 
 Current MCP node tool surface:
 
@@ -114,6 +118,11 @@ Current MCP compliance tool surface:
 - `get_compliance_moduleset_responsibles`
 - `get_compliance_moduleset_usage`
 - `get_compliance_moduleset_definition`
+
+Current MCP tag tool surface:
+
+- `list_tag_props`
+- `list_tags`
 
 Current MCP user tool surface:
 
