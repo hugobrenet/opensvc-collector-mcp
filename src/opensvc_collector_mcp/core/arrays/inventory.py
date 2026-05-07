@@ -1,4 +1,5 @@
 from typing import Any
+from urllib.parse import quote
 
 from opensvc_collector_mcp.client import collector_get
 from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
@@ -55,6 +56,31 @@ async def count_arrays(
         "filters": {field: value for field, value in parsed_filters},
         "search": search,
     }
+
+
+async def get_array(
+    array: str,
+    props: str | None = None,
+) -> dict[str, Any]:
+    selector = array.strip()
+    if not selector:
+        raise ValueError("array must not be empty")
+
+    params = {"props": props} if props else None
+    response = await collector_get(
+        f"/arrays/{quote(selector, safe='')}",
+        params=params,
+    )
+    rows = response.get("data", [])
+    meta = dict(response.get("meta") or {})
+    meta.update(
+        {
+            "source": "array_detail",
+            "selector": selector,
+            "count": len(rows) if isinstance(rows, list) else 0,
+        }
+    )
+    return {"meta": meta, "data": rows if isinstance(rows, list) else []}
 
 
 async def list_array_props() -> dict[str, Any]:

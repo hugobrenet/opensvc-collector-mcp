@@ -6,6 +6,7 @@ from pydantic import Field
 from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.arrays import (
     count_arrays as core_count_arrays,
+    get_array as core_get_array,
     list_array_props as core_list_array_props,
     list_arrays as core_list_arrays,
 )
@@ -13,6 +14,7 @@ from opensvc_collector_mcp.models.arrays import (
     ArrayPropsResponse,
     CountArraysRequest,
     CountArraysResponse,
+    GetArrayRequest,
     ArrayRowsResponse,
     ListArraysRequest,
 )
@@ -80,6 +82,34 @@ def register_arrays_tools(mcp: FastMCP) -> None:
             search=request.search,
         )
         return CountArraysResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_array",
+        description=(
+            "Return OpenSVC Collector details for one storage array "
+            "selected by exact array name or Collector array row id."
+        ),
+        tags={"arrays", "storage", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Storage Array",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_array(
+        request: Annotated[
+            GetArrayRequest,
+            Field(description="Array selector and optional property selection."),
+        ],
+    ) -> ArrayRowsResponse:
+        """Return one OpenSVC Collector storage array by name or row id."""
+        response = await core_get_array(
+            array=request.array,
+            props=request.props,
+        )
+        return ArrayRowsResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

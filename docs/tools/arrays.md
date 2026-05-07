@@ -63,6 +63,30 @@ filters
 search
 ```
 
+### `get_array`
+
+Returns one OpenSVC Collector storage array selected by exact `array_name`
+or Collector array row id. The Collector endpoint accepts both forms through
+`/arrays/<id>`.
+
+Example:
+
+```json
+{
+  "request": {
+    "array": "ARRAY-NAME",
+    "props": "id,array_name,array_model,array_firmware,array_cache,array_level,array_updated"
+  }
+}
+```
+
+Output fields:
+
+```text
+meta
+data
+```
+
 ### `list_arrays`
 
 Lists one page of OpenSVC Collector storage arrays.

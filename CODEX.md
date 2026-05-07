@@ -126,6 +126,7 @@ Current MCP array tool surface:
 - `list_array_props`
 - `list_arrays`
 - `count_arrays`
+- `get_array`
 
 Current MCP app tool surface:
 

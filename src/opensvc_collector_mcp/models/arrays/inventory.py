@@ -47,6 +47,23 @@ class ArrayFilterRequest(BaseModel):
         return merged
 
 
+class GetArrayRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    array: str = Field(
+        min_length=1,
+        description=(
+            "Collector array selector. Use an exact storage array name "
+            "or Collector array row id."
+        ),
+        examples=["ARRAY-NAME"],
+    )
+    props: str | None = Field(
+        default=None,
+        description="Comma-separated array properties to include in the response.",
+    )
+
+
 class CountArraysRequest(ArrayFilterRequest):
     search: str | None = Field(
         default=None,
