@@ -5,6 +5,7 @@ from pydantic import Field
 
 from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.arrays import (
+    count_array_diskgroups as core_count_array_diskgroups,
     count_arrays as core_count_arrays,
     get_array as core_get_array,
     get_array_diskgroups as core_get_array_diskgroups,
@@ -15,6 +16,8 @@ from opensvc_collector_mcp.models.arrays import (
     ArrayDiskgroupsRequest,
     ArrayDiskgroupsResponse,
     ArrayPropsResponse,
+    ArrayRelationCountRequest,
+    ArrayRelationCountResponse,
     CountArraysRequest,
     CountArraysResponse,
     GetArrayRequest,
@@ -113,6 +116,33 @@ def register_arrays_tools(mcp: FastMCP) -> None:
             props=request.props,
         )
         return ArrayRowsResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="count_array_diskgroups",
+        description=(
+            "Count OpenSVC Collector diskgroups attached to one storage "
+            "array selected by exact array name or Collector array row id. "
+            "This uses a lightweight Collector count read from "
+            "/arrays/<id>/diskgroups."
+        ),
+        tags={"arrays", "storage", "diskgroups", "count", "read"},
+        annotations={
+            "title": "Count OpenSVC Storage Array Diskgroups",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def count_array_diskgroups(
+        request: Annotated[
+            ArrayRelationCountRequest,
+            Field(description="Array selector used to count attached diskgroups."),
+        ],
+    ) -> ArrayRelationCountResponse:
+        """Return the number of diskgroups attached to one storage array."""
+        response = await core_count_array_diskgroups(array=request.array)
+        return ArrayRelationCountResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

@@ -37,6 +37,29 @@ async def list_arrays(
     )
 
 
+async def count_array_diskgroups(
+    array: str,
+) -> dict[str, Any]:
+    selector = array.strip()
+    if not selector:
+        raise ValueError("array must not be empty")
+
+    response = await collector_get(
+        f"/arrays/{quote(selector, safe='')}/diskgroups",
+        params={"props": "dg_name", "limit": 1, "offset": 0},
+    )
+    meta = response.get("meta", {})
+    return {
+        "array": selector,
+        "count": meta.get("total", len(response.get("data", []))),
+        "meta": {
+            "source": "arrays/<id>/diskgroups",
+            "selector": selector,
+            "raw_meta": meta,
+        },
+    }
+
+
 async def count_arrays(
     filters: dict[str, str] | str | None = None,
     search: str | None = None,

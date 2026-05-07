@@ -99,6 +99,27 @@ class ListArraysRequest(ArrayFilterRequest):
     offset: int = Field(default=0, ge=0)
 
 
+class ArrayRelationCountRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    array: str = Field(
+        min_length=1,
+        description=(
+            "Collector array selector. Use an exact storage array name "
+            "or Collector array row id."
+        ),
+        examples=["ARRAY-NAME"],
+    )
+
+
+class ArrayRelationCountResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    array: str
+    count: int | None
+    meta: dict[str, Any] = Field(default_factory=dict)
+
+
 class ArrayDiskgroupsRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

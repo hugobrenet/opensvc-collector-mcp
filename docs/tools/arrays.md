@@ -87,6 +87,30 @@ meta
 data
 ```
 
+### `count_array_diskgroups`
+
+Counts OpenSVC Collector diskgroups attached to one storage array selected by
+exact `array_name` or Collector array row id. This uses `/arrays/<id>/diskgroups`
+collection metadata with `limit=1`.
+
+Example:
+
+```json
+{
+  "request": {
+    "array": "ARRAY-NAME"
+  }
+}
+```
+
+Output fields:
+
+```text
+array
+count
+meta
+```
+
 ### `get_array_diskgroups`
 
 Returns all diskgroups attached to one OpenSVC Collector storage array
