@@ -39,6 +39,84 @@ async def list_tags(
     )
 
 
+async def count_tags(
+    filters: dict[str, str] | str | None = None,
+) -> dict[str, Any]:
+    parsed_filters = parse_collector_filters(filters)
+    response = await collector_get(
+        "/tags",
+        params=collection_params(
+            filters=parsed_filters,
+            props="tag_id",
+            orderby=None,
+            search=None,
+            limit=1,
+            offset=0,
+        ),
+    )
+    meta = response.get("meta", {})
+    return {
+        "count": meta.get("total", len(response.get("data", []))),
+        "filters": {field: value for field, value in parsed_filters},
+    }
+
+
+async def count_tag_nodes(
+    tag_id: str | None = None,
+    tag_name: str | None = None,
+) -> dict[str, Any]:
+    resolved = await _resolve_tag_selector(tag_id=tag_id, tag_name=tag_name)
+    response = await collector_get(
+        f"/tags/{quote(resolved['tag_id'], safe='')}/nodes",
+        params={"props": "nodename", "limit": 1, "offset": 0},
+    )
+    meta = response.get("meta", {})
+    return {
+        "tag_id": resolved["tag_id"],
+        "tag_name": resolved.get("tag_name"),
+        "tag": resolved.get("tag"),
+        "count": meta.get("total", len(response.get("data", []))),
+        "meta": {
+            "source": "tags/<tag_id>/nodes",
+            "selector": resolved["selector"],
+            "resolution": resolved["resolution"],
+            "raw_meta": meta,
+        },
+    }
+
+
+async def count_tag_services(
+    tag_id: str | None = None,
+    tag_name: str | None = None,
+    max_services: int = 200000,
+) -> dict[str, Any]:
+    resolved = await _resolve_tag_selector(tag_id=tag_id, tag_name=tag_name)
+    response = await collector_get_all(
+        f"/tags/{quote(resolved['tag_id'], safe='')}/services",
+        params={"props": "svcname"},
+        max_items=max_services,
+    )
+    raw_rows = response.get("data", [])
+    rows = _dedupe_rows_by_key(raw_rows, "svcname")
+    meta = dict(response.get("meta", {}))
+    return {
+        "tag_id": resolved["tag_id"],
+        "tag_name": resolved.get("tag_name"),
+        "tag": resolved.get("tag"),
+        "count": len(rows),
+        "raw_count": len(raw_rows),
+        "duplicate_count": len(raw_rows) - len(rows),
+        "meta": {
+            **meta,
+            "source": "tags/<tag_id>/services",
+            "selector": resolved["selector"],
+            "resolution": resolved["resolution"],
+            "complete": meta.get("complete"),
+            "max_services": max_services,
+        },
+    }
+
+
 async def get_tag(
     tag_id: str | None = None,
     tag_name: str | None = None,

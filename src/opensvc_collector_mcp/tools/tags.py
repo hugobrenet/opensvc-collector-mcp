@@ -5,6 +5,9 @@ from pydantic import Field
 
 from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.tags import (
+    count_tag_nodes as core_count_tag_nodes,
+    count_tag_services as core_count_tag_services,
+    count_tags as core_count_tags,
     get_tag as core_get_tag,
     get_tag_nodes as core_get_tag_nodes,
     get_tag_services as core_get_tag_services,
@@ -12,12 +15,17 @@ from opensvc_collector_mcp.core.tags import (
     list_tags as core_list_tags,
 )
 from opensvc_collector_mcp.models.tags import (
+    CountTagServicesRequest,
+    CountTagsRequest,
+    CountTagsResponse,
     ListTagsRequest,
+    TagIdentityRequest,
     TagNodesRequest,
     TagNodesResponse,
     TagPropsResponse,
     TagServicesRequest,
     TagServicesResponse,
+    TagRelationCountResponse,
     TagRowsResponse,
     TagSelectorRequest,
 )
@@ -56,6 +64,31 @@ def register_tags_tools(mcp: FastMCP) -> None:
             offset=request.offset,
         )
         return TagRowsResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="count_tags",
+        description=(
+            "Count OpenSVC Collector tags matching exact-match tag filters. "
+            "Use this when only the number of matching tags is needed."
+        ),
+        tags={"tags", "inventory", "count", "read"},
+        annotations={
+            "title": "Count OpenSVC Tags",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def count_tags(
+        request: Annotated[
+            CountTagsRequest,
+            Field(description="Exact-match filters used to count Collector tags."),
+        ] = CountTagsRequest(),
+    ) -> CountTagsResponse:
+        """Return the number of tags matching the provided filters."""
+        response = await core_count_tags(filters=request.merged_filters())
+        return CountTagsResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
@@ -120,6 +153,35 @@ def register_tags_tools(mcp: FastMCP) -> None:
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
+        name="count_tag_nodes",
+        description=(
+            "Count OpenSVC Collector nodes attached to one tag selected "
+            "by exact tag id or exact tag name. This uses a lightweight "
+            "Collector count read from /tags/<id>/nodes."
+        ),
+        tags={"tags", "nodes", "count", "read"},
+        annotations={
+            "title": "Count OpenSVC Tag Nodes",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def count_tag_nodes(
+        request: Annotated[
+            TagIdentityRequest,
+            Field(description="Tag selector used to count attached nodes."),
+        ],
+    ) -> TagRelationCountResponse:
+        """Return the number of nodes attached to one tag."""
+        response = await core_count_tag_nodes(
+            tag_id=request.tag_id,
+            tag_name=request.tag_name,
+        )
+        return TagRelationCountResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="get_tag_services",
         description=(
             "Return all OpenSVC Collector services attached to one tag "
@@ -148,6 +210,36 @@ def register_tags_tools(mcp: FastMCP) -> None:
             max_services=request.max_services,
         )
         return TagServicesResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="count_tag_services",
+        description=(
+            "Count unique OpenSVC Collector services attached to one tag "
+            "selected by exact tag id or exact tag name. The tool reads "
+            "svcname only and deduplicates Collector rows by service name."
+        ),
+        tags={"tags", "services", "count", "read"},
+        annotations={
+            "title": "Count OpenSVC Tag Services",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def count_tag_services(
+        request: Annotated[
+            CountTagServicesRequest,
+            Field(description="Tag selector and bounded count scan limit."),
+        ],
+    ) -> TagRelationCountResponse:
+        """Return the number of unique services attached to one tag."""
+        response = await core_count_tag_services(
+            tag_id=request.tag_id,
+            tag_name=request.tag_name,
+            max_services=request.max_services,
+        )
+        return TagRelationCountResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

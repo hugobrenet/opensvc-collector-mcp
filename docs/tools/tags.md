@@ -9,6 +9,31 @@ MCP tool definitions live in `src/opensvc_collector_mcp/tools/tags.py`.
 ## Tools
 
 
+### `count_tags`
+
+Counts OpenSVC Collector tags matching exact-match tag filters. It reads
+`meta.total` from `/tags` with `limit=1`, so it is intended for count-only
+questions.
+
+Example:
+
+```json
+{
+  "request": {
+    "filters": {
+      "tag_name": "tag_name"
+    }
+  }
+}
+```
+
+Output fields:
+
+```text
+count
+filters
+```
+
 ### `get_tag`
 
 Returns one OpenSVC Collector tag selected by exact `tag_id` or exact
@@ -66,6 +91,32 @@ meta
 data
 ```
 
+### `count_tag_nodes`
+
+Counts nodes attached to one OpenSVC Collector tag selected by exact
+`tag_id` or exact `tag_name`. It resolves `tag_name` through `/tags`, then
+reads `meta.total` from `/tags/<id>/nodes` with `limit=1`.
+
+Example:
+
+```json
+{
+  "request": {
+    "tag_name": "tag_name"
+  }
+}
+```
+
+Output fields:
+
+```text
+tag_id
+tag_name
+tag
+count
+meta
+```
+
 ### `get_tag_services`
 
 Returns all services attached to one OpenSVC Collector tag selected by exact
@@ -99,6 +150,36 @@ tag_name
 tag
 meta
 data
+```
+
+### `count_tag_services`
+
+Counts unique services attached to one OpenSVC Collector tag selected by
+exact `tag_id` or exact `tag_name`. It resolves `tag_name` through `/tags`,
+then reads `/tags/<id>/services` with `props=svcname` and deduplicates by
+`svcname`. The response also exposes `raw_count` and `duplicate_count`.
+
+Example:
+
+```json
+{
+  "request": {
+    "tag_name": "tag_name",
+    "max_services": 200000
+  }
+}
+```
+
+Output fields:
+
+```text
+tag_id
+tag_name
+tag
+count
+raw_count
+duplicate_count
+meta
 ```
 
 ### `list_tag_props`

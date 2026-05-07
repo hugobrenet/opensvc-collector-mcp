@@ -79,7 +79,30 @@ class ListTagsRequest(TagFilterRequest):
     )
 
 
-class TagSelectorRequest(BaseModel):
+class CountTagsRequest(TagFilterRequest):
+    pass
+
+
+class CountTagsResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    count: int | None
+    filters: dict[str, str]
+
+
+class TagRelationCountResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    tag_id: str
+    tag_name: str | None = Field(default=None, exclude_if=_is_none)
+    tag: dict[str, Any] | None = Field(default=None, exclude_if=_is_none)
+    count: int | None
+    raw_count: int | None = Field(default=None, exclude_if=_is_none)
+    duplicate_count: int | None = Field(default=None, exclude_if=_is_none)
+    meta: dict[str, Any] = Field(default_factory=dict)
+
+
+class TagIdentityRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     tag_id: str | None = Field(
@@ -91,13 +114,8 @@ class TagSelectorRequest(BaseModel):
         description="Exact tag name to resolve to a Collector tag id. Provide either tag_id or tag_name, not both.",
         examples=["tag_name"],
     )
-    props: str | None = Field(
-        default=None,
-        description="Comma-separated tag properties to include in the response.",
-    )
-
     @model_validator(mode="after")
-    def validate_selector(self) -> "TagSelectorRequest":
+    def validate_selector(self) -> "TagIdentityRequest":
         tag_id = self.tag_id.strip() if self.tag_id else None
         tag_name = self.tag_name.strip() if self.tag_name else None
         if bool(tag_id) == bool(tag_name):
@@ -105,6 +123,13 @@ class TagSelectorRequest(BaseModel):
         self.tag_id = tag_id
         self.tag_name = tag_name
         return self
+
+
+class TagSelectorRequest(TagIdentityRequest):
+    props: str | None = Field(
+        default=None,
+        description="Comma-separated tag properties to include in the response.",
+    )
 
 
 class TagNodesRequest(TagSelectorRequest):
@@ -128,6 +153,15 @@ class TagNodesResponse(BaseModel):
     tag: dict[str, Any] | None = Field(default=None, exclude_if=_is_none)
     meta: dict[str, Any] = Field(default_factory=dict)
     data: list[dict[str, Any]]
+
+
+class CountTagServicesRequest(TagIdentityRequest):
+    max_services: int = Field(
+        default=200000,
+        ge=1,
+        le=500000,
+        description="Maximum number of raw service rows to scan for an exact deduplicated count.",
+    )
 
 
 class TagServicesRequest(TagSelectorRequest):

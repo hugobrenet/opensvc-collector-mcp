@@ -121,9 +121,12 @@ Current MCP tag tool surface:
 
 - `list_tag_props`
 - `list_tags`
+- `count_tags`
 - `get_tag`
 - `get_tag_nodes`
+- `count_tag_nodes`
 - `get_tag_services`
+- `count_tag_services`
 
 Current MCP user tool surface:
 
