@@ -10,6 +10,10 @@ DEFAULT_TAG_NODE_PROPS = (
     "nodename,status,asset_env,node_env,loc_city,loc_country,"
     "app,team_responsible,os_name"
 )
+DEFAULT_TAG_SERVICE_PROPS = (
+    "svcname,svc_app,svc_env,svc_status,svc_availstatus,svc_topology,"
+    "svc_nodes,svc_drpnodes,svc_frozen,svc_ha,svc_created,updated"
+)
 
 
 async def list_tags(
@@ -97,6 +101,46 @@ async def get_tag_nodes(
     }
 
 
+async def get_tag_services(
+    tag_id: str | None = None,
+    tag_name: str | None = None,
+    props: str | None = None,
+    max_services: int = 200000,
+) -> dict[str, Any]:
+    resolved = await _resolve_tag_selector(tag_id=tag_id, tag_name=tag_name)
+    selected_props = _ensure_props_include(props or DEFAULT_TAG_SERVICE_PROPS, "svcname")
+    response = await collector_get_all(
+        f"/tags/{quote(resolved['tag_id'], safe='')}/services",
+        params={"props": selected_props},
+        max_items=max_services,
+    )
+    raw_rows = response.get("data", [])
+    rows = _dedupe_rows_by_key(raw_rows, "svcname")
+    meta = dict(response.get("meta", {}))
+    meta.update(
+        {
+            "source": "tags/<tag_id>/services",
+            "selector": resolved["selector"],
+            "resolution": resolved["resolution"],
+            "filter": {
+                "tag_id": resolved["tag_id"],
+                "tag_name": resolved.get("tag_name"),
+            },
+            "included_props": selected_props.split(","),
+            "raw_count": len(raw_rows),
+            "service_count": len(rows),
+            "duplicate_count": len(raw_rows) - len(rows),
+        }
+    )
+    return {
+        "tag_id": resolved["tag_id"],
+        "tag_name": resolved.get("tag_name"),
+        "tag": resolved.get("tag"),
+        "meta": meta,
+        "data": rows,
+    }
+
+
 async def list_tag_props() -> dict[str, Any]:
     response = await collector_get("/tags", params={"props": "tag_id", "limit": 1})
     available_props = response.get("meta", {}).get("available_props", [])
@@ -159,3 +203,22 @@ async def _resolve_tag_selector(
         "tag_name": row.get("tag_name"),
         "tag": row,
     }
+
+
+def _ensure_props_include(props: str, required: str) -> str:
+    selected = [prop.strip() for prop in props.split(",") if prop.strip()]
+    if required not in selected:
+        selected.insert(0, required)
+    return ",".join(selected)
+
+
+def _dedupe_rows_by_key(rows: list[dict[str, Any]], key: str) -> list[dict[str, Any]]:
+    deduped: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for row in rows:
+        value = str(row.get(key, "")).strip()
+        if not value or value in seen:
+            continue
+        seen.add(value)
+        deduped.append(row)
+    return deduped

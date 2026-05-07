@@ -130,6 +130,32 @@ class TagNodesResponse(BaseModel):
     data: list[dict[str, Any]]
 
 
+class TagServicesRequest(TagSelectorRequest):
+    props: str | None = Field(
+        default=None,
+        description=(
+            "Comma-separated service properties to include in the response. "
+            "svcname is always included."
+        ),
+    )
+    max_services: int = Field(
+        default=200000,
+        ge=1,
+        le=500000,
+        description="Maximum number of services to return from Collector pagination.",
+    )
+
+
+class TagServicesResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    tag_id: str
+    tag_name: str | None = Field(default=None, exclude_if=_is_none)
+    tag: dict[str, Any] | None = Field(default=None, exclude_if=_is_none)
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[dict[str, Any]]
+
+
 class TagPropsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

@@ -28,8 +28,6 @@ from opensvc_collector_mcp.core.services import (
     list_service_props as core_list_service_props,
     list_services as core_list_services,
     search_frozen_services as core_search_frozen_services,
-    search_services_by_tag as core_search_services_by_tag,
-    search_services_without_tag as core_search_services_without_tag,
 )
 from opensvc_collector_mcp.models.services import (
     CountServicesRequest,
@@ -73,9 +71,6 @@ from opensvc_collector_mcp.models.services import (
     ServiceStatusHistoryResponse,
     ServiceInstanceStatusHistoryRequest,
     ServiceInstanceStatusHistoryResponse,
-    ServiceTagSearchRequest,
-    ServicesByTagResponse,
-    ServicesWithoutTagResponse,
     ServiceRowsResponse,
 )
 
@@ -617,75 +612,6 @@ def register_services_tools(mcp: FastMCP) -> None:
             offset=request.offset,
         )
         return ServiceResourceStatusResponse.model_validate(response)
-
-    @mcp.tool(
-        timeout=TOOL_TIMEOUT_SECONDS,
-        name="search_services_by_tag",
-        description=(
-            "Return OpenSVC services that have one exact Collector tag attached. "
-            "The tool resolves tag_name through /tags, then lists services via "
-            "/tags/<tag_id>/services using bounded server-side reads."
-        ),
-        tags={"services", "tags", "search", "read"},
-        annotations={
-            "title": "Search OpenSVC Services By Tag",
-            "readOnlyHint": True,
-            "idempotentHint": True,
-            "openWorldHint": False,
-        },
-    )
-    async def search_services_by_tag(
-        request: Annotated[
-            ServiceTagSearchRequest,
-            Field(
-                description=(
-                    "Exact tag name, returned service properties, and bounded result limits."
-                ),
-            ),
-        ],
-    ) -> ServicesByTagResponse:
-        "Return services attached to one exact OpenSVC Collector tag."
-        response = await core_search_services_by_tag(
-            tag_name=request.tag_name,
-            props=request.props,
-            max_services=request.max_services,
-        )
-        return ServicesByTagResponse.model_validate(response)
-
-    @mcp.tool(
-        timeout=TOOL_TIMEOUT_SECONDS,
-        name="search_services_without_tag",
-        description=(
-            "Return OpenSVC services that do not have one exact Collector tag "
-            "attached. The tool resolves tag_name, lists tagged services, lists "
-            "all services, then returns the difference."
-        ),
-        tags={"services", "tags", "search", "read"},
-        annotations={
-            "title": "Search OpenSVC Services Without Tag",
-            "readOnlyHint": True,
-            "idempotentHint": True,
-            "openWorldHint": False,
-        },
-    )
-    async def search_services_without_tag(
-        request: Annotated[
-            ServiceTagSearchRequest,
-            Field(
-                description=(
-                    "Exact tag name to exclude, returned service properties, "
-                    "and bounded result limits."
-                ),
-            ),
-        ],
-    ) -> ServicesWithoutTagResponse:
-        "Return services that do not have one exact OpenSVC Collector tag."
-        response = await core_search_services_without_tag(
-            tag_name=request.tag_name,
-            props=request.props,
-            max_services=request.max_services,
-        )
-        return ServicesWithoutTagResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

@@ -123,6 +123,7 @@ Current MCP tag tool surface:
 - `list_tags`
 - `get_tag`
 - `get_tag_nodes`
+- `get_tag_services`
 
 Current MCP user tool surface:
 
@@ -156,8 +157,6 @@ Current MCP service tool surface:
 - `get_service_compliance_logs`
 - `get_service_resource_status`
 - `get_service_tags`
-- `search_services_by_tag`
-- `search_services_without_tag`
 - `get_service_alerts`
 - `get_service_checks`
 - `get_service_actions`

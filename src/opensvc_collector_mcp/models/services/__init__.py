@@ -53,12 +53,9 @@ from .resources import (
 )
 
 from .tags import (
-    ServiceTagSearchRequest,
     ServiceTagsRequest,
     ServiceTagRow,
     ServiceTagsResponse,
-    ServicesByTagResponse,
-    ServicesWithoutTagResponse,
 )
 
 from .actions import (
@@ -151,7 +148,6 @@ __all__ = [
     'ServiceStatusHistoryResponse',
     'ServiceStatusHistoryRow',
     'ServiceTagRow',
-    'ServiceTagSearchRequest',
     'ServiceTagsRequest',
     'ServiceTagsResponse',
     'ServiceTargetRow',
@@ -159,6 +155,4 @@ __all__ = [
     'ServiceTargetsResponse',
     'ServiceUnacknowledgedErrorsRequest',
     'ServiceUnacknowledgedErrorsResponse',
-    'ServicesByTagResponse',
-    'ServicesWithoutTagResponse',
 ]

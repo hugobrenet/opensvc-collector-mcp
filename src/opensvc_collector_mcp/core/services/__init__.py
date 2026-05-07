@@ -27,8 +27,6 @@ from .storage import (
 )
 
 from .tags import (
-    search_services_by_tag,
-    search_services_without_tag,
     get_service_tags,
 )
 
@@ -70,6 +68,4 @@ __all__ = [
     'list_service_props',
     'list_services',
     'search_frozen_services',
-    'search_services_by_tag',
-    'search_services_without_tag',
 ]

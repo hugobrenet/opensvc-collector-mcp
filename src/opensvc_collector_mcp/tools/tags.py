@@ -7,6 +7,7 @@ from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.tags import (
     get_tag as core_get_tag,
     get_tag_nodes as core_get_tag_nodes,
+    get_tag_services as core_get_tag_services,
     list_tag_props as core_list_tag_props,
     list_tags as core_list_tags,
 )
@@ -15,6 +16,8 @@ from opensvc_collector_mcp.models.tags import (
     TagNodesRequest,
     TagNodesResponse,
     TagPropsResponse,
+    TagServicesRequest,
+    TagServicesResponse,
     TagRowsResponse,
     TagSelectorRequest,
 )
@@ -114,6 +117,37 @@ def register_tags_tools(mcp: FastMCP) -> None:
             max_nodes=request.max_nodes,
         )
         return TagNodesResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_tag_services",
+        description=(
+            "Return all OpenSVC Collector services attached to one tag "
+            "selected by exact tag id or exact tag name. The tool follows "
+            "Collector pagination until complete or max_services is reached."
+        ),
+        tags={"tags", "services", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Tag Services",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_tag_services(
+        request: Annotated[
+            TagServicesRequest,
+            Field(description="Tag selector and optional service property selection."),
+        ],
+    ) -> TagServicesResponse:
+        """Return services attached to one OpenSVC Collector tag."""
+        response = await core_get_tag_services(
+            tag_id=request.tag_id,
+            tag_name=request.tag_name,
+            props=request.props,
+            max_services=request.max_services,
+        )
+        return TagServicesResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
