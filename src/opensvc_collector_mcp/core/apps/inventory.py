@@ -91,6 +91,29 @@ async def get_app_nodes(
     }
 
 
+async def count_app_nodes(
+    app: str,
+) -> dict[str, Any]:
+    selector = app.strip()
+    if not selector:
+        raise ValueError("app must not be empty")
+
+    response = await collector_get(
+        f"/apps/{quote(selector, safe='')}/nodes",
+        params={"props": "nodename", "limit": 1, "offset": 0},
+    )
+    meta = response.get("meta", {})
+    return {
+        "app": selector,
+        "count": meta.get("total", len(response.get("data", []))),
+        "meta": {
+            "source": "apps/<id>/nodes",
+            "selector": selector,
+            "raw_meta": meta,
+        },
+    }
+
+
 async def count_apps(
     filters: dict[str, str] | str | None = None,
     search: str | None = None,

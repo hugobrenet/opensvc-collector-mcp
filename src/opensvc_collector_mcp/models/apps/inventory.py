@@ -64,6 +64,24 @@ class GetAppRequest(BaseModel):
     )
 
 
+class AppRelationCountRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    app: str = Field(
+        min_length=1,
+        description="Collector app selector. Use an exact app code or Collector app row id.",
+        examples=["APP-CODE"],
+    )
+
+
+class AppRelationCountResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    app: str
+    count: int | None
+    meta: dict[str, Any] = Field(default_factory=dict)
+
+
 class AppNodesRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

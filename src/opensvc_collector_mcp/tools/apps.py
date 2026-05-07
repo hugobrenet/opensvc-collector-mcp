@@ -5,6 +5,7 @@ from pydantic import Field
 
 from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.apps import (
+    count_app_nodes as core_count_app_nodes,
     count_apps as core_count_apps,
     get_app as core_get_app,
     get_app_nodes as core_get_app_nodes,
@@ -15,6 +16,8 @@ from opensvc_collector_mcp.models.apps import (
     AppNodesRequest,
     AppNodesResponse,
     AppPropsResponse,
+    AppRelationCountRequest,
+    AppRelationCountResponse,
     AppRowsResponse,
     CountAppsRequest,
     CountAppsResponse,
@@ -143,6 +146,32 @@ def register_apps_tools(mcp: FastMCP) -> None:
             max_nodes=request.max_nodes,
         )
         return AppNodesResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="count_app_nodes",
+        description=(
+            "Count OpenSVC Collector nodes attached to one app selected "
+            "by exact app code or Collector app row id. This uses a "
+            "lightweight Collector count read from /apps/<id>/nodes."
+        ),
+        tags={"apps", "nodes", "count", "read"},
+        annotations={
+            "title": "Count OpenSVC App Nodes",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def count_app_nodes(
+        request: Annotated[
+            AppRelationCountRequest,
+            Field(description="App selector used to count attached nodes."),
+        ],
+    ) -> AppRelationCountResponse:
+        """Return the number of nodes attached to one app."""
+        response = await core_count_app_nodes(app=request.app)
+        return AppRelationCountResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

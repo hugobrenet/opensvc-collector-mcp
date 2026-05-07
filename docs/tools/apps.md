@@ -59,6 +59,30 @@ meta
 data
 ```
 
+### `count_app_nodes`
+
+Counts nodes attached to one OpenSVC Collector application code selected
+by exact `app` code or Collector app row id. It reads `meta.total` from
+`/apps/<id>/nodes` with `limit=1`.
+
+Example:
+
+```json
+{
+  "request": {
+    "app": "APP-CODE"
+  }
+}
+```
+
+Output fields:
+
+```text
+app
+count
+meta
+```
+
 ### `list_app_props`
 
 Returns the app properties exposed by the Collector.
