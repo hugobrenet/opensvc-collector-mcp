@@ -87,6 +87,41 @@ meta
 data
 ```
 
+### `list_array_diskgroups`
+
+Lists one page of OpenSVC Collector storage array diskgroups across all arrays.
+The tool calls `/arrays_diskgroups` and follows the standard Collector collection
+contract: `limit`, `offset`, `orderby`, `filters`, `search`, and `props`.
+
+Default props:
+
+```text
+id,array_id,dg_name,dg_size,dg_free,dg_used,dg_reserved,dg_updated
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "filters": {
+      "dg_name": "DISKGROUP-NAME"
+    },
+    "props": "id,array_id,dg_name,dg_size,dg_free,dg_used,dg_reserved,dg_updated",
+    "limit": 20,
+    "offset": 0,
+    "orderby": "dg_name"
+  }
+}
+```
+
+Output fields:
+
+```text
+meta
+data
+```
+
 ### `count_array_diskgroups`
 
 Counts OpenSVC Collector diskgroups attached to one storage array selected by
@@ -168,6 +203,68 @@ Output fields:
 
 ```text
 array
+meta
+data
+```
+
+### `get_array_diskgroup_quotas`
+
+Returns all quota rows attached to one OpenSVC Collector storage array
+diskgroup. The tool calls `/arrays/<id>/diskgroups/<id>/quotas` and follows
+Collector pagination until `meta.complete` is true or `max_quotas` is reached.
+
+Default props:
+
+```text
+id,dg_id,app_id,quota
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "array": "ARRAY-NAME",
+    "diskgroup": "DISKGROUP-NAME",
+    "props": "id,dg_id,app_id,quota",
+    "max_quotas": 200000
+  }
+}
+```
+
+Output fields:
+
+```text
+array
+diskgroup
+meta
+data
+```
+
+### `get_array_diskgroup_quota`
+
+Returns one quota row attached to one OpenSVC Collector storage array
+diskgroup. The tool calls `/arrays/<id>/diskgroups/<id>/quotas/<id>`.
+
+Example:
+
+```json
+{
+  "request": {
+    "array": "ARRAY-NAME",
+    "diskgroup": "DISKGROUP-NAME",
+    "quota": "QUOTA-ID",
+    "props": "id,dg_id,app_id,quota"
+  }
+}
+```
+
+Output fields:
+
+```text
+array
+diskgroup
+quota
 meta
 data
 ```

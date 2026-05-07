@@ -129,6 +129,9 @@ Current MCP array tool surface:
 - `get_array`
 - `get_array_diskgroups`
 - `get_array_diskgroup`
+- `list_array_diskgroups`
+- `get_array_diskgroup_quotas`
+- `get_array_diskgroup_quota`
 - `get_array_proxies`
 - `get_array_targets`
 - `count_array_diskgroups`

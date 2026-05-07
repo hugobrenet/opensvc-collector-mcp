@@ -9,17 +9,25 @@ from opensvc_collector_mcp.core.arrays import (
     count_arrays as core_count_arrays,
     get_array as core_get_array,
     get_array_diskgroup as core_get_array_diskgroup,
+    get_array_diskgroup_quota as core_get_array_diskgroup_quota,
+    get_array_diskgroup_quotas as core_get_array_diskgroup_quotas,
     get_array_diskgroups as core_get_array_diskgroups,
     get_array_proxies as core_get_array_proxies,
     get_array_targets as core_get_array_targets,
     list_array_props as core_list_array_props,
+    list_array_diskgroups as core_list_array_diskgroups,
     list_arrays as core_list_arrays,
 )
 from opensvc_collector_mcp.models.arrays import (
+    ArrayDiskgroupQuotaRequest,
+    ArrayDiskgroupQuotaResponse,
+    ArrayDiskgroupQuotasRequest,
+    ArrayDiskgroupQuotasResponse,
     ArrayDiskgroupRequest,
     ArrayDiskgroupResponse,
     ArrayDiskgroupsRequest,
     ArrayDiskgroupsResponse,
+    ArrayDiskgroupRowsResponse,
     ArrayPropsResponse,
     ArrayProxiesRequest,
     ArrayProxiesResponse,
@@ -31,6 +39,7 @@ from opensvc_collector_mcp.models.arrays import (
     CountArraysRequest,
     CountArraysResponse,
     GetArrayRequest,
+    ListArrayDiskgroupsRequest,
     ListArraysRequest,
 )
 
@@ -68,6 +77,39 @@ def register_arrays_tools(mcp: FastMCP) -> None:
             offset=request.offset,
         )
         return ArrayRowsResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="list_array_diskgroups",
+        description=(
+            "List or search OpenSVC Collector storage array diskgroups across "
+            "all arrays using exact-match filters, Collector search, "
+            "pagination, ordering, and selectable props."
+        ),
+        tags={"arrays", "storage", "diskgroups", "inventory", "read"},
+        annotations={
+            "title": "List OpenSVC Storage Array Diskgroups",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def list_array_diskgroups(
+        request: Annotated[
+            ListArrayDiskgroupsRequest,
+            Field(description="Optional global diskgroup listing parameters."),
+        ] = ListArrayDiskgroupsRequest(),
+    ) -> ArrayDiskgroupRowsResponse:
+        """Return OpenSVC Collector storage array diskgroups across arrays."""
+        response = await core_list_array_diskgroups(
+            filters=request.merged_filters(),
+            props=request.props,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
+        )
+        return ArrayDiskgroupRowsResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
@@ -116,6 +158,7 @@ def register_arrays_tools(mcp: FastMCP) -> None:
     async def get_array(
         request: Annotated[
             GetArrayRequest,
+    ListArrayDiskgroupsRequest,
             Field(description="Array selector and optional property selection."),
         ],
     ) -> ArrayRowsResponse:
@@ -170,7 +213,11 @@ def register_arrays_tools(mcp: FastMCP) -> None:
     )
     async def get_array_diskgroup(
         request: Annotated[
-            ArrayDiskgroupRequest,
+            ArrayDiskgroupQuotaRequest,
+    ArrayDiskgroupQuotaResponse,
+    ArrayDiskgroupQuotasRequest,
+    ArrayDiskgroupQuotasResponse,
+    ArrayDiskgroupRequest,
             Field(description="Array and diskgroup selectors with optional props."),
         ],
     ) -> ArrayDiskgroupResponse:
@@ -212,6 +259,67 @@ def register_arrays_tools(mcp: FastMCP) -> None:
             max_diskgroups=request.max_diskgroups,
         )
         return ArrayDiskgroupsResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_array_diskgroup_quotas",
+        description=(
+            "Return all OpenSVC Collector quota rows attached to one storage "
+            "array diskgroup. The tool follows Collector pagination until "
+            "complete or max_quotas is reached."
+        ),
+        tags={"arrays", "storage", "diskgroups", "quotas", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Storage Array Diskgroup Quotas",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_array_diskgroup_quotas(
+        request: Annotated[
+            ArrayDiskgroupQuotasRequest,
+            Field(description="Array and diskgroup selectors with optional quota props."),
+        ],
+    ) -> ArrayDiskgroupQuotasResponse:
+        """Return quota rows attached to one storage array diskgroup."""
+        response = await core_get_array_diskgroup_quotas(
+            array=request.array,
+            diskgroup=request.diskgroup,
+            props=request.props,
+            max_quotas=request.max_quotas,
+        )
+        return ArrayDiskgroupQuotasResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_array_diskgroup_quota",
+        description=(
+            "Return OpenSVC Collector details for one quota row attached to "
+            "one storage array diskgroup."
+        ),
+        tags={"arrays", "storage", "diskgroups", "quotas", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Storage Array Diskgroup Quota",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_array_diskgroup_quota(
+        request: Annotated[
+            ArrayDiskgroupQuotaRequest,
+            Field(description="Array, diskgroup, and quota selectors with optional props."),
+        ],
+    ) -> ArrayDiskgroupQuotaResponse:
+        """Return one quota row attached to one storage array diskgroup."""
+        response = await core_get_array_diskgroup_quota(
+            array=request.array,
+            diskgroup=request.diskgroup,
+            quota=request.quota,
+            props=request.props,
+        )
+        return ArrayDiskgroupQuotaResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

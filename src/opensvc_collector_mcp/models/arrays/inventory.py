@@ -99,6 +99,72 @@ class ListArraysRequest(ArrayFilterRequest):
     offset: int = Field(default=0, ge=0)
 
 
+class ArrayDiskgroupFilterRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    filters: dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            "Exact-match diskgroup property filters. Keys must be Collector "
+            "array diskgroup properties returned by the endpoint."
+        ),
+        examples=[{"dg_name": "DISKGROUP-NAME"}],
+    )
+    array_id: str | None = Field(default=None, description="Exact Collector array row id.")
+    dg_name: str | None = Field(default=None, description="Exact diskgroup name.")
+
+    @model_validator(mode="after")
+    def normalize_filters(self) -> "ArrayDiskgroupFilterRequest":
+        self.filters = {
+            key.strip(): value.strip()
+            for key, value in self.filters.items()
+            if key.strip() and value.strip()
+        }
+        return self
+
+    def merged_filters(self) -> dict[str, str]:
+        merged = dict(self.filters)
+        for field in ("array_id", "dg_name"):
+            value = getattr(self, field)
+            if value is None:
+                continue
+            value = value.strip()
+            if not value:
+                continue
+            existing = merged.get(field)
+            if existing is not None and existing != value:
+                raise ValueError(f"Conflicting filter values for {field!r}")
+            merged[field] = value
+        return merged
+
+
+class ListArrayDiskgroupsRequest(ArrayDiskgroupFilterRequest):
+    props: str | None = Field(
+        default=None,
+        description=(
+            "Comma-separated diskgroup properties to include in the response. "
+            "Defaults to a compact array diskgroup view."
+        ),
+    )
+    orderby: str | None = Field(
+        default=None,
+        description="Collector orderby expression, for example dg_name or ~dg_updated.",
+    )
+    search: str | None = Field(
+        default=None,
+        description="Collector full-text search expression when supported.",
+    )
+    limit: int = Field(default=20, ge=1, le=1000)
+    offset: int = Field(default=0, ge=0)
+
+
+class ArrayDiskgroupRowsResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[dict[str, Any]]
+
+
 class ArrayRelationCountRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -184,6 +250,89 @@ class ArrayDiskgroupsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     array: str
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[dict[str, Any]]
+
+
+class ArrayDiskgroupQuotasRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    array: str = Field(
+        min_length=1,
+        description=(
+            "Collector array selector. Use an exact storage array name "
+            "or Collector array row id."
+        ),
+        examples=["ARRAY-NAME"],
+    )
+    diskgroup: str = Field(
+        min_length=1,
+        description=(
+            "Collector diskgroup selector. Use an exact diskgroup name "
+            "or Collector diskgroup row id."
+        ),
+        examples=["DISKGROUP-NAME"],
+    )
+    props: str | None = Field(
+        default=None,
+        description=(
+            "Comma-separated quota properties to include in the response. "
+            "Defaults to a compact diskgroup quota view."
+        ),
+    )
+    max_quotas: int = Field(
+        default=200000,
+        ge=1,
+        le=500000,
+        description="Maximum number of quotas to return from Collector pagination.",
+    )
+
+
+class ArrayDiskgroupQuotasResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    array: str
+    diskgroup: str
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[dict[str, Any]]
+
+
+class ArrayDiskgroupQuotaRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    array: str = Field(
+        min_length=1,
+        description=(
+            "Collector array selector. Use an exact storage array name "
+            "or Collector array row id."
+        ),
+        examples=["ARRAY-NAME"],
+    )
+    diskgroup: str = Field(
+        min_length=1,
+        description=(
+            "Collector diskgroup selector. Use an exact diskgroup name "
+            "or Collector diskgroup row id."
+        ),
+        examples=["DISKGROUP-NAME"],
+    )
+    quota: str = Field(
+        min_length=1,
+        description="Collector diskgroup quota row id.",
+        examples=["QUOTA-ID"],
+    )
+    props: str | None = Field(
+        default=None,
+        description="Comma-separated quota properties to include in the response.",
+    )
+
+
+class ArrayDiskgroupQuotaResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    array: str
+    diskgroup: str
+    quota: str
     meta: dict[str, Any] = Field(default_factory=dict)
     data: list[dict[str, Any]]
 

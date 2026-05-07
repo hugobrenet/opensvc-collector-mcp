@@ -14,6 +14,7 @@ DEFAULT_ARRAY_DISKGROUP_PROPS = (
 )
 DEFAULT_ARRAY_PROXY_PROPS = "id,array_id,node_id"
 DEFAULT_ARRAY_TARGET_PROPS = "id,array_id,array_tgtid"
+DEFAULT_ARRAY_DISKGROUP_QUOTA_PROPS = "id,dg_id,app_id,quota"
 
 
 async def list_arrays(
@@ -28,6 +29,29 @@ async def list_arrays(
     parsed_filters = parse_collector_filters(filters)
     return await collector_get(
         "/arrays",
+        params=collection_params(
+            filters=parsed_filters,
+            props=selected_props,
+            orderby=orderby,
+            search=search,
+            limit=limit,
+            offset=offset,
+        ),
+    )
+
+
+async def list_array_diskgroups(
+    filters: dict[str, str] | str | None = None,
+    props: str | None = None,
+    orderby: str | None = "dg_name",
+    search: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> dict[str, Any]:
+    selected_props = props or DEFAULT_ARRAY_DISKGROUP_PROPS
+    parsed_filters = parse_collector_filters(filters)
+    return await collector_get(
+        "/arrays_diskgroups",
         params=collection_params(
             filters=parsed_filters,
             props=selected_props,
@@ -144,6 +168,92 @@ async def get_array_diskgroup(
     return {
         "array": selector,
         "diskgroup": diskgroup_selector,
+        "meta": meta,
+        "data": rows if isinstance(rows, list) else [],
+    }
+
+
+async def get_array_diskgroup_quotas(
+    array: str,
+    diskgroup: str,
+    props: str | None = None,
+    max_quotas: int = 200000,
+) -> dict[str, Any]:
+    selector = array.strip()
+    diskgroup_selector = diskgroup.strip()
+    if not selector:
+        raise ValueError("array must not be empty")
+    if not diskgroup_selector:
+        raise ValueError("diskgroup must not be empty")
+
+    selected_props = props or DEFAULT_ARRAY_DISKGROUP_QUOTA_PROPS
+    response = await collector_get_all(
+        (
+            f"/arrays/{quote(selector, safe='')}/diskgroups/"
+            f"{quote(diskgroup_selector, safe='')}/quotas"
+        ),
+        params={"props": selected_props},
+        max_items=max_quotas,
+    )
+    rows = response.get("data", [])
+    meta = dict(response.get("meta") or {})
+    meta.update(
+        {
+            "source": "arrays/<id>/diskgroups/<id>/quotas",
+            "selector": selector,
+            "diskgroup_selector": diskgroup_selector,
+            "included_props": selected_props.split(","),
+            "quota_count": len(rows),
+        }
+    )
+    return {
+        "array": selector,
+        "diskgroup": diskgroup_selector,
+        "meta": meta,
+        "data": rows,
+    }
+
+
+async def get_array_diskgroup_quota(
+    array: str,
+    diskgroup: str,
+    quota: str,
+    props: str | None = None,
+) -> dict[str, Any]:
+    selector = array.strip()
+    diskgroup_selector = diskgroup.strip()
+    quota_selector = quota.strip()
+    if not selector:
+        raise ValueError("array must not be empty")
+    if not diskgroup_selector:
+        raise ValueError("diskgroup must not be empty")
+    if not quota_selector:
+        raise ValueError("quota must not be empty")
+
+    params = {"props": props} if props else None
+    response = await collector_get(
+        (
+            f"/arrays/{quote(selector, safe='')}/diskgroups/"
+            f"{quote(diskgroup_selector, safe='')}/quotas/"
+            f"{quote(quota_selector, safe='')}"
+        ),
+        params=params,
+    )
+    rows = response.get("data", [])
+    meta = dict(response.get("meta") or {})
+    meta.update(
+        {
+            "source": "arrays/<id>/diskgroups/<id>/quotas/<id>",
+            "selector": selector,
+            "diskgroup_selector": diskgroup_selector,
+            "quota_selector": quota_selector,
+            "count": len(rows) if isinstance(rows, list) else 0,
+        }
+    )
+    return {
+        "array": selector,
+        "diskgroup": diskgroup_selector,
+        "quota": quota_selector,
         "meta": meta,
         "data": rows if isinstance(rows, list) else [],
     }
