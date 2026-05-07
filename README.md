@@ -10,7 +10,7 @@
 - HTTP transport served with `uvicorn`
 - custom health route: `/health`
 - typed Pydantic input and output models for MCP tools
-- OpenSVC Collector read-only tool surface for nodes, services, and clusters
+- OpenSVC Collector read-only tool surface for nodes, services, clusters, and users
 - architecture split between:
   - `tools/` for MCP tool definitions
   - `core/` for Collector workflows and business logic
@@ -45,22 +45,26 @@ src/opensvc_collector_mcp/
 |-- core/              # Collector workflows and business logic
 |   |-- clusters/
 |   |-- nodes/
-|   `-- services/
-|       |-- inventory.py
-|       |-- resources.py
-|       |-- compliance.py
-|       |-- actions.py
-|       |-- tags.py
-|       |-- health.py
-|       `-- storage.py
+|   |-- services/
+|   |   |-- inventory.py
+|   |   |-- resources.py
+|   |   |-- compliance.py
+|   |   |-- actions.py
+|   |   |-- tags.py
+|   |   |-- health.py
+|   |   `-- storage.py
+|   `-- users/
+|       `-- inventory.py
 |-- models/            # Pydantic request and response models
 |   |-- clusters/
 |   |-- nodes/
-|   `-- services/
+|   |-- services/
+|   `-- users/
 |-- tools/             # FastMCP tool definitions
 |   |-- clusters.py
 |   |-- nodes.py
-|   `-- services.py
+|   |-- services.py
+|   `-- users.py
 `-- server.py          # FastMCP app + uvicorn entrypoint
 ```
 
@@ -122,6 +126,7 @@ Tool documentation is organized by Collector domain:
 - [Node tools](docs/tools/nodes.md)
 - [Cluster tools](docs/tools/clusters.md)
 - [Service tools](docs/tools/services.md)
+- [User tools](docs/tools/users.md)
 
 ## Tool Domains
 
@@ -130,6 +135,7 @@ The current tool surface covers:
 - node inventory, health, tags, compliance, checks, disks, network, services, and cluster membership
 - service inventory, search, tags, config, instances, nodes, resources, disks, storage HBAs and targets, checks, alerts, actions, status history, frozen state, and health
 - cluster node membership
+- user inventory and user property discovery
 
 All tools are intended to be read-only against OpenSVC Collector.
 
