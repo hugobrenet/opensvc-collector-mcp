@@ -111,6 +111,34 @@ count
 meta
 ```
 
+### `get_array_diskgroup`
+
+Returns one OpenSVC Collector diskgroup attached to one storage array. The
+array selector accepts exact `array_name` or Collector array row id, and the
+diskgroup selector accepts exact `dg_name` or Collector diskgroup row id. The
+tool calls `/arrays/<id>/diskgroups/<id>`.
+
+Example:
+
+```json
+{
+  "request": {
+    "array": "ARRAY-NAME",
+    "diskgroup": "DISKGROUP-NAME",
+    "props": "id,array_id,dg_name,dg_size,dg_free,dg_used,dg_reserved,dg_updated"
+  }
+}
+```
+
+Output fields:
+
+```text
+array
+diskgroup
+meta
+data
+```
+
 ### `get_array_diskgroups`
 
 Returns all diskgroups attached to one OpenSVC Collector storage array

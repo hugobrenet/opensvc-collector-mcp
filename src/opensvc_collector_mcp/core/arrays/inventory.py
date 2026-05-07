@@ -109,6 +109,44 @@ async def get_array(
     return {"meta": meta, "data": rows if isinstance(rows, list) else []}
 
 
+async def get_array_diskgroup(
+    array: str,
+    diskgroup: str,
+    props: str | None = None,
+) -> dict[str, Any]:
+    selector = array.strip()
+    diskgroup_selector = diskgroup.strip()
+    if not selector:
+        raise ValueError("array must not be empty")
+    if not diskgroup_selector:
+        raise ValueError("diskgroup must not be empty")
+
+    params = {"props": props} if props else None
+    response = await collector_get(
+        (
+            f"/arrays/{quote(selector, safe='')}/diskgroups/"
+            f"{quote(diskgroup_selector, safe='')}"
+        ),
+        params=params,
+    )
+    rows = response.get("data", [])
+    meta = dict(response.get("meta") or {})
+    meta.update(
+        {
+            "source": "arrays/<id>/diskgroups/<id>",
+            "selector": selector,
+            "diskgroup_selector": diskgroup_selector,
+            "count": len(rows) if isinstance(rows, list) else 0,
+        }
+    )
+    return {
+        "array": selector,
+        "diskgroup": diskgroup_selector,
+        "meta": meta,
+        "data": rows if isinstance(rows, list) else [],
+    }
+
+
 async def get_array_diskgroups(
     array: str,
     props: str | None = None,

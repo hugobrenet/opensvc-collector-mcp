@@ -1,6 +1,8 @@
 """Pydantic contracts for array tools."""
 
 from .inventory import (
+    ArrayDiskgroupRequest,
+    ArrayDiskgroupResponse,
     ArrayDiskgroupsRequest,
     ArrayDiskgroupsResponse,
     ArrayFilterRequest,
@@ -16,6 +18,8 @@ from .inventory import (
 )
 
 __all__ = [
+    "ArrayDiskgroupRequest",
+    "ArrayDiskgroupResponse",
     "ArrayDiskgroupsRequest",
     "ArrayDiskgroupsResponse",
     "ArrayFilterRequest",

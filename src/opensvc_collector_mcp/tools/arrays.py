@@ -8,11 +8,14 @@ from opensvc_collector_mcp.core.arrays import (
     count_array_diskgroups as core_count_array_diskgroups,
     count_arrays as core_count_arrays,
     get_array as core_get_array,
+    get_array_diskgroup as core_get_array_diskgroup,
     get_array_diskgroups as core_get_array_diskgroups,
     list_array_props as core_list_array_props,
     list_arrays as core_list_arrays,
 )
 from opensvc_collector_mcp.models.arrays import (
+    ArrayDiskgroupRequest,
+    ArrayDiskgroupResponse,
     ArrayDiskgroupsRequest,
     ArrayDiskgroupsResponse,
     ArrayPropsResponse,
@@ -146,6 +149,35 @@ def register_arrays_tools(mcp: FastMCP) -> None:
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_array_diskgroup",
+        description=(
+            "Return OpenSVC Collector details for one storage array diskgroup "
+            "selected by array name or id and diskgroup name or id."
+        ),
+        tags={"arrays", "storage", "diskgroups", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Storage Array Diskgroup",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_array_diskgroup(
+        request: Annotated[
+            ArrayDiskgroupRequest,
+            Field(description="Array and diskgroup selectors with optional props."),
+        ],
+    ) -> ArrayDiskgroupResponse:
+        """Return one diskgroup attached to one OpenSVC Collector storage array."""
+        response = await core_get_array_diskgroup(
+            array=request.array,
+            diskgroup=request.diskgroup,
+            props=request.props,
+        )
+        return ArrayDiskgroupResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="get_array_diskgroups",
         description=(
             "Return all OpenSVC Collector diskgroups attached to one storage "
@@ -163,7 +195,9 @@ def register_arrays_tools(mcp: FastMCP) -> None:
     )
     async def get_array_diskgroups(
         request: Annotated[
-            ArrayDiskgroupsRequest,
+            ArrayDiskgroupRequest,
+    ArrayDiskgroupResponse,
+    ArrayDiskgroupsRequest,
             Field(description="Array selector and optional diskgroup property selection."),
         ],
     ) -> ArrayDiskgroupsResponse:

@@ -128,6 +128,7 @@ Current MCP array tool surface:
 - `count_arrays`
 - `get_array`
 - `get_array_diskgroups`
+- `get_array_diskgroup`
 - `count_array_diskgroups`
 
 Current MCP app tool surface:

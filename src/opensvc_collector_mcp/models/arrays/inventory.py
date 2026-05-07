@@ -120,6 +120,40 @@ class ArrayRelationCountResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
+class ArrayDiskgroupRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    array: str = Field(
+        min_length=1,
+        description=(
+            "Collector array selector. Use an exact storage array name "
+            "or Collector array row id."
+        ),
+        examples=["ARRAY-NAME"],
+    )
+    diskgroup: str = Field(
+        min_length=1,
+        description=(
+            "Collector diskgroup selector. Use an exact diskgroup name "
+            "or Collector diskgroup row id."
+        ),
+        examples=["DISKGROUP-NAME"],
+    )
+    props: str | None = Field(
+        default=None,
+        description="Comma-separated diskgroup properties to include in the response.",
+    )
+
+
+class ArrayDiskgroupResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    array: str
+    diskgroup: str
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[dict[str, Any]]
+
+
 class ArrayDiskgroupsRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
