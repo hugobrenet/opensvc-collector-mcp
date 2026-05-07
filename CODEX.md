@@ -128,6 +128,9 @@ Current MCP user tool surface:
 
 - `list_user_props`
 - `list_users`
+- `count_users_by_primary_group`
+- `count_users_by_group`
+- `count_users`
 - `get_user`
 - `search_users_by_group`
 - `search_users_by_primary_group`

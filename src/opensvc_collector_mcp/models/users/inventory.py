@@ -87,6 +87,13 @@ class UserCollectionRequest(UserFilterRequest):
     )
 
 
+class CountUsersRequest(UserFilterRequest):
+    search: str | None = Field(
+        default=None,
+        description="Collector full-text search expression when supported by /users.",
+    )
+
+
 class ListUsersRequest(UserCollectionRequest):
     pass
 
@@ -120,6 +127,50 @@ class GetUserRequest(BaseModel):
             "Comma-separated group properties used when include_primary_group "
             "or include_groups is enabled."
         ),
+    )
+
+
+class CountUsersByGroupRequest(UserFilterRequest):
+    group: str = Field(
+        min_length=1,
+        description="Exact Collector group role the user must be member of.",
+        examples=["group_role"],
+    )
+    orderby: str | None = Field(
+        default=None,
+        description="Collector orderby expression used while scanning /users.",
+    )
+    search: str | None = Field(
+        default=None,
+        description="Collector full-text search expression used while scanning /users.",
+    )
+    max_users: int = Field(
+        default=5000,
+        ge=1,
+        le=50000,
+        description="Maximum number of users to scan before checking groups.",
+    )
+
+
+class CountUsersByPrimaryGroupRequest(UserFilterRequest):
+    primary_group: str = Field(
+        min_length=1,
+        description="Exact Collector group role used as the user primary group.",
+        examples=["group_role"],
+    )
+    orderby: str | None = Field(
+        default=None,
+        description="Collector orderby expression used while scanning /users.",
+    )
+    search: str | None = Field(
+        default=None,
+        description="Collector full-text search expression used while scanning /users.",
+    )
+    max_users: int = Field(
+        default=5000,
+        ge=1,
+        le=50000,
+        description="Maximum number of users to scan before checking primary groups.",
     )
 
 
@@ -185,6 +236,40 @@ class UsersByPrimaryGroupRequest(UserFilterRequest):
             "/users/<id>/primary_group for each user."
         ),
     )
+
+
+class CountUsersResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    count: int | None = Field(description="Number of matching users.")
+    filters: dict[str, str] = Field(default_factory=dict)
+    search: str | None = Field(default=None)
+
+
+class CountUsersByGroupResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    count: int | None = Field(description="Number of matching users.")
+    group: str = Field(description="Collector group role matched by membership.")
+    filters: dict[str, str] = Field(default_factory=dict)
+    search: str | None = Field(default=None)
+    scanned_users: int | None = Field(default=None)
+    max_users: int | None = Field(default=None)
+    complete: bool | None = Field(default=None)
+    collector_total: int | None = Field(default=None)
+
+
+class CountUsersByPrimaryGroupResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    count: int | None = Field(description="Number of matching users.")
+    primary_group: str = Field(description="Collector primary group role matched.")
+    filters: dict[str, str] = Field(default_factory=dict)
+    search: str | None = Field(default=None)
+    scanned_users: int | None = Field(default=None)
+    max_users: int | None = Field(default=None)
+    complete: bool | None = Field(default=None)
+    collector_total: int | None = Field(default=None)
 
 
 class UserPropsResponse(BaseModel):

@@ -82,6 +82,32 @@ meta
 data
 ```
 
+
+### `count_users`
+
+Counts OpenSVC Collector users matching exact-match filters without returning
+user rows. This uses the `/users` collection metadata and performs one GET.
+
+Example:
+
+```json
+{
+  "request": {
+    "filters": {
+      "lock_filter": "False"
+    }
+  }
+}
+```
+
+Output fields:
+
+```text
+count
+filters
+search
+```
+
 ### `get_user`
 
 Returns one OpenSVC Collector user selected by `self`, numeric Collector user id,
@@ -119,6 +145,40 @@ groups
 ```
 
 
+
+### `count_users_by_group`
+
+Counts users who are member of the requested group role. This checks all group
+memberships, not only the primary group.
+
+This is a bounded business tool implemented only with OpenSVC Collector REST API
+GET calls. It first reads `/users`, then checks `/users/<id>/groups` for each
+scanned user. It does not call UI AJAX endpoints.
+
+Example:
+
+```json
+{
+  "request": {
+    "group": "group_role",
+    "max_users": 5000
+  }
+}
+```
+
+Output fields:
+
+```text
+count
+group
+filters
+search
+scanned_users
+max_users
+complete
+collector_total
+```
+
 ### `search_users_by_group`
 
 Returns users who are member of the requested group role. This checks all group
@@ -154,6 +214,39 @@ Output fields:
 ```text
 meta
 data
+```
+
+
+### `count_users_by_primary_group`
+
+Counts users whose primary group role exactly matches the requested value.
+
+This is a bounded business tool implemented only with OpenSVC Collector REST API
+GET calls. It first reads `/users`, then checks `/users/<id>/primary_group` for
+each scanned user. It does not call UI AJAX endpoints.
+
+Example:
+
+```json
+{
+  "request": {
+    "primary_group": "group_role",
+    "max_users": 5000
+  }
+}
+```
+
+Output fields:
+
+```text
+count
+primary_group
+filters
+search
+scanned_users
+max_users
+complete
+collector_total
 ```
 
 ### `search_users_by_primary_group`

@@ -39,6 +39,30 @@ async def list_users(
     )
 
 
+async def count_users(
+    filters: dict[str, str] | str | None = None,
+    search: str | None = None,
+) -> dict[str, Any]:
+    parsed_filters = _user_search_filters(filters)
+    response = await collector_get(
+        "/users",
+        params=collection_params(
+            filters=parsed_filters,
+            props="id",
+            orderby=None,
+            search=search,
+            limit=1,
+            offset=0,
+        ),
+    )
+    meta = response.get("meta", {})
+    return {
+        "count": meta.get("total"),
+        "filters": {field: value for field, value in parsed_filters},
+        "search": search,
+    }
+
+
 async def list_user_props() -> dict[str, Any]:
     response = await collector_get("/users", params={"props": "id", "limit": 1})
     available_props = response.get("meta", {}).get("available_props", [])
@@ -186,6 +210,34 @@ async def search_users_by_primary_group(
     }
 
 
+async def count_users_by_primary_group(
+    primary_group: str,
+    filters: dict[str, str] | str | None = None,
+    orderby: str | None = "email",
+    search: str | None = None,
+    max_users: int = 5000,
+) -> dict[str, Any]:
+    response = await search_users_by_primary_group(
+        primary_group=primary_group,
+        filters=filters,
+        props="id",
+        orderby=orderby,
+        search=search,
+        max_users=max_users,
+    )
+    meta = response.get("meta", {})
+    return {
+        "count": meta.get("matched_users"),
+        "primary_group": primary_group,
+        "filters": meta.get("filter", {}),
+        "search": search,
+        "scanned_users": meta.get("scanned_users"),
+        "max_users": meta.get("max_users"),
+        "complete": meta.get("complete"),
+        "collector_total": meta.get("collector_total"),
+    }
+
+
 async def _resolve_user_selector(selector: str) -> dict[str, Any]:
     if selector.isdigit():
         return {"id": selector, "resolution": "id"}
@@ -283,6 +335,34 @@ async def search_users_by_group(
             "collector_total": users_meta.get("total"),
         },
         "data": matches,
+    }
+
+
+async def count_users_by_group(
+    group: str,
+    filters: dict[str, str] | str | None = None,
+    orderby: str | None = "email",
+    search: str | None = None,
+    max_users: int = 5000,
+) -> dict[str, Any]:
+    response = await search_users_by_group(
+        group=group,
+        filters=filters,
+        props="id",
+        orderby=orderby,
+        search=search,
+        max_users=max_users,
+    )
+    meta = response.get("meta", {})
+    return {
+        "count": meta.get("matched_users"),
+        "group": group,
+        "filters": meta.get("filter", {}),
+        "search": search,
+        "scanned_users": meta.get("scanned_users"),
+        "max_users": meta.get("max_users"),
+        "complete": meta.get("complete"),
+        "collector_total": meta.get("collector_total"),
     }
 
 

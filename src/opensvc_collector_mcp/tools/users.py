@@ -5,6 +5,9 @@ from pydantic import Field
 
 from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.users import (
+    count_users as core_count_users,
+    count_users_by_group as core_count_users_by_group,
+    count_users_by_primary_group as core_count_users_by_primary_group,
     get_user as core_get_user,
     list_user_props as core_list_user_props,
     list_users as core_list_users,
@@ -12,6 +15,12 @@ from opensvc_collector_mcp.core.users import (
     search_users_by_primary_group as core_search_users_by_primary_group,
 )
 from opensvc_collector_mcp.models.users import (
+    CountUsersByGroupRequest,
+    CountUsersByGroupResponse,
+    CountUsersByPrimaryGroupRequest,
+    CountUsersByPrimaryGroupResponse,
+    CountUsersRequest,
+    CountUsersResponse,
     GetUserRequest,
     ListUsersRequest,
     UserDetailResponse,
@@ -57,6 +66,34 @@ def register_users_tools(mcp: FastMCP) -> None:
             offset=request.offset,
         )
         return UserRowsResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="count_users",
+        description=(
+            "Count OpenSVC Collector users matching exact-match user filters. "
+            "Use this when only the number of matching users is needed."
+        ),
+        tags={"users", "inventory", "count", "read"},
+        annotations={
+            "title": "Count OpenSVC Users",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def count_users(
+        request: Annotated[
+            CountUsersRequest,
+            Field(description="Exact-match filters used to count Collector users."),
+        ] = CountUsersRequest(),
+    ) -> CountUsersResponse:
+        """Return the number of users matching the provided filters."""
+        response = await core_count_users(
+            filters=request.merged_filters(),
+            search=request.search,
+        )
+        return CountUsersResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
@@ -122,6 +159,40 @@ def register_users_tools(mcp: FastMCP) -> None:
     # one /users request plus one /users/<id>/groups request per user.
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
+        name="count_users_by_group",
+        description=(
+            "Count OpenSVC Collector users who are member of the requested group "
+            "role. Uses only REST API GET calls: /users followed by "
+            "/users/<id>/groups for scanned users."
+        ),
+        tags={"users", "groups", "count", "read"},
+        annotations={
+            "title": "Count OpenSVC Users By Group",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def count_users_by_group(
+        request: Annotated[
+            CountUsersByGroupRequest,
+            Field(description="Group role plus optional user filters and scan bound."),
+        ],
+    ) -> CountUsersByGroupResponse:
+        """Return the number of users member of the requested group role."""
+        response = await core_count_users_by_group(
+            group=request.group,
+            filters=request.merged_filters(),
+            orderby=request.orderby,
+            search=request.search,
+            max_users=request.max_users,
+        )
+        return CountUsersByGroupResponse.model_validate(response)
+
+    # Acceptable for this Collector size, around 100-150 users: this tool uses
+    # one /users request plus one /users/<id>/groups request per user.
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
         name="search_users_by_group",
         description=(
             "Return OpenSVC Collector users who are member of the requested "
@@ -157,6 +228,40 @@ def register_users_tools(mcp: FastMCP) -> None:
             max_users=request.max_users,
         )
         return UsersByGroupResponse.model_validate(response)
+
+    # Acceptable for this Collector size, around 100-150 users: this tool uses
+    # one /users request plus one /users/<id>/primary_group request per user.
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="count_users_by_primary_group",
+        description=(
+            "Count OpenSVC Collector users whose primary group role exactly "
+            "matches the requested value. Uses only REST API GET calls: /users "
+            "followed by /users/<id>/primary_group for scanned users."
+        ),
+        tags={"users", "groups", "count", "read"},
+        annotations={
+            "title": "Count OpenSVC Users By Primary Group",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def count_users_by_primary_group(
+        request: Annotated[
+            CountUsersByPrimaryGroupRequest,
+            Field(description="Primary group role plus optional user filters and scan bound."),
+        ],
+    ) -> CountUsersByPrimaryGroupResponse:
+        """Return the number of users whose primary group role matches exactly."""
+        response = await core_count_users_by_primary_group(
+            primary_group=request.primary_group,
+            filters=request.merged_filters(),
+            orderby=request.orderby,
+            search=request.search,
+            max_users=request.max_users,
+        )
+        return CountUsersByPrimaryGroupResponse.model_validate(response)
 
     # Acceptable for this Collector size, around 100-150 users: this tool uses
     # one /users request plus one /users/<id>/primary_group request per user.
