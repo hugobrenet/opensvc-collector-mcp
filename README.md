@@ -129,6 +129,7 @@ Tool documentation is organized by Collector domain:
 - [Node tools](docs/tools/nodes.md)
 - [Cluster tools](docs/tools/clusters.md)
 - [Service tools](docs/tools/services.md)
+- [Disk tools](docs/tools/disks.md)
 - [User tools](docs/tools/users.md)
 - [Tag tools](docs/tools/tags.md)
 
@@ -138,6 +139,7 @@ The current tool surface covers:
 
 - node inventory, health, tags, compliance, checks, disks, network, services, and cluster membership
 - service inventory, search, tags, config, instances, nodes, resources, disks, storage HBAs and targets, checks, alerts, actions, status history, frozen state, and health
+- global disk inventory and disk detail lookup
 - cluster node membership
 - user inventory and user property discovery
 - tag inventory and tag property discovery

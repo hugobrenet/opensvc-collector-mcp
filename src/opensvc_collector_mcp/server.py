@@ -8,6 +8,7 @@ from opensvc_collector_mcp.tools.apps import register_apps_tools
 from opensvc_collector_mcp.tools.arrays import register_arrays_tools
 from opensvc_collector_mcp.tools.clusters import register_clusters_tools
 from opensvc_collector_mcp.tools.compliance import register_compliance_tools
+from opensvc_collector_mcp.tools.disks import register_disks_tools
 from opensvc_collector_mcp.tools.nodes import register_nodes_tools
 from opensvc_collector_mcp.tools.services import register_services_tools
 from opensvc_collector_mcp.tools.tags import register_tags_tools
@@ -33,6 +34,7 @@ register_apps_tools(mcp)
 register_arrays_tools(mcp)
 register_services_tools(mcp)
 register_compliance_tools(mcp)
+register_disks_tools(mcp)
 register_users_tools(mcp)
 register_tags_tools(mcp)
 
