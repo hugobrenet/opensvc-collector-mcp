@@ -29,6 +29,8 @@ Local project notes for working on `opensvc-collector-mcp`.
   `/mcp`
 - Custom health route:
   `/health`
+- BM25 tool search is always enabled. `tools/list` exposes `search_tools` and
+  `call_tool`, while the full catalog remains registered and callable.
 
 Current package layout:
 
@@ -216,6 +218,20 @@ Current MCP disk tool surface:
 - `count_disks`
 - `get_disk`
 
+Tool discovery standard:
+
+- The server always enables `BM25SearchTransform`.
+- Search returns up to `MCP_TOOL_SEARCH_MAX_RESULTS` tools. This is a code
+  constant in `config.py`, currently set to `10`.
+- BM25 is lexical search, not semantic AI. Tool names, descriptions, parameter
+  names, and parameter descriptions must contain the words an LLM is likely to
+  search for.
+- Prefer descriptions that mention domain intent and common user language such
+  as summary, statistics, distribution, count, detail, relation, storage, group,
+  tag, app, array, node, and service when relevant.
+- For raw listing tools, mention the specialized aggregate/detail tool when the
+  LLM should prefer it over scanning a collection.
+
 Tool implementation standard:
 
 - Every new FastMCP tool should define an explicit `name`
@@ -299,7 +315,10 @@ Layering standard:
   Add more tests when the core logic performs resolution, pagination, joins,
   fallback lookups, or count/search behavior.
 - Keep `tests/test_mcp_registration.py` aligned with the expected registered
-  tool count whenever the public MCP surface changes.
+  tool count whenever the public MCP surface changes. Registration checks should
+  inspect the underlying catalog with `build_mcp()._list_tools()`; default
+  listing checks should expect the synthetic BM25 tools `search_tools` and
+  `call_tool`.
 - Avoid real infrastructure identifiers in tests. Use neutral synthetic values
   such as `NODE-ID`, `SERVICE-ID`, `DISK-ID`, `GROUP`, or `APP-ID`.
 
