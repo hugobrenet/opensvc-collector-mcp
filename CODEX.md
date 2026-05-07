@@ -18,7 +18,7 @@ Local project notes for working on `opensvc-collector-mcp`.
 . ./venv/bin/activate
 ```
 
-- Python in the venv is Python `3.13`
+- Use `./venv/bin/python` for commands so the repo-local dependencies are used
 
 ## Local MCP Server
 
@@ -52,16 +52,26 @@ Current package layout:
   cluster-domain business logic
 - `src/opensvc_collector_mcp/core/compliance/`
   global compliance-domain business logic
+- `src/opensvc_collector_mcp/core/disks/`
+  global disk-domain business logic
 - `src/opensvc_collector_mcp/core/users/`
   user-domain business logic
 - `src/opensvc_collector_mcp/core/tags/`
   tag-domain business logic
+- `src/opensvc_collector_mcp/core/apps/`
+  app-domain business logic
+- `src/opensvc_collector_mcp/core/arrays/`
+  array-domain business logic
 - `src/opensvc_collector_mcp/models/services/`
   service-domain Pydantic contracts split with the same concern boundaries
 - `src/opensvc_collector_mcp/models/nodes/`
   node-domain Pydantic contracts split with the same concern boundaries
 - `src/opensvc_collector_mcp/models/clusters/`
   cluster-domain Pydantic contracts
+- `src/opensvc_collector_mcp/models/compliance/`
+  compliance-domain Pydantic contracts
+- `src/opensvc_collector_mcp/models/disks/`
+  disk-domain Pydantic contracts
 - `src/opensvc_collector_mcp/models/users/`
   user-domain Pydantic contracts
 - `src/opensvc_collector_mcp/models/tags/`
@@ -199,6 +209,13 @@ Current MCP service tool surface:
 - `get_service_actions`
 - `get_service_unacknowledged_errors`
 
+Current MCP disk tool surface:
+
+- `list_disk_props`
+- `list_disks`
+- `count_disks`
+- `get_disk`
+
 Tool implementation standard:
 
 - Every new FastMCP tool should define an explicit `name`
@@ -267,6 +284,25 @@ Layering standard:
 - `client.py`: async HTTP client helpers only.
 - `docs/`: human-facing tool documentation by domain.
 
+## Testing Standard
+
+- Tests live under `tests/` and use `pytest` plus `pytest-asyncio`.
+- `tests/conftest.py` provides an in-memory FastMCP client fixture and Collector
+  mock helpers.
+- Core tests should mock `collector_get` or `collector_get_all` and assert the
+  Collector path, query parameters, filters, pagination, and response shaping.
+- Tool tests should call the MCP tool through the FastMCP client and monkeypatch
+  the imported core function in `tools/<domain>.py`.
+- For FastMCP tool tests, assert `result.structured_content` rather than
+  relying on the typed `result.data` object.
+- When adding a new tool, add at least one core test and one tool wiring test.
+  Add more tests when the core logic performs resolution, pagination, joins,
+  fallback lookups, or count/search behavior.
+- Keep `tests/test_mcp_registration.py` aligned with the expected registered
+  tool count whenever the public MCP surface changes.
+- Avoid real infrastructure identifiers in tests. Use neutral synthetic values
+  such as `NODE-ID`, `SERVICE-ID`, `DISK-ID`, `GROUP`, or `APP-ID`.
+
 Shared configuration standard:
 
 - Put shared global configuration values in `src/opensvc_collector_mcp/config.py`.
@@ -308,13 +344,16 @@ Error and production-readiness notes:
   add clean error mapping that does not expose credentials.
 - TLS verification is currently disabled for the local lab. Before production
   use, add `OPENSVC_VERIFY_TLS` and/or `OPENSVC_CA_BUNDLE`.
-- Add focused tests as the tool surface grows, especially for model validation,
-  filter merging, `list_nodes`, `count_nodes`, `get_node_health`, and stats.
+- Keep focused tests growing with the tool surface. At minimum, each new tool
+  should get core tests for Collector request construction/business logic and a
+  FastMCP tool test for request/model wiring.
 
 Post-implementation validation:
 
-- Run focused `py_compile` checks on modified Python modules.
-- Run `./venv/bin/ruff check src` after each implementation.
+- Run focused pytest tests for the touched domain first.
+- Run the full test suite with `./venv/bin/python -m pytest` before handing back.
+- Run compile checks with `./venv/bin/python -m compileall -q src/opensvc_collector_mcp tests`.
+- Run `./venv/bin/python -m ruff check src/opensvc_collector_mcp docs tests` after each implementation.
 - Validate FastMCP tool registration when tool signatures or models changed.
 - Run `git diff --check` before handing changes back.
 - For Collector-backed tools, validate with read-only GET calls only and avoid
@@ -324,14 +363,12 @@ Tool documentation:
 
 - Keep `README.md` oriented toward project presentation, setup, and links
 - Put detailed tool documentation under `docs/tools/`
-- Current node tool docs:
-  `docs/tools/nodes.md`
-- Current service tool docs:
-  `docs/tools/services.md`
-- Current compliance tool docs:
-  `docs/tools/compliance.md`
+- Current tool docs:
+  `docs/tools/nodes.md`, `docs/tools/services.md`, `docs/tools/clusters.md`,
+  `docs/tools/compliance.md`, `docs/tools/disks.md`, `docs/tools/users.md`,
+  `docs/tools/tags.md`, `docs/tools/apps.md`, and `docs/tools/arrays.md`
 - If new Collector domains are added, prefer one focused doc per domain:
-  `docs/tools/services.md`, `docs/tools/checks.md`, etc.
+  `docs/tools/<domain>.md`.
 
 Node tool design decisions:
 
@@ -422,18 +459,26 @@ curl -sS -X POST http://127.0.0.1:8001/mcp \
 Local workflow used during tool development:
 
 1. Implement or adjust the tool.
-2. Run compile check:
+2. Add or update focused core and tool tests.
+3. Run focused tests for the touched domain, for example:
 
 ```bash
-PYTHONPATH=src python -m compileall -q src
+./venv/bin/python -m pytest tests/core/test_nodes.py tests/tools/test_nodes_tools.py -q
 ```
 
-3. Test core logic directly with `PYTHONPATH=src python -c ...`.
-4. Test in-memory FastMCP with `fastmcp.Client`.
-5. Start server:
+4. Run full validation:
 
 ```bash
-PYTHONPATH=src python -m opensvc_collector_mcp.server
+./venv/bin/python -m pytest
+./venv/bin/python -m compileall -q src/opensvc_collector_mcp tests
+./venv/bin/python -m ruff check src/opensvc_collector_mcp docs tests
+git diff --check
+```
+
+5. Start server when live MCP/curl validation is needed:
+
+```bash
+PYTHONPATH=src ./venv/bin/python -m opensvc_collector_mcp.server
 ```
 
 6. Validate by `curl` against `http://127.0.0.1:8001/mcp`.
@@ -461,6 +506,12 @@ Important runtime dependencies currently used by the code:
 - `httpx`
 - `uvicorn`
 - `python-dotenv`
+
+Important development dependencies currently used by tests and validation:
+
+- `pytest`
+- `pytest-asyncio`
+- `ruff`
 
 ## Environment Variables
 
