@@ -64,6 +64,34 @@ class GetAppRequest(BaseModel):
     )
 
 
+class AppNodesRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    app: str = Field(
+        min_length=1,
+        description="Collector app selector. Use an exact app code or Collector app row id.",
+        examples=["APP-CODE"],
+    )
+    props: str | None = Field(
+        default=None,
+        description="Comma-separated node properties to include in the response.",
+    )
+    max_nodes: int = Field(
+        default=200000,
+        ge=1,
+        le=500000,
+        description="Maximum number of nodes to return from Collector pagination.",
+    )
+
+
+class AppNodesResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    app: str
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[dict[str, Any]]
+
+
 class CountAppsRequest(AppFilterRequest):
     search: str | None = Field(
         default=None,

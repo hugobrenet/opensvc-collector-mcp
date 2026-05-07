@@ -32,6 +32,33 @@ meta
 data
 ```
 
+### `get_app_nodes`
+
+Returns all nodes attached to one OpenSVC Collector application code
+selected by exact `app` code or Collector app row id. The tool calls
+`/apps/<id>/nodes` and follows Collector pagination until `meta.complete`
+is true or `max_nodes` is reached.
+
+Example:
+
+```json
+{
+  "request": {
+    "app": "APP-CODE",
+    "props": "nodename,status,asset_env,node_env,app",
+    "max_nodes": 200000
+  }
+}
+```
+
+Output fields:
+
+```text
+app
+meta
+data
+```
+
 ### `list_app_props`
 
 Returns the app properties exposed by the Collector.

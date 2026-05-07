@@ -3,6 +3,8 @@
 from .inventory import (
     AppFilterRequest,
     AppPropsResponse,
+    AppNodesRequest,
+    AppNodesResponse,
     AppRow,
     CountAppsRequest,
     CountAppsResponse,
@@ -14,6 +16,8 @@ from .inventory import (
 __all__ = [
     "AppFilterRequest",
     "AppPropsResponse",
+    "AppNodesRequest",
+    "AppNodesResponse",
     "AppRow",
     "CountAppsRequest",
     "CountAppsResponse",

@@ -7,10 +7,13 @@ from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.apps import (
     count_apps as core_count_apps,
     get_app as core_get_app,
+    get_app_nodes as core_get_app_nodes,
     list_app_props as core_list_app_props,
     list_apps as core_list_apps,
 )
 from opensvc_collector_mcp.models.apps import (
+    AppNodesRequest,
+    AppNodesResponse,
     AppPropsResponse,
     AppRowsResponse,
     CountAppsRequest,
@@ -110,6 +113,36 @@ def register_apps_tools(mcp: FastMCP) -> None:
             props=request.props,
         )
         return AppRowsResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_app_nodes",
+        description=(
+            "Return all OpenSVC Collector nodes attached to one app "
+            "selected by exact app code or Collector app row id. The tool "
+            "follows Collector pagination until complete or max_nodes is reached."
+        ),
+        tags={"apps", "nodes", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC App Nodes",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_app_nodes(
+        request: Annotated[
+            AppNodesRequest,
+            Field(description="App selector and optional node property selection."),
+        ],
+    ) -> AppNodesResponse:
+        """Return nodes attached to one OpenSVC Collector app."""
+        response = await core_get_app_nodes(
+            app=request.app,
+            props=request.props,
+            max_nodes=request.max_nodes,
+        )
+        return AppNodesResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

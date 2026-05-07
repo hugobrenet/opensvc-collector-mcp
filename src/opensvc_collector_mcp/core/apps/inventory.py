@@ -1,11 +1,14 @@
 from typing import Any
 from urllib.parse import quote
 
-from opensvc_collector_mcp.client import collector_get
+from opensvc_collector_mcp.client import collector_get, collector_get_all
 from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
 
 
 DEFAULT_LIST_APP_PROPS = "app,app_domain,app_team_ops,description,updated"
+DEFAULT_APP_NODE_PROPS = (
+    "nodename,status,asset_env,node_env,app,team_responsible,os_name"
+)
 
 
 async def list_apps(
@@ -54,6 +57,38 @@ async def get_app(
         }
     )
     return {"meta": meta, "data": rows if isinstance(rows, list) else []}
+
+
+async def get_app_nodes(
+    app: str,
+    props: str | None = None,
+    max_nodes: int = 200000,
+) -> dict[str, Any]:
+    selector = app.strip()
+    if not selector:
+        raise ValueError("app must not be empty")
+
+    selected_props = props or DEFAULT_APP_NODE_PROPS
+    response = await collector_get_all(
+        f"/apps/{quote(selector, safe='')}/nodes",
+        params={"props": selected_props},
+        max_items=max_nodes,
+    )
+    rows = response.get("data", [])
+    meta = dict(response.get("meta", {}))
+    meta.update(
+        {
+            "source": "apps/<id>/nodes",
+            "selector": selector,
+            "included_props": selected_props.split(","),
+            "node_count": len(rows),
+        }
+    )
+    return {
+        "app": selector,
+        "meta": meta,
+        "data": rows,
+    }
 
 
 async def count_apps(
