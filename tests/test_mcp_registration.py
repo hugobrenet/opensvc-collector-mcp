@@ -1,3 +1,5 @@
+from opensvc_collector_mcp.server import build_mcp
+
 EXPECTED_TOOL_NAMES = {
     "am_i_responsible_for_app",
     "count_app_nodes",
@@ -110,9 +112,29 @@ EXPECTED_TOOL_NAMES = {
 }
 
 
-async def test_all_expected_tools_are_registered(mcp_client):
-    tools = await mcp_client.list_tools()
+async def test_all_expected_tools_are_registered_in_underlying_catalog():
+    tools = await build_mcp()._list_tools()
     tool_names = {tool.name for tool in tools}
 
     assert tool_names == EXPECTED_TOOL_NAMES
     assert len(tool_names) == len(tools)
+
+
+async def test_default_tool_listing_exposes_bm25_search_tools(mcp_client):
+    tools = await mcp_client.list_tools()
+    tool_names = {tool.name for tool in tools}
+
+    assert tool_names == {"search_tools", "call_tool"}
+
+
+async def test_bm25_search_finds_node_inventory_stats(mcp_client):
+    result = await mcp_client.call_tool(
+        "search_tools",
+        {"query": "node inventory statistics summary distribution"},
+    )
+
+    matches = result.structured_content["result"]
+    match_names = [match["name"] for match in matches]
+
+    assert len(matches) <= 10
+    assert match_names[0] == "get_nodes_inventory_stats"

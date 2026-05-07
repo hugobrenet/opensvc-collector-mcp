@@ -57,7 +57,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "List or search nodes from the OpenSVC Collector inventory. "
             "Use filters for exact-match lookup, search for Collector full-text "
             "search, nodename_contains for partial nodename lookup, and props "
-            "to reduce response size."
+            "to reduce response size. Do not use this tool to compute global "
+            "node inventory statistics, summaries, distributions, or counts by "
+            "category; use get_nodes_inventory_stats instead."
         ),
         tags={"nodes", "inventory", "read"},
         annotations={
@@ -531,8 +533,11 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         name="get_nodes_inventory_stats",
         description=(
             "Return aggregate counts over OpenSVC Collector nodes. "
-            "Use this for questions about possible values or counts by status, "
-            "asset_env, node_env, location, app, or operating system."
+            "Use this for node inventory statistics, statistical summaries, "
+            "aggregated summaries, distributions, possible values, or counts by "
+            "status, asset_env, node_env, location, app, or operating system. "
+            "Prefer this tool over list_nodes when the user asks for a summary, "
+            "stats, distribution, or aggregated inventory."
         ),
         tags={"nodes", "inventory", "stats", "read"},
         annotations={
