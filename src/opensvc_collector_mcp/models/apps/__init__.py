@@ -6,6 +6,7 @@ from .inventory import (
     AppRow,
     CountAppsRequest,
     CountAppsResponse,
+    GetAppRequest,
     AppRowsResponse,
     ListAppsRequest,
 )
@@ -16,6 +17,7 @@ __all__ = [
     "AppRow",
     "CountAppsRequest",
     "CountAppsResponse",
+    "GetAppRequest",
     "AppRowsResponse",
     "ListAppsRequest",
 ]

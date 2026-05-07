@@ -6,6 +6,7 @@ from pydantic import Field
 from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.apps import (
     count_apps as core_count_apps,
+    get_app as core_get_app,
     list_app_props as core_list_app_props,
     list_apps as core_list_apps,
 )
@@ -14,6 +15,7 @@ from opensvc_collector_mcp.models.apps import (
     AppRowsResponse,
     CountAppsRequest,
     CountAppsResponse,
+    GetAppRequest,
     ListAppsRequest,
 )
 
@@ -80,6 +82,34 @@ def register_apps_tools(mcp: FastMCP) -> None:
             search=request.search,
         )
         return CountAppsResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_app",
+        description=(
+            "Return OpenSVC Collector details for one application code "
+            "selected by exact app code or Collector app row id."
+        ),
+        tags={"apps", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC App",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_app(
+        request: Annotated[
+            GetAppRequest,
+            Field(description="App selector and optional property selection."),
+        ],
+    ) -> AppRowsResponse:
+        """Return one OpenSVC Collector app by app code or row id."""
+        response = await core_get_app(
+            app=request.app,
+            props=request.props,
+        )
+        return AppRowsResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

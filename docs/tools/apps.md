@@ -8,6 +8,30 @@ MCP tool definitions live in `src/opensvc_collector_mcp/tools/apps.py`.
 
 ## Tools
 
+### `get_app`
+
+Returns one OpenSVC Collector application code selected by exact `app`
+code or Collector app row id. The Collector endpoint accepts both forms
+through `/apps/<id>`.
+
+Example:
+
+```json
+{
+  "request": {
+    "app": "APP-CODE",
+    "props": "app,app_domain,app_team_ops,description,updated"
+  }
+}
+```
+
+Output fields:
+
+```text
+meta
+data
+```
+
 ### `list_app_props`
 
 Returns the app properties exposed by the Collector.

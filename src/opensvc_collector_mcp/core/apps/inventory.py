@@ -1,4 +1,5 @@
 from typing import Any
+from urllib.parse import quote
 
 from opensvc_collector_mcp.client import collector_get
 from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
@@ -28,6 +29,31 @@ async def list_apps(
             offset=offset,
         ),
     )
+
+
+async def get_app(
+    app: str,
+    props: str | None = None,
+) -> dict[str, Any]:
+    selector = app.strip()
+    if not selector:
+        raise ValueError("app must not be empty")
+
+    params = {"props": props} if props else None
+    response = await collector_get(
+        f"/apps/{quote(selector, safe='')}",
+        params=params,
+    )
+    rows = response.get("data", [])
+    meta = dict(response.get("meta", {}))
+    meta.update(
+        {
+            "source": "app_detail",
+            "selector": selector,
+            "count": len(rows) if isinstance(rows, list) else 0,
+        }
+    )
+    return {"meta": meta, "data": rows if isinstance(rows, list) else []}
 
 
 async def count_apps(

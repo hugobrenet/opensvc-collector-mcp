@@ -50,6 +50,20 @@ class AppFilterRequest(BaseModel):
         return merged
 
 
+class GetAppRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    app: str = Field(
+        min_length=1,
+        description="Collector app selector. Use an exact app code or Collector app row id.",
+        examples=["APP-CODE"],
+    )
+    props: str | None = Field(
+        default=None,
+        description="Comma-separated app properties to include in the response.",
+    )
+
+
 class CountAppsRequest(AppFilterRequest):
     search: str | None = Field(
         default=None,
