@@ -15,10 +15,7 @@ from .inventory import (
 )
 
 from .tags import (
-    TagNameRequest,
     NodeTagsResponse,
-    NodesByTagResponse,
-    NodesWithoutTagResponse,
 )
 
 from .location import (
@@ -127,7 +124,4 @@ __all__ = [
     'NodeServicesRequest',
     'NodeServicesResponse',
     'NodeTagsResponse',
-    'NodesByTagResponse',
-    'NodesWithoutTagResponse',
-    'TagNameRequest',
 ]

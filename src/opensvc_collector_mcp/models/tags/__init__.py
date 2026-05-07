@@ -3,6 +3,8 @@
 from .inventory import (
     ListTagsRequest,
     TagFilterRequest,
+    TagNodesRequest,
+    TagNodesResponse,
     TagPropsResponse,
     TagRow,
     TagSelectorRequest,
@@ -12,6 +14,8 @@ from .inventory import (
 __all__ = [
     "ListTagsRequest",
     "TagFilterRequest",
+    "TagNodesRequest",
+    "TagNodesResponse",
     "TagPropsResponse",
     "TagRow",
     "TagSelectorRequest",

@@ -9,8 +9,6 @@ from .inventory import (
 
 from .tags import (
     get_node_tags,
-    search_node_by_tag,
-    search_nodes_without_tag,
 )
 
 from .location import (
@@ -79,6 +77,4 @@ __all__ = [
     'get_nodes_inventory_stats',
     'list_node_props',
     'list_nodes',
-    'search_node_by_tag',
-    'search_nodes_without_tag',
 ]

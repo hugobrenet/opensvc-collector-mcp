@@ -20,8 +20,6 @@ from opensvc_collector_mcp.models.nodes import (
     NodeNameRequest,
     NodeRelationRequest,
     NodeNetworkResponse,
-    NodesByTagResponse,
-    NodesWithoutTagResponse,
     NodeOrganizationResponse,
     NodeOsResponse,
     NodePropsResponse,
@@ -29,7 +27,6 @@ from opensvc_collector_mcp.models.nodes import (
     NodeServicesRequest,
     NodeServicesResponse,
     NodeTagsResponse,
-    TagNameRequest,
 )
 from opensvc_collector_mcp.core.nodes import (
     count_nodes as core_count_nodes,
@@ -49,8 +46,6 @@ from opensvc_collector_mcp.core.nodes import (
     get_nodes_inventory_stats as core_get_nodes_inventory_stats,
     list_node_props as core_list_node_props,
     list_nodes as core_list_nodes,
-    search_node_by_tag as core_search_node_by_tag,
-    search_nodes_without_tag as core_search_nodes_without_tag,
 )
 
 
@@ -197,58 +192,6 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             offset=request.offset,
         )
         return NodeTagsResponse.model_validate({"nodename": nodename, **response})
-
-    @mcp.tool(
-        timeout=TOOL_TIMEOUT_SECONDS,
-        name="search_node_by_tag",
-        description=(
-            "Return nodes attached to one OpenSVC Collector tag. "
-            "The tool resolves the tag id from the exact tag name, then calls "
-            "/tags/<tag_id>/nodes."
-        ),
-        tags={"nodes", "tags", "search", "read"},
-        annotations={
-            "title": "Search Nodes By Tag",
-            "readOnlyHint": True,
-            "idempotentHint": True,
-            "openWorldHint": False,
-        },
-    )
-    async def search_node_by_tag(
-        request: Annotated[
-            TagNameRequest,
-            Field(description="Exact tag name used to list attached nodes."),
-        ],
-    ) -> NodesByTagResponse:
-        """Return nodes attached to one OpenSVC Collector tag."""
-        response = await core_search_node_by_tag(tag_name=request.tag_name)
-        return NodesByTagResponse.model_validate(response)
-
-    @mcp.tool(
-        timeout=TOOL_TIMEOUT_SECONDS,
-        name="search_nodes_without_tag",
-        description=(
-            "Return nodes that do not have one OpenSVC Collector tag attached. "
-            "The tool resolves the tag id, lists tagged nodes, then returns the "
-            "difference against all Collector nodes."
-        ),
-        tags={"nodes", "tags", "search", "read"},
-        annotations={
-            "title": "Search Nodes Without Tag",
-            "readOnlyHint": True,
-            "idempotentHint": True,
-            "openWorldHint": False,
-        },
-    )
-    async def search_nodes_without_tag(
-        request: Annotated[
-            TagNameRequest,
-            Field(description="Exact tag name used to exclude tagged nodes."),
-        ],
-    ) -> NodesWithoutTagResponse:
-        """Return nodes that do not have one OpenSVC Collector tag attached."""
-        response = await core_search_nodes_without_tag(tag_name=request.tag_name)
-        return NodesWithoutTagResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

@@ -74,8 +74,6 @@ Current MCP node tool surface:
 - `count_nodes`
 - `get_node`
 - `get_node_tags`
-- `search_node_by_tag`
-- `search_nodes_without_tag`
 - `get_node_location`
 - `get_node_organization`
 - `get_node_hardware`
@@ -124,6 +122,7 @@ Current MCP tag tool surface:
 - `list_tag_props`
 - `list_tags`
 - `get_tag`
+- `get_tag_nodes`
 
 Current MCP user tool surface:
 

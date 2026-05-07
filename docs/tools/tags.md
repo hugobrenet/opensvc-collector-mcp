@@ -33,6 +33,39 @@ meta
 data
 ```
 
+### `get_tag_nodes`
+
+Returns all nodes attached to one OpenSVC Collector tag selected by exact
+`tag_id` or exact `tag_name`. If `tag_name` is provided, the tool resolves
+it through `/tags`, then calls `/tags/<id>/nodes` and follows Collector
+pagination until `meta.complete` is true or `max_nodes` is reached.
+
+This is the tag-domain mirror of `get_node_tags`: `get_node_tags` starts
+from one node and returns its tags; `get_tag_nodes` starts from one tag and
+returns its nodes.
+
+Example:
+
+```json
+{
+  "request": {
+    "tag_name": "tag_name",
+    "props": "nodename,status,asset_env,node_env",
+    "max_nodes": 200000
+  }
+}
+```
+
+Output fields:
+
+```text
+tag_id
+tag_name
+tag
+meta
+data
+```
+
 ### `list_tag_props`
 
 Returns the tag properties exposed by the Collector.

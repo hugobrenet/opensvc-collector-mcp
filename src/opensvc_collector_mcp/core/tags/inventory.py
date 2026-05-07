@@ -1,11 +1,15 @@
 from typing import Any
 from urllib.parse import quote
 
-from opensvc_collector_mcp.client import collector_get
+from opensvc_collector_mcp.client import collector_get, collector_get_all
 from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
 
 
 DEFAULT_LIST_TAG_PROPS = "tag_id,tag_name,tag_exclude,tag_created"
+DEFAULT_TAG_NODE_PROPS = (
+    "nodename,status,asset_env,node_env,loc_city,loc_country,"
+    "app,team_responsible,os_name"
+)
 
 
 async def list_tags(
@@ -54,6 +58,43 @@ async def get_tag(
         }
     )
     return {"meta": meta, "data": response.get("data", [])}
+
+
+async def get_tag_nodes(
+    tag_id: str | None = None,
+    tag_name: str | None = None,
+    props: str | None = None,
+    max_nodes: int = 200000,
+) -> dict[str, Any]:
+    resolved = await _resolve_tag_selector(tag_id=tag_id, tag_name=tag_name)
+    selected_props = props or DEFAULT_TAG_NODE_PROPS
+    response = await collector_get_all(
+        f"/tags/{quote(resolved['tag_id'], safe='')}/nodes",
+        params={"props": selected_props},
+        max_items=max_nodes,
+    )
+    rows = response.get("data", [])
+    meta = dict(response.get("meta", {}))
+    meta.update(
+        {
+            "source": "tags/<tag_id>/nodes",
+            "selector": resolved["selector"],
+            "resolution": resolved["resolution"],
+            "filter": {
+                "tag_id": resolved["tag_id"],
+                "tag_name": resolved.get("tag_name"),
+            },
+            "included_props": selected_props.split(","),
+            "node_count": len(rows),
+        }
+    )
+    return {
+        "tag_id": resolved["tag_id"],
+        "tag_name": resolved.get("tag_name"),
+        "tag": resolved.get("tag"),
+        "meta": meta,
+        "data": rows,
+    }
 
 
 async def list_tag_props() -> dict[str, Any]:
@@ -116,4 +157,5 @@ async def _resolve_tag_selector(
         "resolution": "tag_name",
         "tag_id": resolved_tag_id,
         "tag_name": row.get("tag_name"),
+        "tag": row,
     }
