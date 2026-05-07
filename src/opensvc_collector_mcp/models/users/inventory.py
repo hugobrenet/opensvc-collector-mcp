@@ -91,6 +91,38 @@ class ListUsersRequest(UserCollectionRequest):
     pass
 
 
+class GetUserRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    user: str = Field(
+        min_length=1,
+        description=(
+            "Collector user selector. Use self, a numeric Collector user id, "
+            "an exact username, or an exact email address."
+        ),
+        examples=["self", "219", "brenet", "user@example.com"],
+    )
+    props: str | None = Field(
+        default=None,
+        description="Comma-separated user properties to include in the response.",
+    )
+    include_primary_group: bool = Field(
+        default=False,
+        description="Include /users/<id>/primary_group in the response.",
+    )
+    include_groups: bool = Field(
+        default=False,
+        description="Include /users/<id>/groups in the response.",
+    )
+    group_props: str | None = Field(
+        default=None,
+        description=(
+            "Comma-separated group properties used when include_primary_group "
+            "or include_groups is enabled."
+        ),
+    )
+
+
 class UsersByPrimaryGroupRequest(UserFilterRequest):
     primary_group: str = Field(
         min_length=1,
@@ -192,7 +224,49 @@ class UserRowsResponse(BaseModel):
     data: list[UserRow]
 
 
-class UserPrimaryGroupRow(BaseModel):
+class UserGroupRow(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    id: int | str | None = Field(
+        default=None,
+        description="Collector group id.",
+        exclude_if=_is_none,
+    )
+    role: str | None = Field(
+        default=None,
+        description="Collector group role/name.",
+        exclude_if=_is_none,
+    )
+    description: str | None = Field(
+        default=None,
+        description="Collector group description.",
+        exclude_if=_is_none,
+    )
+    privilege: bool | None = Field(
+        default=None,
+        description="Whether the group is privileged.",
+        exclude_if=_is_none,
+    )
+
+
+class UserDetailResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[UserRow]
+    primary_group: list[UserGroupRow] | None = Field(
+        default=None,
+        description="Primary group rows returned when include_primary_group is true.",
+        exclude_if=_is_none,
+    )
+    groups: list[UserGroupRow] | None = Field(
+        default=None,
+        description="Group rows returned when include_groups is true.",
+        exclude_if=_is_none,
+    )
+
+
+class UserPrimaryGroupRow(UserGroupRow):
     model_config = ConfigDict(extra="forbid")
 
     id: int | str | None = Field(

@@ -82,6 +82,41 @@ meta
 data
 ```
 
+### `get_user`
+
+Returns one OpenSVC Collector user selected by `self`, numeric Collector user id,
+exact username, or exact email address.
+
+By default this tool performs one API GET and returns only user properties. Set
+`include_primary_group` and/or `include_groups` when the caller needs relation
+data. Those options add one GET each:
+
+```text
+/users/<id>/primary_group
+/users/<id>/groups
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "user": "self",
+    "props": "id,username,email,first_name,last_name",
+    "include_primary_group": true,
+    "include_groups": true
+  }
+}
+```
+
+Output fields:
+
+```text
+meta
+data
+primary_group
+groups
+```
 
 ### `search_users_by_primary_group`
 

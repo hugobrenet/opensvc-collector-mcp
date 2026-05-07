@@ -1,9 +1,12 @@
 """Pydantic contracts for user tools."""
 
 from .inventory import (
+    GetUserRequest,
     ListUsersRequest,
     UserByPrimaryGroupRow,
+    UserDetailResponse,
     UserFilterRequest,
+    UserGroupRow,
     UserPrimaryGroupRow,
     UserPropsResponse,
     UserRow,
@@ -13,9 +16,12 @@ from .inventory import (
 )
 
 __all__ = [
+    "GetUserRequest",
     "ListUsersRequest",
     "UserByPrimaryGroupRow",
+    "UserDetailResponse",
     "UserFilterRequest",
+    "UserGroupRow",
     "UserPrimaryGroupRow",
     "UserPropsResponse",
     "UserRow",
