@@ -87,6 +87,39 @@ meta
 data
 ```
 
+### `get_array_diskgroups`
+
+Returns all diskgroups attached to one OpenSVC Collector storage array
+selected by exact `array_name` or Collector array row id. The tool calls
+`/arrays/<id>/diskgroups` and follows Collector pagination until
+`meta.complete` is true or `max_diskgroups` is reached.
+
+Default props:
+
+```text
+id,array_id,dg_name,dg_size,dg_free,dg_used,dg_reserved,dg_updated
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "array": "ARRAY-NAME",
+    "props": "id,array_id,dg_name,dg_size,dg_free,dg_used,dg_reserved,dg_updated",
+    "max_diskgroups": 200000
+  }
+}
+```
+
+Output fields:
+
+```text
+array
+meta
+data
+```
+
 ### `list_arrays`
 
 Lists one page of OpenSVC Collector storage arrays.

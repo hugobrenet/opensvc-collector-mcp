@@ -1,13 +1,16 @@
 from typing import Any
 from urllib.parse import quote
 
-from opensvc_collector_mcp.client import collector_get
+from opensvc_collector_mcp.client import collector_get, collector_get_all
 from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
 
 
 DEFAULT_LIST_ARRAY_PROPS = (
     "id,array_name,array_model,array_firmware,array_cache,"
     "array_level,array_comment,array_updated"
+)
+DEFAULT_ARRAY_DISKGROUP_PROPS = (
+    "id,array_id,dg_name,dg_size,dg_free,dg_used,dg_reserved,dg_updated"
 )
 
 
@@ -81,6 +84,38 @@ async def get_array(
         }
     )
     return {"meta": meta, "data": rows if isinstance(rows, list) else []}
+
+
+async def get_array_diskgroups(
+    array: str,
+    props: str | None = None,
+    max_diskgroups: int = 200000,
+) -> dict[str, Any]:
+    selector = array.strip()
+    if not selector:
+        raise ValueError("array must not be empty")
+
+    selected_props = props or DEFAULT_ARRAY_DISKGROUP_PROPS
+    response = await collector_get_all(
+        f"/arrays/{quote(selector, safe='')}/diskgroups",
+        params={"props": selected_props},
+        max_items=max_diskgroups,
+    )
+    rows = response.get("data", [])
+    meta = dict(response.get("meta") or {})
+    meta.update(
+        {
+            "source": "arrays/<id>/diskgroups",
+            "selector": selector,
+            "included_props": selected_props.split(","),
+            "diskgroup_count": len(rows),
+        }
+    )
+    return {
+        "array": selector,
+        "meta": meta,
+        "data": rows,
+    }
 
 
 async def list_array_props() -> dict[str, Any]:

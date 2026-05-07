@@ -7,10 +7,13 @@ from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.arrays import (
     count_arrays as core_count_arrays,
     get_array as core_get_array,
+    get_array_diskgroups as core_get_array_diskgroups,
     list_array_props as core_list_array_props,
     list_arrays as core_list_arrays,
 )
 from opensvc_collector_mcp.models.arrays import (
+    ArrayDiskgroupsRequest,
+    ArrayDiskgroupsResponse,
     ArrayPropsResponse,
     CountArraysRequest,
     CountArraysResponse,
@@ -110,6 +113,37 @@ def register_arrays_tools(mcp: FastMCP) -> None:
             props=request.props,
         )
         return ArrayRowsResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_array_diskgroups",
+        description=(
+            "Return all OpenSVC Collector diskgroups attached to one storage "
+            "array selected by exact array name or Collector array row id. "
+            "The tool follows Collector pagination until complete or "
+            "max_diskgroups is reached."
+        ),
+        tags={"arrays", "storage", "diskgroups", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC Storage Array Diskgroups",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_array_diskgroups(
+        request: Annotated[
+            ArrayDiskgroupsRequest,
+            Field(description="Array selector and optional diskgroup property selection."),
+        ],
+    ) -> ArrayDiskgroupsResponse:
+        """Return diskgroups attached to one OpenSVC Collector storage array."""
+        response = await core_get_array_diskgroups(
+            array=request.array,
+            props=request.props,
+            max_diskgroups=request.max_diskgroups,
+        )
+        return ArrayDiskgroupsResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

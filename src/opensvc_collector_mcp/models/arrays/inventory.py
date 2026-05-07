@@ -99,6 +99,40 @@ class ListArraysRequest(ArrayFilterRequest):
     offset: int = Field(default=0, ge=0)
 
 
+class ArrayDiskgroupsRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    array: str = Field(
+        min_length=1,
+        description=(
+            "Collector array selector. Use an exact storage array name "
+            "or Collector array row id."
+        ),
+        examples=["ARRAY-NAME"],
+    )
+    props: str | None = Field(
+        default=None,
+        description=(
+            "Comma-separated diskgroup properties to include in the response. "
+            "Defaults to a compact array diskgroup view."
+        ),
+    )
+    max_diskgroups: int = Field(
+        default=200000,
+        ge=1,
+        le=500000,
+        description="Maximum number of diskgroups to return from Collector pagination.",
+    )
+
+
+class ArrayDiskgroupsResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    array: str
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[dict[str, Any]]
+
+
 class ArrayPropsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
