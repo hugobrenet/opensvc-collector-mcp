@@ -47,6 +47,21 @@ class ArrayFilterRequest(BaseModel):
         return merged
 
 
+class CountArraysRequest(ArrayFilterRequest):
+    search: str | None = Field(
+        default=None,
+        description="Collector full-text search expression when supported by /arrays.",
+    )
+
+
+class CountArraysResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    count: int | None
+    filters: dict[str, str] = Field(default_factory=dict)
+    search: str | None = None
+
+
 class ListArraysRequest(ArrayFilterRequest):
     props: str | None = Field(
         default=None,

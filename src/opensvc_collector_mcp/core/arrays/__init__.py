@@ -1,8 +1,9 @@
 """Array-domain business logic."""
 
-from .inventory import list_array_props, list_arrays
+from .inventory import count_arrays, list_array_props, list_arrays
 
 __all__ = [
+    "count_arrays",
     "list_array_props",
     "list_arrays",
 ]

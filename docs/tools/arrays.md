@@ -38,6 +38,31 @@ available_props
 array_props
 ```
 
+### `count_arrays`
+
+Counts OpenSVC Collector storage arrays matching exact-match filters without
+returning array rows. This uses `/arrays` collection metadata with `limit=1`.
+
+Example:
+
+```json
+{
+  "request": {
+    "filters": {
+      "array_model": "ARRAY-MODEL"
+    }
+  }
+}
+```
+
+Output fields:
+
+```text
+count
+filters
+search
+```
+
 ### `list_arrays`
 
 Lists one page of OpenSVC Collector storage arrays.

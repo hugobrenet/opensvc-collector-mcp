@@ -2,6 +2,8 @@
 
 from .inventory import (
     ArrayFilterRequest,
+    CountArraysRequest,
+    CountArraysResponse,
     ArrayPropsResponse,
     ArrayRow,
     ArrayRowsResponse,
@@ -10,6 +12,8 @@ from .inventory import (
 
 __all__ = [
     "ArrayFilterRequest",
+    "CountArraysRequest",
+    "CountArraysResponse",
     "ArrayPropsResponse",
     "ArrayRow",
     "ArrayRowsResponse",

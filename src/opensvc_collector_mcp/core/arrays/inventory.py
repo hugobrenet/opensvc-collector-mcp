@@ -33,6 +33,30 @@ async def list_arrays(
     )
 
 
+async def count_arrays(
+    filters: dict[str, str] | str | None = None,
+    search: str | None = None,
+) -> dict[str, Any]:
+    parsed_filters = parse_collector_filters(filters)
+    response = await collector_get(
+        "/arrays",
+        params=collection_params(
+            filters=parsed_filters,
+            props="array_name",
+            orderby=None,
+            search=search,
+            limit=1,
+            offset=0,
+        ),
+    )
+    meta = response.get("meta", {})
+    return {
+        "count": meta.get("total", len(response.get("data", []))),
+        "filters": {field: value for field, value in parsed_filters},
+        "search": search,
+    }
+
+
 async def list_array_props() -> dict[str, Any]:
     response = await collector_get("/arrays", params={"props": "array_name", "limit": 1})
     available_props = response.get("meta", {}).get("available_props", [])
