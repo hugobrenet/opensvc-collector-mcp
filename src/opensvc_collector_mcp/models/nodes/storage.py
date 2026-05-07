@@ -23,7 +23,7 @@ class NodeDiskEntry(BaseModel):
     disk_model: str | None = Field(
         default=None, description="Disk model, for example SYMMETRIX or LOGICAL VOLUME."
     )
-    app_id: str | None = Field(
+    app_id: int | str | None = Field(
         default=None,
         description="Collector application id associated with the disk row.",
     )
@@ -58,7 +58,7 @@ class NodeDiskEntry(BaseModel):
         default=None,
         description="Storage device identifier from diskinfo, such as a PowerMax device id.",
     )
-    disk_level: str | None = Field(
+    disk_level: int | str | None = Field(
         default=None, description="Collector disk hierarchy level when returned."
     )
     disk_raid: str | None = Field(

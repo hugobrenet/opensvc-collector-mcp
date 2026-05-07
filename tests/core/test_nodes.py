@@ -1,6 +1,7 @@
 import pytest
 
 from opensvc_collector_mcp.core.nodes import inventory, services, storage
+from opensvc_collector_mcp.models.nodes.storage import NodeDisksResponse
 
 
 @pytest.mark.parametrize("raw, expected", [(" node-a ", "/nodes/node-a"), ("node/a", "/nodes/node%2Fa")])
@@ -72,9 +73,35 @@ async def test_get_node_disks_does_not_send_default_orderby(monkeypatch, collect
     assert call.path == "/nodes/node-a/disks"
     assert call.single_param("limit") == 2
     assert call.single_param("offset") == 0
-    assert call.single_param("props") == "disk_id,disk_size"
+    assert call.single_param("props") == "svcdisks.disk_id:disk_id,svcdisks.disk_size:disk_size"
     assert call.param_values("orderby") == []
     assert call.param_values("filters") == ["disk_local=false"]
+
+
+async def test_get_node_disks_uses_qualified_default_props(monkeypatch, collector_mock_factory):
+    collector = collector_mock_factory([{"meta": {"total": 1}, "data": [{"disk_id": "DISK-ID"}]}])
+    monkeypatch.setattr(storage, "collector_get", collector.get)
+
+    response = await storage.get_node_disks("node-a")
+
+    assert response["data"] == [{"disk_id": "DISK-ID"}]
+    props = collector.calls[0].single_param("props")
+    assert "svcdisks.disk_size:disk_size" in props
+    assert "diskinfo.disk_name:disk_name" in props
+    assert "disk_size,disk_used" not in props
+
+
+async def test_node_disks_response_accepts_collector_numeric_fields():
+    response = NodeDisksResponse.model_validate(
+        {
+            "nodename": "node-a",
+            "meta": {},
+            "data": [{"app_id": 1, "disk_level": 0, "disk_id": "DISK-ID"}],
+        }
+    )
+
+    assert response.data[0].app_id == 1
+    assert response.data[0].disk_level == 0
 
 
 async def test_get_node_services_filters_services_instances_by_nodename(monkeypatch, collector_mock_factory):
