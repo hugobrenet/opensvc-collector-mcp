@@ -14,6 +14,10 @@ DEFAULT_APP_SERVICE_PROPS = (
     "svc_nodes,svc_drpnodes,svc_frozen,svc_ha,svc_created,updated"
 )
 DEFAULT_APP_GROUP_PROPS = "id,role,privilege,description"
+DEFAULT_APP_QUOTA_PROPS = (
+    "app,array_name,array_model,dg_name,quota,quota_used,"
+    "dg_size,dg_used,dg_free,dg_reserved,dg_reservable"
+)
 
 
 async def list_apps(
@@ -37,6 +41,24 @@ async def list_apps(
             offset=offset,
         ),
     )
+
+
+async def am_i_responsible_for_app(app: str) -> dict[str, Any]:
+    selector = app.strip()
+    if not selector:
+        raise ValueError("app must not be empty")
+
+    response = await collector_get(
+        f"/apps/{quote(selector, safe='')}/am_i_responsible"
+    )
+    return {
+        "app": selector,
+        "responsible": bool(response.get("data")),
+        "meta": {
+            "source": "apps/<id>/am_i_responsible",
+            "selector": selector,
+        },
+    }
 
 
 async def get_app(
@@ -156,6 +178,42 @@ async def get_app_publications(
         limit=limit,
         offset=offset,
     )
+
+
+async def get_app_quotas(
+    app: str,
+    props: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> dict[str, Any]:
+    selector = app.strip()
+    if not selector:
+        raise ValueError("app must not be empty")
+
+    selected_props = props or DEFAULT_APP_QUOTA_PROPS
+    response = await collector_get(
+        f"/apps/{quote(selector, safe='')}/quotas",
+        params={
+            "props": selected_props,
+            "limit": limit,
+            "offset": offset,
+        },
+    )
+    rows = response.get("data", [])
+    meta = dict(response.get("meta", {}))
+    meta.update(
+        {
+            "source": "apps/<id>/quotas",
+            "selector": selector,
+            "included_props": selected_props.split(","),
+            "quota_count": len(rows) if isinstance(rows, list) else 0,
+        }
+    )
+    return {
+        "app": selector,
+        "meta": meta,
+        "data": rows if isinstance(rows, list) else [],
+    }
 
 
 async def count_app_services(

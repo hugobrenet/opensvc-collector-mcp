@@ -8,6 +8,30 @@ MCP tool definitions live in `src/opensvc_collector_mcp/tools/apps.py`.
 
 ## Tools
 
+### `am_i_responsible_for_app`
+
+Returns whether the Collector requester is responsible for one OpenSVC
+Collector application code selected by exact `app` code or Collector app
+row id. The tool calls `/apps/<id>/am_i_responsible`.
+
+Example:
+
+```json
+{
+  "request": {
+    "app": "APP-CODE"
+  }
+}
+```
+
+Output fields:
+
+```text
+app
+responsible
+meta
+```
+
 ### `get_app`
 
 Returns one OpenSVC Collector application code selected by exact `app`
@@ -121,6 +145,33 @@ Example:
   "request": {
     "app": "APP-CODE",
     "props": "id,role,privilege,description",
+    "limit": 20,
+    "offset": 0
+  }
+}
+```
+
+Output fields:
+
+```text
+app
+meta
+data
+```
+
+### `get_app_quotas`
+
+Returns storage quota usage rows for one OpenSVC Collector application
+code selected by exact `app` code or Collector app row id. The tool calls
+`/apps/<id>/quotas` with standard `limit` and `offset` pagination.
+
+Example:
+
+```json
+{
+  "request": {
+    "app": "APP-CODE",
+    "props": "app,array_name,dg_name,quota,quota_used,dg_size,dg_free",
     "limit": 20,
     "offset": 0
   }

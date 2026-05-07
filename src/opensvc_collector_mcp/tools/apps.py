@@ -5,12 +5,14 @@ from pydantic import Field
 
 from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.apps import (
+    am_i_responsible_for_app as core_am_i_responsible_for_app,
     count_app_nodes as core_count_app_nodes,
     count_app_services as core_count_app_services,
     count_apps as core_count_apps,
     get_app as core_get_app,
     get_app_nodes as core_get_app_nodes,
     get_app_publications as core_get_app_publications,
+    get_app_quotas as core_get_app_quotas,
     get_app_responsibles as core_get_app_responsibles,
     get_app_services as core_get_app_services,
     list_app_props as core_list_app_props,
@@ -22,8 +24,12 @@ from opensvc_collector_mcp.models.apps import (
     AppNodesRequest,
     AppNodesResponse,
     AppPropsResponse,
+    AppQuotasRequest,
+    AppQuotasResponse,
     AppRelationCountRequest,
     AppRelationCountResponse,
+    AppResponsibilityRequest,
+    AppResponsibilityResponse,
     AppRowsResponse,
     AppServicesRequest,
     AppServicesResponse,
@@ -35,6 +41,31 @@ from opensvc_collector_mcp.models.apps import (
 
 
 def register_apps_tools(mcp: FastMCP) -> None:
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="am_i_responsible_for_app",
+        description=(
+            "Return whether the Collector technical account is responsible "
+            "for one app selected by exact app code or Collector app row id."
+        ),
+        tags={"apps", "responsibles", "read"},
+        annotations={
+            "title": "Am I Responsible For OpenSVC App",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def am_i_responsible_for_app(
+        request: Annotated[
+            AppResponsibilityRequest,
+            Field(description="App selector used for the responsibility check."),
+        ],
+    ) -> AppResponsibilityResponse:
+        """Return whether the requester is responsible for one app."""
+        response = await core_am_i_responsible_for_app(app=request.app)
+        return AppResponsibilityResponse.model_validate(response)
+
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
         name="list_apps",
@@ -240,6 +271,36 @@ def register_apps_tools(mcp: FastMCP) -> None:
             offset=request.offset,
         )
         return AppGroupRelationResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_app_quotas",
+        description=(
+            "Return storage quota usage rows for one app selected by "
+            "exact app code or Collector app row id."
+        ),
+        tags={"apps", "quotas", "storage", "read"},
+        annotations={
+            "title": "Get OpenSVC App Quotas",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_app_quotas(
+        request: Annotated[
+            AppQuotasRequest,
+            Field(description="App selector and optional quota property selection."),
+        ],
+    ) -> AppQuotasResponse:
+        """Return quota rows attached to one OpenSVC Collector app."""
+        response = await core_get_app_quotas(
+            app=request.app,
+            props=request.props,
+            limit=request.limit,
+            offset=request.offset,
+        )
+        return AppQuotasResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

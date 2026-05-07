@@ -50,6 +50,24 @@ class AppFilterRequest(BaseModel):
         return merged
 
 
+class AppResponsibilityRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    app: str = Field(
+        min_length=1,
+        description="Collector app selector. Use an exact app code or Collector app row id.",
+        examples=["APP-CODE"],
+    )
+
+
+class AppResponsibilityResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    app: str
+    responsible: bool
+    meta: dict[str, Any] = Field(default_factory=dict)
+
+
 class GetAppRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -136,6 +154,39 @@ class AppGroupRelationRequest(BaseModel):
 
 
 class AppGroupRelationResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    app: str
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[dict[str, Any]]
+
+
+class AppQuotasRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    app: str = Field(
+        min_length=1,
+        description="Collector app selector. Use an exact app code or Collector app row id.",
+        examples=["APP-CODE"],
+    )
+    props: str | None = Field(
+        default=None,
+        description="Comma-separated quota properties to include in the response.",
+    )
+    limit: int = Field(
+        default=20,
+        ge=1,
+        le=1000,
+        description="Maximum number of quota rows to return.",
+    )
+    offset: int = Field(
+        default=0,
+        ge=0,
+        description="Number of matching quota rows to skip.",
+    )
+
+
+class AppQuotasResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     app: str
