@@ -127,6 +127,8 @@ Current MCP app tool surface:
 - `get_app`
 - `get_app_nodes`
 - `count_app_nodes`
+- `get_app_services`
+- `count_app_services`
 
 Current MCP tag tool surface:
 

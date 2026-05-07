@@ -83,6 +83,57 @@ count
 meta
 ```
 
+### `get_app_services`
+
+Returns all services attached to one OpenSVC Collector application code
+selected by exact `app` code or Collector app row id. The tool calls
+`/apps/<id>/services` and follows Collector pagination until
+`meta.complete` is true or `max_services` is reached.
+
+Example:
+
+```json
+{
+  "request": {
+    "app": "APP-CODE",
+    "props": "svcname,svc_app,svc_env,svc_status",
+    "max_services": 200000
+  }
+}
+```
+
+Output fields:
+
+```text
+app
+meta
+data
+```
+
+### `count_app_services`
+
+Counts services attached to one OpenSVC Collector application code selected
+by exact `app` code or Collector app row id. It reads `meta.total` from
+`/apps/<id>/services` with `limit=1`.
+
+Example:
+
+```json
+{
+  "request": {
+    "app": "APP-CODE"
+  }
+}
+```
+
+Output fields:
+
+```text
+app
+count
+meta
+```
+
 ### `list_app_props`
 
 Returns the app properties exposed by the Collector.

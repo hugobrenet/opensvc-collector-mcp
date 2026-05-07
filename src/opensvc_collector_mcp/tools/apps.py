@@ -6,9 +6,11 @@ from pydantic import Field
 from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.apps import (
     count_app_nodes as core_count_app_nodes,
+    count_app_services as core_count_app_services,
     count_apps as core_count_apps,
     get_app as core_get_app,
     get_app_nodes as core_get_app_nodes,
+    get_app_services as core_get_app_services,
     list_app_props as core_list_app_props,
     list_apps as core_list_apps,
 )
@@ -19,6 +21,8 @@ from opensvc_collector_mcp.models.apps import (
     AppRelationCountRequest,
     AppRelationCountResponse,
     AppRowsResponse,
+    AppServicesRequest,
+    AppServicesResponse,
     CountAppsRequest,
     CountAppsResponse,
     GetAppRequest,
@@ -171,6 +175,62 @@ def register_apps_tools(mcp: FastMCP) -> None:
     ) -> AppRelationCountResponse:
         """Return the number of nodes attached to one app."""
         response = await core_count_app_nodes(app=request.app)
+        return AppRelationCountResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="get_app_services",
+        description=(
+            "Return all OpenSVC Collector services attached to one app "
+            "selected by exact app code or Collector app row id. The tool "
+            "follows Collector pagination until complete or max_services is reached."
+        ),
+        tags={"apps", "services", "inventory", "read"},
+        annotations={
+            "title": "Get OpenSVC App Services",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def get_app_services(
+        request: Annotated[
+            AppServicesRequest,
+            Field(description="App selector and optional service property selection."),
+        ],
+    ) -> AppServicesResponse:
+        """Return services attached to one OpenSVC Collector app."""
+        response = await core_get_app_services(
+            app=request.app,
+            props=request.props,
+            max_services=request.max_services,
+        )
+        return AppServicesResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="count_app_services",
+        description=(
+            "Count OpenSVC Collector services attached to one app selected "
+            "by exact app code or Collector app row id. This uses a "
+            "lightweight Collector count read from /apps/<id>/services."
+        ),
+        tags={"apps", "services", "count", "read"},
+        annotations={
+            "title": "Count OpenSVC App Services",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def count_app_services(
+        request: Annotated[
+            AppRelationCountRequest,
+            Field(description="App selector used to count attached services."),
+        ],
+    ) -> AppRelationCountResponse:
+        """Return the number of services attached to one app."""
+        response = await core_count_app_services(app=request.app)
         return AppRelationCountResponse.model_validate(response)
 
     @mcp.tool(

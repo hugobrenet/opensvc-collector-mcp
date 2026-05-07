@@ -9,6 +9,10 @@ DEFAULT_LIST_APP_PROPS = "app,app_domain,app_team_ops,description,updated"
 DEFAULT_APP_NODE_PROPS = (
     "nodename,status,asset_env,node_env,app,team_responsible,os_name"
 )
+DEFAULT_APP_SERVICE_PROPS = (
+    "svcname,svc_app,svc_env,svc_status,svc_availstatus,svc_topology,"
+    "svc_nodes,svc_drpnodes,svc_frozen,svc_ha,svc_created,updated"
+)
 
 
 async def list_apps(
@@ -88,6 +92,61 @@ async def get_app_nodes(
         "app": selector,
         "meta": meta,
         "data": rows,
+    }
+
+
+async def get_app_services(
+    app: str,
+    props: str | None = None,
+    max_services: int = 200000,
+) -> dict[str, Any]:
+    selector = app.strip()
+    if not selector:
+        raise ValueError("app must not be empty")
+
+    selected_props = props or DEFAULT_APP_SERVICE_PROPS
+    response = await collector_get_all(
+        f"/apps/{quote(selector, safe='')}/services",
+        params={"props": selected_props},
+        max_items=max_services,
+    )
+    rows = response.get("data", [])
+    meta = dict(response.get("meta", {}))
+    meta.update(
+        {
+            "source": "apps/<id>/services",
+            "selector": selector,
+            "included_props": selected_props.split(","),
+            "service_count": len(rows),
+        }
+    )
+    return {
+        "app": selector,
+        "meta": meta,
+        "data": rows,
+    }
+
+
+async def count_app_services(
+    app: str,
+) -> dict[str, Any]:
+    selector = app.strip()
+    if not selector:
+        raise ValueError("app must not be empty")
+
+    response = await collector_get(
+        f"/apps/{quote(selector, safe='')}/services",
+        params={"props": "svcname", "limit": 1, "offset": 0},
+    )
+    meta = response.get("meta", {})
+    return {
+        "app": selector,
+        "count": meta.get("total", len(response.get("data", []))),
+        "meta": {
+            "source": "apps/<id>/services",
+            "selector": selector,
+            "raw_meta": meta,
+        },
     }
 
 
