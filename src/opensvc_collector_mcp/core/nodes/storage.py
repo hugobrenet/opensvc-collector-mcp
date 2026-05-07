@@ -9,7 +9,7 @@ async def get_node_disks(
     nodename: str,
     filters: dict[str, str] | str | None = None,
     props: str | None = None,
-    orderby: str | None = "disk_name",
+    orderby: str | None = None,
     search: str | None = None,
     limit: int = 20,
     offset: int = 0,

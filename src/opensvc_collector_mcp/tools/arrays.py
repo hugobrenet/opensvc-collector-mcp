@@ -14,8 +14,8 @@ from opensvc_collector_mcp.core.arrays import (
     get_array_diskgroups as core_get_array_diskgroups,
     get_array_proxies as core_get_array_proxies,
     get_array_targets as core_get_array_targets,
-    list_array_props as core_list_array_props,
     list_array_diskgroups as core_list_array_diskgroups,
+    list_array_props as core_list_array_props,
     list_arrays as core_list_arrays,
 )
 from opensvc_collector_mcp.models.arrays import (
@@ -25,9 +25,9 @@ from opensvc_collector_mcp.models.arrays import (
     ArrayDiskgroupQuotasResponse,
     ArrayDiskgroupRequest,
     ArrayDiskgroupResponse,
+    ArrayDiskgroupRowsResponse,
     ArrayDiskgroupsRequest,
     ArrayDiskgroupsResponse,
-    ArrayDiskgroupRowsResponse,
     ArrayPropsResponse,
     ArrayProxiesRequest,
     ArrayProxiesResponse,
@@ -158,15 +158,11 @@ def register_arrays_tools(mcp: FastMCP) -> None:
     async def get_array(
         request: Annotated[
             GetArrayRequest,
-    ListArrayDiskgroupsRequest,
             Field(description="Array selector and optional property selection."),
         ],
     ) -> ArrayRowsResponse:
         """Return one OpenSVC Collector storage array by name or row id."""
-        response = await core_get_array(
-            array=request.array,
-            props=request.props,
-        )
+        response = await core_get_array(array=request.array, props=request.props)
         return ArrayRowsResponse.model_validate(response)
 
     @mcp.tool(
@@ -213,11 +209,7 @@ def register_arrays_tools(mcp: FastMCP) -> None:
     )
     async def get_array_diskgroup(
         request: Annotated[
-            ArrayDiskgroupQuotaRequest,
-    ArrayDiskgroupQuotaResponse,
-    ArrayDiskgroupQuotasRequest,
-    ArrayDiskgroupQuotasResponse,
-    ArrayDiskgroupRequest,
+            ArrayDiskgroupRequest,
             Field(description="Array and diskgroup selectors with optional props."),
         ],
     ) -> ArrayDiskgroupResponse:
