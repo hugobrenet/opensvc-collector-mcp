@@ -16,7 +16,7 @@ class UserFilterRequest(BaseModel):
             "Exact-match user property filters. Keys must be Collector user "
             "properties returned by list_user_props."
         ),
-        examples=[{"email": "user@example.com", "lock_filter": "False"}],
+        examples=[{"email": "user@domain.invalid", "lock_filter": "False"}],
     )
     username: str | None = Field(default=None, description="Exact login username.")
     email: str | None = Field(default=None, description="Exact user email address.")
@@ -100,7 +100,7 @@ class GetUserRequest(BaseModel):
             "Collector user selector. Use self, a numeric Collector user id, "
             "an exact username, or an exact email address."
         ),
-        examples=["self", "219", "brenet", "user@example.com"],
+        examples=["self", "123", "collector_user", "user@domain.invalid"],
     )
     props: str | None = Field(
         default=None,
@@ -123,11 +123,43 @@ class GetUserRequest(BaseModel):
     )
 
 
+class UsersByGroupRequest(UserFilterRequest):
+    group: str = Field(
+        min_length=1,
+        description="Exact Collector group role the user must be member of.",
+        examples=["group_role"],
+    )
+    props: str | None = Field(
+        default=None,
+        description=(
+            "Comma-separated user properties to include for matching users. "
+            "The id property is always included internally for group lookup."
+        ),
+    )
+    orderby: str | None = Field(
+        default=None,
+        description="Collector orderby expression used while scanning /users.",
+    )
+    search: str | None = Field(
+        default=None,
+        description="Collector full-text search expression used while scanning /users.",
+    )
+    max_users: int = Field(
+        default=5000,
+        ge=1,
+        le=50000,
+        description=(
+            "Maximum number of users to scan from /users before checking "
+            "/users/<id>/groups for each user."
+        ),
+    )
+
+
 class UsersByPrimaryGroupRequest(UserFilterRequest):
     primary_group: str = Field(
         min_length=1,
         description="Exact Collector group role used as the user primary group.",
-        examples=["GAPP_OPENSVC_ADMIN"],
+        examples=["group_role"],
     )
     props: str | None = Field(
         default=None,
@@ -302,3 +334,16 @@ class UsersByPrimaryGroupResponse(BaseModel):
 
     meta: dict[str, Any] = Field(default_factory=dict)
     data: list[UserByPrimaryGroupRow]
+
+
+class UserByGroupRow(UserRow):
+    matched_group: UserGroupRow = Field(
+        description="Group row from /users/<id>/groups that matched the requested role."
+    )
+
+
+class UsersByGroupResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[UserByGroupRow]

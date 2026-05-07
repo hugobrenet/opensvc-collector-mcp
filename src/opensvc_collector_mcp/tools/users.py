@@ -8,6 +8,7 @@ from opensvc_collector_mcp.core.users import (
     get_user as core_get_user,
     list_user_props as core_list_user_props,
     list_users as core_list_users,
+    search_users_by_group as core_search_users_by_group,
     search_users_by_primary_group as core_search_users_by_primary_group,
 )
 from opensvc_collector_mcp.models.users import (
@@ -16,6 +17,8 @@ from opensvc_collector_mcp.models.users import (
     UserDetailResponse,
     UserPropsResponse,
     UserRowsResponse,
+    UsersByGroupRequest,
+    UsersByGroupResponse,
     UsersByPrimaryGroupRequest,
     UsersByPrimaryGroupResponse,
 )
@@ -60,7 +63,7 @@ def register_users_tools(mcp: FastMCP) -> None:
         name="get_user",
         description=(
             "Return OpenSVC Collector details for one user selected by self, "
-            "numeric Collector user id, or exact email address. Optionally include "
+            "numeric Collector user id, exact username, or exact email address. Optionally include "
             "the user primary group and group memberships."
         ),
         tags={"users", "inventory", "read"},
@@ -112,6 +115,48 @@ def register_users_tools(mcp: FastMCP) -> None:
         """Return the available user properties exposed by the Collector."""
         response = await core_list_user_props()
         return UserPropsResponse.model_validate(response)
+
+
+
+    # Acceptable for this Collector size, around 100-150 users: this tool uses
+    # one /users request plus one /users/<id>/groups request per user.
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="search_users_by_group",
+        description=(
+            "Return OpenSVC Collector users who are member of the requested "
+            "group role. The tool uses only REST API calls: /users followed "
+            "by /users/<id>/groups for scanned users."
+        ),
+        tags={"users", "groups", "search", "read"},
+        annotations={
+            "title": "Search Users By Group",
+            "readOnlyHint": True,
+            "idempotentHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def search_users_by_group(
+        request: Annotated[
+            UsersByGroupRequest,
+            Field(
+                description=(
+                    "Group role plus optional user filters and scan bound. "
+                    "Uses only OpenSVC Collector REST API GET endpoints."
+                ),
+            ),
+        ],
+    ) -> UsersByGroupResponse:
+        """Return users who are member of the requested group role."""
+        response = await core_search_users_by_group(
+            group=request.group,
+            filters=request.merged_filters(),
+            props=request.props,
+            orderby=request.orderby,
+            search=request.search,
+            max_users=request.max_users,
+        )
+        return UsersByGroupResponse.model_validate(response)
 
     # Acceptable for this Collector size, around 100-150 users: this tool uses
     # one /users request plus one /users/<id>/primary_group request per user.

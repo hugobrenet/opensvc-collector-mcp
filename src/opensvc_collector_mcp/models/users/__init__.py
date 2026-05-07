@@ -3,6 +3,7 @@
 from .inventory import (
     GetUserRequest,
     ListUsersRequest,
+    UserByGroupRow,
     UserByPrimaryGroupRow,
     UserDetailResponse,
     UserFilterRequest,
@@ -11,13 +12,16 @@ from .inventory import (
     UserPropsResponse,
     UserRow,
     UserRowsResponse,
+    UsersByGroupRequest,
     UsersByPrimaryGroupRequest,
+    UsersByGroupResponse,
     UsersByPrimaryGroupResponse,
 )
 
 __all__ = [
     "GetUserRequest",
     "ListUsersRequest",
+    "UserByGroupRow",
     "UserByPrimaryGroupRow",
     "UserDetailResponse",
     "UserFilterRequest",
@@ -26,6 +30,8 @@ __all__ = [
     "UserPropsResponse",
     "UserRow",
     "UserRowsResponse",
+    "UsersByGroupRequest",
     "UsersByPrimaryGroupRequest",
+    "UsersByGroupResponse",
     "UsersByPrimaryGroupResponse",
 ]

@@ -118,6 +118,44 @@ primary_group
 groups
 ```
 
+
+### `search_users_by_group`
+
+Returns users who are member of the requested group role. This checks all group
+memberships, not only the primary group.
+
+This is a bounded business tool implemented only with OpenSVC Collector REST API
+GET calls. It first reads `/users`, then checks `/users/<id>/groups` for each
+scanned user. It does not call UI AJAX endpoints.
+
+Common arguments:
+
+- `group`: exact Collector group role, for example `group_role`.
+- `filters`: optional exact-match filters applied to the initial `/users` scan.
+- `props`: comma-separated user properties to include for matching users.
+- `orderby`: Collector order expression used while scanning `/users`.
+- `search`: Collector full-text search expression used while scanning `/users`.
+- `max_users`: maximum number of users to scan before checking groups.
+
+Example:
+
+```json
+{
+  "request": {
+    "group": "group_role",
+    "props": "id,username,email,first_name,last_name",
+    "max_users": 5000
+  }
+}
+```
+
+Output fields:
+
+```text
+meta
+data
+```
+
 ### `search_users_by_primary_group`
 
 Returns users whose primary group role exactly matches the requested value.
@@ -129,7 +167,7 @@ each scanned user. It does not call UI AJAX endpoints such as
 
 Common arguments:
 
-- `primary_group`: exact Collector group role, for example `GAPP_OPENSVC_ADMIN`.
+- `primary_group`: exact Collector group role, for example `group_role`.
 - `filters`: optional exact-match filters applied to the initial `/users` scan.
 - `props`: comma-separated user properties to include for matching users.
 - `orderby`: Collector order expression used while scanning `/users`.
@@ -141,7 +179,7 @@ Example:
 ```json
 {
   "request": {
-    "primary_group": "GAPP_OPENSVC_ADMIN",
+    "primary_group": "opensvc_primary_group",
     "props": "id,username,email,first_name,last_name",
     "max_users": 5000
   }

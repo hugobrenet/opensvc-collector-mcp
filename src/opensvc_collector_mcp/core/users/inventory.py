@@ -223,6 +223,69 @@ async def _resolve_user_selector(selector: str) -> dict[str, Any]:
     return {"id": selector, "resolution": "direct"}
 
 
+async def search_users_by_group(
+    group: str,
+    filters: dict[str, str] | str | None = None,
+    props: str | None = None,
+    orderby: str | None = "email",
+    search: str | None = None,
+    max_users: int = 5000,
+) -> dict[str, Any]:
+    group = group.strip()
+    if not group:
+        raise ValueError("group must not be empty")
+
+    max_users = max(1, min(max_users, 50000))
+    selected_props = _props_with_required(
+        props or DEFAULT_PRIMARY_GROUP_SEARCH_USER_PROPS, "id"
+    )
+    parsed_filters = _user_search_filters(filters)
+
+    users_response = await collector_get_all(
+        "/users",
+        params=collection_params(
+            filters=parsed_filters,
+            props=selected_props,
+            orderby=orderby,
+            search=search,
+            limit=1000,
+            offset=0,
+        ),
+        page_size=1000,
+        max_items=max_users,
+    )
+    users = users_response.get("data", [])
+
+    user_groups = await _get_groups_for_users(users)
+    matches: list[dict[str, Any]] = []
+    for user in users:
+        user_id = str(user.get("id") or "").strip()
+        groups = user_groups.get(user_id, [])
+        for item_group in groups:
+            if str(item_group.get("role") or "") == group:
+                item = dict(user)
+                item["matched_group"] = item_group
+                matches.append(item)
+                break
+
+    users_meta = users_response.get("meta", {})
+    complete = bool(users_meta.get("complete", True))
+    return {
+        "meta": {
+            "source": "users_group",
+            "group": group,
+            "filter": {field: value for field, value in parsed_filters},
+            "included_props": selected_props.split(","),
+            "scanned_users": len(users),
+            "matched_users": len(matches),
+            "max_users": max_users,
+            "complete": complete,
+            "collector_total": users_meta.get("total"),
+        },
+        "data": matches,
+    }
+
+
 def _props_with_required(props: str, *required_props: str) -> str:
     selected = [prop.strip() for prop in props.split(",") if prop.strip()]
     for prop in required_props:
@@ -239,6 +302,27 @@ async def _get_user_relation(selector: str, relation: str, props: str) -> list[d
     )
     rows = response.get("data", [])
     return rows if isinstance(rows, list) else []
+
+
+async def _get_groups_for_users(
+    users: list[dict[str, Any]],
+) -> dict[str, list[dict[str, Any]]]:
+    semaphore = asyncio.Semaphore(20)
+
+    async def get_one(user: dict[str, Any]) -> tuple[str, list[dict[str, Any]]]:
+        user_id = str(user.get("id") or "").strip()
+        if not user_id:
+            return "", []
+        async with semaphore:
+            rows = await _get_user_relation(
+                selector=user_id,
+                relation="groups",
+                props=DEFAULT_USER_GROUP_PROPS,
+            )
+        return user_id, rows
+
+    results = await asyncio.gather(*(get_one(user) for user in users))
+    return {user_id: rows for user_id, rows in results if user_id}
 
 
 async def _get_primary_groups_for_users(
