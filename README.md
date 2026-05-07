@@ -10,7 +10,7 @@
 - HTTP transport served with `uvicorn`
 - custom health route: `/health`
 - typed Pydantic input and output models for MCP tools
-- OpenSVC Collector read-only tool surface for nodes, services, clusters, users, and tags
+- OpenSVC Collector read-only tool surface for nodes, services, clusters, compliance, users, tags, apps, arrays, and disks
 - architecture split between:
   - `tools/` for MCP tool definitions
   - `core/` for Collector workflows and business logic
@@ -43,27 +43,31 @@ src/opensvc_collector_mcp/
 |-- client.py          # generic Collector HTTP client helpers
 |-- config.py          # environment variables
 |-- core/              # Collector workflows and business logic
+|   |-- apps/
+|   |-- arrays/
 |   |-- clusters/
+|   |-- compliance/
+|   |-- disks/
 |   |-- nodes/
 |   |-- services/
-|   |   |-- inventory.py
-|   |   |-- resources.py
-|   |   |-- compliance.py
-|   |   |-- actions.py
-|   |   |-- tags.py
-|   |   |-- health.py
-|   |   `-- storage.py
 |   |-- tags/
 |   `-- users/
-|       `-- inventory.py
 |-- models/            # Pydantic request and response models
+|   |-- apps/
+|   |-- arrays/
 |   |-- clusters/
+|   |-- compliance/
+|   |-- disks/
 |   |-- nodes/
 |   |-- services/
 |   |-- tags/
 |   `-- users/
 |-- tools/             # FastMCP tool definitions
+|   |-- apps.py
+|   |-- arrays.py
 |   |-- clusters.py
+|   |-- compliance.py
+|   |-- disks.py
 |   |-- nodes.py
 |   |-- services.py
 |   |-- tags.py
@@ -127,11 +131,14 @@ http://127.0.0.1:8001/mcp
 Tool documentation is organized by Collector domain:
 
 - [Node tools](docs/tools/nodes.md)
-- [Cluster tools](docs/tools/clusters.md)
 - [Service tools](docs/tools/services.md)
+- [Cluster tools](docs/tools/clusters.md)
+- [Compliance tools](docs/tools/compliance.md)
 - [Disk tools](docs/tools/disks.md)
 - [User tools](docs/tools/users.md)
 - [Tag tools](docs/tools/tags.md)
+- [App tools](docs/tools/apps.md)
+- [Array tools](docs/tools/arrays.md)
 
 ## Tool Domains
 
@@ -141,10 +148,32 @@ The current tool surface covers:
 - service inventory, search, tags, config, instances, nodes, resources, disks, storage HBAs and targets, checks, alerts, actions, status history, frozen state, and health
 - global disk inventory and disk detail lookup
 - cluster node membership
-- user inventory and user property discovery
-- tag inventory and tag property discovery
+- compliance modulesets, rulesets, status, logs, usage, candidates, publications, and responsibles
+- user inventory, counts, user detail lookup, primary group lookup, and attached group lookup
+- tag inventory, tag detail, tagged nodes, and tagged services
+- application inventory, nodes, services, responsibles, publications, quotas, and responsibility check
+- storage array inventory, diskgroups, quotas, proxies, targets, and counts
 
 All tools are intended to be read-only against OpenSVC Collector.
+
+## Tests
+
+The project uses `pytest` with in-memory `FastMCP` clients for MCP tool tests.
+
+Run the full local validation with:
+
+```bash
+./venv/bin/python -m pytest
+./venv/bin/python -m compileall -q src/opensvc_collector_mcp tests
+./venv/bin/python -m ruff check src/opensvc_collector_mcp docs tests
+git diff --check
+```
+
+The current test suite includes:
+
+- FastMCP tool registration
+- core tests for nodes, services, disks, and users
+- MCP tool tests for nodes, services, disks, and users
 
 ## Development Notes
 
@@ -153,7 +182,8 @@ All tools are intended to be read-only against OpenSVC Collector.
 - Collector logic should stay in `core/`.
 - Request and response contracts should stay in `models/`.
 - User-facing tool documentation should stay in `docs/tools/`.
-- New tools should be validated with compile checks, FastMCP registration, Ruff, and read-only Collector tests.
+- New tools should include focused unit tests for their core logic and MCP wrapper behavior.
+- New tools should be validated with pytest, compile checks, FastMCP registration, Ruff, and read-only Collector tests.
 
 ## Project Status
 
