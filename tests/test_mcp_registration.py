@@ -138,3 +138,99 @@ async def test_bm25_search_finds_node_inventory_stats(mcp_client):
 
     assert len(matches) <= 10
     assert match_names[0] == "get_nodes_inventory_stats"
+
+
+async def test_validation_error_includes_called_tool_schema(mcp_client):
+    try:
+        await mcp_client.call_tool(
+            "get_cluster_nodes",
+            {"cluster": "lab-cluster-a"},
+        )
+    except Exception as exc:
+        message = str(exc)
+    else:
+        raise AssertionError("expected invalid tool arguments to raise")
+
+    assert "tool" in message
+    assert "get_cluster_nodes" in message
+    assert "expected_input_schema" in message
+    assert "request" in message
+    assert "cluster_name" in message
+
+
+async def test_proxy_validation_error_includes_target_tool_schema(mcp_client):
+    try:
+        await mcp_client.call_tool(
+            "call_tool",
+            {
+                "name": "get_cluster_nodes",
+                "arguments": {"cluster": "lab-cluster-a"},
+            },
+        )
+    except Exception as exc:
+        message = str(exc)
+    else:
+        raise AssertionError("expected invalid proxied tool arguments to raise")
+
+    assert "tool" in message
+    assert "get_cluster_nodes" in message
+    assert "expected_input_schema" in message
+    assert "request" in message
+    assert "cluster_name" in message
+
+
+async def test_unknown_tool_error_does_not_include_input_schema(mcp_client):
+    try:
+        await mcp_client.call_tool(
+            "get_node_typo",
+            {"request": {"nodename": "lab-node-01"}},
+        )
+    except Exception as exc:
+        message = str(exc)
+    else:
+        raise AssertionError("expected unknown tool to raise")
+
+    assert "Unknown tool" in message
+    assert "expected_input_schema" not in message
+
+
+async def test_malformed_call_tool_proxy_returns_call_tool_schema(mcp_client):
+    try:
+        await mcp_client.call_tool(
+            "call_tool",
+            {
+                "tool_name": "get_node",
+                "arguments": {"request": {"nodename": "lab-node-01"}},
+            },
+        )
+    except Exception as exc:
+        message = str(exc)
+    else:
+        raise AssertionError("expected malformed call_tool arguments to raise")
+
+    assert "Invalid tool arguments" in message
+    assert "expected_input_schema" in message
+    assert "call_tool" in message
+    assert "tool_name" in message
+    assert "\"name\"" in message
+
+
+async def test_proxy_target_tool_invalid_args_returns_target_tool_schema(mcp_client):
+    try:
+        await mcp_client.call_tool(
+            "call_tool",
+            {
+                "name": "get_node",
+                "arguments": {"name": "lab-node-01"},
+            },
+        )
+    except Exception as exc:
+        message = str(exc)
+    else:
+        raise AssertionError("expected invalid proxied target arguments to raise")
+
+    assert "Invalid tool arguments" in message
+    assert "expected_input_schema" in message
+    assert "get_node" in message
+    assert "request" in message
+    assert "nodename" in message
