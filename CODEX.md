@@ -38,6 +38,8 @@ Current package layout:
   environment variables and shared global configuration constants
 - `src/opensvc_collector_mcp/client.py`
   generic Collector API GET helper
+- `src/opensvc_collector_mcp/middleware.py`
+  FastMCP middleware, including tool argument validation error enrichment
 - `src/opensvc_collector_mcp/tools/`
   FastMCP tool definitions
 - `src/opensvc_collector_mcp/core/`
@@ -359,6 +361,14 @@ Collection and pagination standard:
 
 Error and production-readiness notes:
 
+- `ToolSchemaValidationErrorMiddleware` enriches FastMCP tool argument
+  `ValidationError`s with the called tool input schema so MCP clients can retry
+  with the correct payload after a single error. Keep the enrichment scoped to
+  `call[tool_name]` validation errors so internal Pydantic validation failures
+  are not misreported as client argument errors.
+- For proxied calls through `call_tool`, malformed proxy arguments should return
+  the `call_tool` schema, while invalid target-tool arguments should return the
+  target tool schema. Keep tests for both paths.
 - Collector HTTP errors currently bubble up from `httpx`; before production use,
   add clean error mapping that does not expose credentials.
 - TLS verification is currently disabled for the local lab. Before production
