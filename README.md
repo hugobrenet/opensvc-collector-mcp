@@ -78,14 +78,32 @@ src/opensvc_collector_mcp/
 
 ## Environment
 
-Create a `.env` file with:
+Export the server configuration in the process environment:
+
+```bash
+export OPENSVC_API_BASE_URL=https://your-collector-host/init/rest/api
+export MCP_PORT=8001
+```
+
+For local ad hoc runs, you can source these values from a shell-only file before
+starting the server, for example:
+
+```bash
+set -a
+. ./local.env
+set +a
+```
+
+with:
 
 ```env
-OPENSVC_USER=your-opensvc-user
-OPENSVC_PASSWORD=your-opensvc-password
 OPENSVC_API_BASE_URL=https://your-collector-host/init/rest/api
 MCP_PORT=8001
 ```
+
+Collector credentials are not loaded by the MCP server from `.env`. MCP clients
+must send an `Authorization: Basic ...` header; the server validates those
+credentials against the Collector before handling MCP requests.
 
 ## Run
 
