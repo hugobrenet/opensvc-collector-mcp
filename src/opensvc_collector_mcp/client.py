@@ -1,4 +1,6 @@
 from collections.abc import Sequence
+from contextvars import ContextVar, Token
+from dataclasses import dataclass
 from typing import Any
 
 import httpx
@@ -6,21 +8,57 @@ import httpx
 from opensvc_collector_mcp.config import (
     HTTP_REQUEST_TIMEOUT_SECONDS,
     OPENSVC_API_BASE_URL,
-    OPENSVC_PASSWORD,
-    OPENSVC_USER,
 )
+
+
+@dataclass(frozen=True)
+class CollectorCredentials:
+    username: str
+    password: str
+
+
+_COLLECTOR_CREDENTIALS: ContextVar[CollectorCredentials | None] = ContextVar(
+    "collector_credentials",
+    default=None,
+)
+
+
+def set_collector_credentials(
+    credentials: CollectorCredentials,
+) -> Token[CollectorCredentials | None]:
+    return _COLLECTOR_CREDENTIALS.set(credentials)
+
+
+def reset_collector_credentials(token: Token[CollectorCredentials | None]) -> None:
+    _COLLECTOR_CREDENTIALS.reset(token)
+
+
+def get_collector_credentials() -> CollectorCredentials | None:
+    return _COLLECTOR_CREDENTIALS.get()
 
 
 async def collector_get(
     path: str,
     params: dict[str, Any] | Sequence[tuple[str, Any]] | None = None,
 ) -> dict[str, Any]:
+    credentials = get_collector_credentials()
+    if credentials is None:
+        raise RuntimeError("Missing Collector Basic Auth credentials from MCP request")
+
+    return await collector_get_with_credentials(
+        path=path,
+        credentials=credentials,
+        params=params,
+    )
+
+
+async def collector_get_with_credentials(
+    path: str,
+    credentials: CollectorCredentials,
+    params: dict[str, Any] | Sequence[tuple[str, Any]] | None = None,
+) -> dict[str, Any]:
     if not OPENSVC_API_BASE_URL:
         raise RuntimeError("Missing environment variable: OPENSVC_API_BASE_URL")
-    if not OPENSVC_USER:
-        raise RuntimeError("Missing environment variable: OPENSVC_USER")
-    if not OPENSVC_PASSWORD:
-        raise RuntimeError("Missing environment variable: OPENSVC_PASSWORD")
 
     url = f"{OPENSVC_API_BASE_URL.rstrip('/')}/{path.lstrip('/')}"
     async with httpx.AsyncClient(
@@ -30,11 +68,23 @@ async def collector_get(
         response = await client.get(
             url,
             params=params,
-            auth=(OPENSVC_USER, OPENSVC_PASSWORD),
+            auth=(credentials.username, credentials.password),
             headers={"Accept": "application/json"},
         )
     response.raise_for_status()
     return response.json()
+
+
+async def validate_collector_credentials(
+    credentials: CollectorCredentials,
+) -> bool:
+    try:
+        await collector_get_with_credentials("/users/self", credentials=credentials)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code in {401, 403}:
+            return False
+        raise
+    return True
 
 
 async def collector_get_all(

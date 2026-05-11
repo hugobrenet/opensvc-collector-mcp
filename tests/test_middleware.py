@@ -1,7 +1,33 @@
+import base64
+
 from fastmcp import Client, FastMCP
+from mcp import McpError
 from pydantic import BaseModel, ValidationError
 
-from opensvc_collector_mcp.middleware import ToolSchemaValidationErrorMiddleware
+from opensvc_collector_mcp.middleware import (
+    CollectorBasicAuthMiddleware,
+    ToolSchemaValidationErrorMiddleware,
+)
+
+
+def test_basic_auth_parser_returns_collector_credentials():
+    encoded = base64.b64encode(b"collector-user:collector-password").decode()
+
+    credentials = CollectorBasicAuthMiddleware._parse_basic_auth(f"Basic {encoded}")
+
+    assert credentials.username == "collector-user"
+    assert credentials.password == "collector-password"
+
+
+def test_basic_auth_parser_rejects_invalid_header():
+    try:
+        CollectorBasicAuthMiddleware._parse_basic_auth("Bearer token")
+    except McpError as exc:
+        message = str(exc)
+    else:
+        raise AssertionError("expected invalid authorization header to raise")
+
+    assert "Expected Basic Authorization header" in message
 
 
 async def test_internal_validation_error_is_not_reported_as_invalid_tool_arguments():

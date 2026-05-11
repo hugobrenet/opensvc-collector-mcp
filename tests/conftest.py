@@ -5,7 +5,7 @@ from typing import Any
 import pytest
 from fastmcp import Client
 
-from opensvc_collector_mcp.server import mcp
+from opensvc_collector_mcp.server import build_mcp
 
 
 @dataclass(frozen=True)
@@ -52,7 +52,7 @@ class CollectorMock:
 
 @pytest.fixture
 async def mcp_client():
-    async with Client(mcp) as client:
+    async with Client(build_mcp(require_basic_auth=False)) as client:
         yield client
 
 
