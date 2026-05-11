@@ -31,15 +31,23 @@ Local project notes for working on `opensvc-collector-mcp`.
   `/health`
 - BM25 tool search is always enabled. `tools/list` exposes `search_tools` and
   `call_tool`, while the full catalog remains registered and callable.
+- MCP HTTP requests are protected by a native FastMCP Basic Auth middleware.
+  Clients must send `Authorization: Basic ...`; the server validates those
+  credentials against the Collector `GET /users/self` endpoint before handling
+  the MCP request.
+- Collector user credentials are not loaded by the MCP server from `.env`.
+  Validated Basic Auth credentials are stored in request context and reused by
+  `client.py` for Collector API calls.
 
 Current package layout:
 
 - `src/opensvc_collector_mcp/config.py`
   environment variables and shared global configuration constants
 - `src/opensvc_collector_mcp/client.py`
-  generic Collector API GET helper
+  Collector API GET helpers using request-scoped Basic Auth credentials
 - `src/opensvc_collector_mcp/middleware.py`
-  FastMCP middleware, including tool argument validation error enrichment
+  FastMCP middleware, including Collector Basic Auth validation and tool
+  argument validation error enrichment
 - `src/opensvc_collector_mcp/tools/`
   FastMCP tool definitions
 - `src/opensvc_collector_mcp/core/`
@@ -318,9 +326,10 @@ Layering standard:
   fallback lookups, or count/search behavior.
 - Keep `tests/test_mcp_registration.py` aligned with the expected registered
   tool count whenever the public MCP surface changes. Registration checks should
-  inspect the underlying catalog with `build_mcp()._list_tools()`; default
-  listing checks should expect the synthetic BM25 tools `search_tools` and
-  `call_tool`.
+  inspect the underlying catalog with
+  `build_mcp(require_basic_auth=False)._list_tools()` when no HTTP Basic Auth
+  context is needed; default listing checks should expect the synthetic BM25
+  tools `search_tools` and `call_tool`.
 - Avoid real infrastructure identifiers in tests. Use neutral synthetic values
   such as `NODE-ID`, `SERVICE-ID`, `DISK-ID`, `GROUP`, or `APP-ID`.
 
@@ -366,6 +375,16 @@ Error and production-readiness notes:
   with the correct payload after a single error. Keep the enrichment scoped to
   `call[tool_name]` validation errors so internal Pydantic validation failures
   are not misreported as client argument errors.
+- `CollectorBasicAuthMiddleware` validates `Authorization: Basic ...` against
+  Collector `GET /users/self`. FastMCP filters the `authorization` header by
+  default, so keep `get_http_headers(include={"authorization"})` when reading
+  the header.
+- Because the Basic Auth check is implemented as native FastMCP middleware,
+  authentication failures are returned as MCP/JSON-RPC errors in the SSE stream
+  rather than HTTP `401` responses.
+- `client.py` must use the request-scoped Collector credentials set by
+  `CollectorBasicAuthMiddleware`. Do not reintroduce `OPENSVC_USER` or
+  `OPENSVC_PASSWORD` as server-side Collector credentials.
 - For proxied calls through `call_tool`, malformed proxy arguments should return
   the `call_tool` schema, while invalid target-tool arguments should return the
   target tool schema. Keep tests for both paths.
@@ -534,7 +553,6 @@ Important runtime dependencies currently used by the code:
 - `fastmcp`
 - `httpx`
 - `uvicorn`
-- `python-dotenv`
 
 Important development dependencies currently used by tests and validation:
 
@@ -544,12 +562,18 @@ Important development dependencies currently used by tests and validation:
 
 ## Environment Variables
 
-The project currently expects these variables in `.env`:
+The MCP server reads process environment variables only. It does not call
+`load_dotenv()` and must not load Collector user credentials from `.env`.
 
-- `OPENSVC_USER`
-- `OPENSVC_PASSWORD`
+Required/optional process environment:
+
 - `OPENSVC_API_BASE_URL`
 - `MCP_PORT`
+
+For local tests, a shell may source `.env` before starting the server, but
+`OPENSVC_USER` and `OPENSVC_PASSWORD` are only test client inputs used to build
+the outgoing MCP `Authorization: Basic ...` header. They are not server
+configuration.
 
 ## Important Notes
 
@@ -557,6 +581,6 @@ The project currently expects these variables in `.env`:
   acceptable for the local lab but should become configurable before production
   use.
 - `pyproject.toml` declares `fastmcp==3.2.4` and `httpx==0.28.1`.
-  Runtime imports also include `python-dotenv`, `uvicorn`, `starlette`, and
-  `pydantic` through the current FastMCP stack. Review dependency declarations
-  before packaging/release.
+  Runtime imports also include `uvicorn`, `starlette`, and `pydantic` through
+  the current FastMCP stack. Review dependency declarations before
+  packaging/release.
