@@ -5,7 +5,10 @@ from starlette.requests import Request
 from starlette.responses import PlainTextResponse
 
 from opensvc_collector_mcp.config import MCP_PORT, MCP_TOOL_SEARCH_MAX_RESULTS
-from opensvc_collector_mcp.middleware import ToolSchemaValidationErrorMiddleware
+from opensvc_collector_mcp.middleware import (
+    CollectorBasicAuthMiddleware,
+    ToolSchemaValidationErrorMiddleware,
+)
 from opensvc_collector_mcp.tools.apps import register_apps_tools
 from opensvc_collector_mcp.tools.arrays import register_arrays_tools
 from opensvc_collector_mcp.tools.clusters import register_clusters_tools
@@ -17,7 +20,7 @@ from opensvc_collector_mcp.tools.tags import register_tags_tools
 from opensvc_collector_mcp.tools.users import register_users_tools
 
 
-def build_mcp() -> FastMCP:
+def build_mcp(*, require_basic_auth: bool = True) -> FastMCP:
     server = FastMCP(
         name="OpenSVC Collector",
         instructions=(
@@ -43,6 +46,8 @@ def build_mcp() -> FastMCP:
     register_users_tools(server)
     register_tags_tools(server)
 
+    if require_basic_auth:
+        server.add_middleware(CollectorBasicAuthMiddleware())
     server.add_middleware(ToolSchemaValidationErrorMiddleware(server))
 
     return server
