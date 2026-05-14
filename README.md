@@ -2,6 +2,10 @@
 
 > Give AI agents a clean, typed MCP interface to the OpenSVC Collector API.
 
+<p align="center">
+  <img src="docs/assets/opensvc-collector-mcp-hero.svg" alt="OpenSVC Collector MCP architecture animation" width="100%">
+</p>
+
 `opensvc-collector-mcp` is a FastMCP server that exposes OpenSVC Collector data as MCP tools, so LLM clients can inspect infrastructure inventory, service state, and operational history through a controlled HTTP interface.
 
 ## What It Is
