@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
   <title id="title">OpenSVC Collector MCP animated architecture</title>
-  <desc id="desc">Animated architecture hero showing an AI agent discovering typed OpenSVC Collector MCP tools, calling Collector API read-only data, and returning structured results.</desc>
+  <desc id="desc">Animated architecture hero showing an AI agent discovering typed OpenSVC Collector MCP tools and calling Collector API read-only data.</desc>
 
   <defs>
     <radialGradient id="backgroundGlow" cx="50%" cy="45%" r="65%">
@@ -318,6 +318,5 @@
     <rect width="1416" height="66" rx="24" fill="#020617" opacity="0.58" stroke="#334155" stroke-opacity="0.6"/>
     <text x="32" y="28" class="micro">108 typed Collector tools + BM25 discovery</text>
     <text x="32" y="51" class="small">Nodes, services, compliance, users, tags, apps, arrays, disks, and clusters exposed as predictable read-only MCP contracts.</text>
-    <text x="1082" y="41" class="terminal">intent -> search_tools -> call_tool -> structured result</text>
   </g>
 </svg>
