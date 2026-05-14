@@ -10,8 +10,7 @@
 
 ## What It Is
 
-- MCP server built with `FastMCP`
-- HTTP transport served with `uvicorn`
+- MCP server built with `FastMCP` and served over HTTP with `uvicorn`
 - custom health route: `/health`
 - typed Pydantic input and output models for MCP tools
 - OpenSVC Collector read-only tool surface for nodes, services, clusters, compliance, users, tags, apps, arrays, and disks
@@ -33,64 +32,16 @@ This repository is focused on:
 - pagination-safe Collector reads
 - separation between MCP surface and Collector-specific logic
 
-## FastMCP
+## Run Locally
 
-This project uses `FastMCP` as the server framework that exposes Python functions as MCP tools and serves them over HTTP.
-
-If you are new to FastMCP, start with the official documentation:
-
-- FastMCP: https://gofastmcp.com
-
-## Current Structure
-
-```text
-src/opensvc_collector_mcp/
-|-- client.py          # generic Collector HTTP client helpers
-|-- config.py          # environment variables
-|-- core/              # Collector workflows and business logic
-|   |-- apps/
-|   |-- arrays/
-|   |-- clusters/
-|   |-- compliance/
-|   |-- disks/
-|   |-- nodes/
-|   |-- services/
-|   |-- tags/
-|   `-- users/
-|-- models/            # Pydantic request and response models
-|   |-- apps/
-|   |-- arrays/
-|   |-- clusters/
-|   |-- compliance/
-|   |-- disks/
-|   |-- nodes/
-|   |-- services/
-|   |-- tags/
-|   `-- users/
-|-- tools/             # FastMCP tool definitions
-|   |-- apps.py
-|   |-- arrays.py
-|   |-- clusters.py
-|   |-- compliance.py
-|   |-- disks.py
-|   |-- nodes.py
-|   |-- services.py
-|   |-- tags.py
-|   `-- users.py
-`-- server.py          # FastMCP app + uvicorn entrypoint
-```
-
-## Environment
-
-Export the server configuration in the process environment:
+Export the Collector API base URL and optional MCP port:
 
 ```bash
 export OPENSVC_API_BASE_URL=https://your-collector-host/init/rest/api
 export MCP_PORT=8001
 ```
 
-For local ad hoc runs, you can source these values from a shell-only file before
-starting the server, for example:
+For local ad hoc runs, these values can be sourced from a shell-only file:
 
 ```bash
 set -a
@@ -98,52 +49,30 @@ set -a
 set +a
 ```
 
-with:
-
-```env
-OPENSVC_API_BASE_URL=https://your-collector-host/init/rest/api
-MCP_PORT=8001
-```
-
 Collector credentials are not loaded by the MCP server from `.env`. MCP clients
 must send an `Authorization: Basic ...` header; the server validates those
 credentials against the Collector before handling MCP requests.
 
-## Run
-
-Activate the local virtualenv:
+Activate the local virtualenv and start the server:
 
 ```bash
 . ./venv/bin/activate
-```
-
-Start the server:
-
-```bash
 PYTHONPATH=src python -m opensvc_collector_mcp.server
 ```
 
-The server listens on:
+By default, the server listens on:
 
 ```text
 http://127.0.0.1:8001
 ```
 
-## Health Check
+Health check:
 
 ```bash
 curl http://127.0.0.1:8001/health
 ```
 
-Expected response:
-
-```text
-OK
-```
-
-## MCP Endpoint
-
-The MCP HTTP endpoint is exposed at:
+MCP HTTP endpoint:
 
 ```text
 http://127.0.0.1:8001/mcp
@@ -188,9 +117,16 @@ The current tool surface covers:
 
 All tools are intended to be read-only against OpenSVC Collector.
 
-## Tests
+## Development
 
-The project uses `pytest` with in-memory `FastMCP` clients for MCP tool tests.
+The project uses `pytest` with in-memory `FastMCP` clients for MCP tool tests. FastMCP documentation is available at https://gofastmcp.com.
+
+Code organization:
+
+- tool definitions stay in `tools/`
+- Collector workflows and business logic stay in `core/`
+- typed request and response contracts stay in `models/`
+- user-facing tool documentation stays in `docs/tools/`
 
 Run the full local validation with:
 
@@ -201,21 +137,7 @@ Run the full local validation with:
 git diff --check
 ```
 
-The current test suite includes:
-
-- FastMCP tool registration
-- core tests for nodes, services, disks, and users
-- MCP tool tests for nodes, services, disks, and users
-
-## Development Notes
-
-- FastMCP version is pinned in this project.
-- Tool definitions should stay in `tools/`.
-- Collector logic should stay in `core/`.
-- Request and response contracts should stay in `models/`.
-- User-facing tool documentation should stay in `docs/tools/`.
-- New tools should include focused unit tests for their core logic and MCP wrapper behavior.
-- New tools should be validated with pytest, compile checks, FastMCP registration, Ruff, and read-only Collector tests.
+New tools should include focused unit tests for their core logic and MCP wrapper behavior, then be validated with pytest, compile checks, FastMCP registration, Ruff, and read-only Collector tests.
 
 ## Project Status
 
