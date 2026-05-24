@@ -38,7 +38,7 @@ Export the Collector API base URL and optional MCP port:
 
 ```bash
 export OPENSVC_API_BASE_URL=https://your-collector-host/init/rest/api
-export MCP_PORT=8001
+export MCP_PORT=8011
 ```
 
 For local ad hoc runs, these values can be sourced from a shell-only file:
@@ -63,20 +63,46 @@ PYTHONPATH=src python -m opensvc_collector_mcp.server
 By default, the server listens on:
 
 ```text
-http://127.0.0.1:8001
+http://127.0.0.1:8011
 ```
 
 Health check:
 
 ```bash
-curl http://127.0.0.1:8001/health
+curl http://127.0.0.1:8011/health
 ```
 
 MCP HTTP endpoint:
 
 ```text
-http://127.0.0.1:8001/mcp
+http://127.0.0.1:8011/mcp
 ```
+
+## Runtime Configuration
+
+The MCP server is designed to run inside the Collector network namespace, next
+to the Collector web app, Redis, and the AI gateway. It should stay bound to
+loopback so it is not reachable from outside the Collector service.
+
+Recommended namespace values:
+
+```bash
+export MCP_HOST=127.0.0.1
+export MCP_PORT=8011
+export OPENSVC_API_BASE_URL=http://127.0.0.1:8001/init/rest/api
+```
+
+Variables:
+
+| Variable | Required | Default | Purpose |
+|---|---:|---|---|
+| `OPENSVC_API_BASE_URL` | yes | none | Collector REST API base URL used by MCP tools. |
+| `MCP_HOST` | no | `127.0.0.1` | Uvicorn bind host. Keep loopback in the shared Collector namespace. |
+| `MCP_PORT` | no | `8011` | Uvicorn bind port. |
+
+The MCP server does not read Collector usernames or passwords from environment
+variables. Clients must pass `Authorization: Basic ...`; the server validates
+those credentials against the Collector before executing tools.
 
 ## Tool Discovery
 
