@@ -2,6 +2,7 @@ import os
 
 
 OPENSVC_API_BASE_URL = os.getenv("OPENSVC_API_BASE_URL")
+MCP_HOST = os.getenv("MCP_HOST", "127.0.0.1")
 MCP_PORT = os.getenv("MCP_PORT")
 MCP_TOOL_SEARCH_MAX_RESULTS = 10
 

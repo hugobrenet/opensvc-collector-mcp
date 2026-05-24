@@ -4,7 +4,11 @@ import uvicorn
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse
 
-from opensvc_collector_mcp.config import MCP_PORT, MCP_TOOL_SEARCH_MAX_RESULTS
+from opensvc_collector_mcp.config import (
+    MCP_HOST,
+    MCP_PORT,
+    MCP_TOOL_SEARCH_MAX_RESULTS,
+)
 from opensvc_collector_mcp.middleware import (
     CollectorBasicAuthMiddleware,
     ToolSchemaValidationErrorMiddleware,
@@ -64,7 +68,7 @@ def main() -> None:
     """Run the MCP server over HTTP with uvicorn."""
     uvicorn.run(
         create_app(),
-        host="127.0.0.1",
+        host=MCP_HOST,
         port=int(MCP_PORT or "8001"),
     )
 
