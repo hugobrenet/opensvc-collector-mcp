@@ -69,7 +69,7 @@ def main() -> None:
     uvicorn.run(
         create_app(),
         host=MCP_HOST,
-        port=int(MCP_PORT or "8001"),
+        port=int(MCP_PORT),
     )
 
 
