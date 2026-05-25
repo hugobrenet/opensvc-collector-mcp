@@ -89,7 +89,7 @@ Recommended namespace values:
 ```bash
 export MCP_HOST=127.0.0.1
 export MCP_PORT=8011
-export OPENSVC_API_BASE_URL=http://127.0.0.1:8001/init/rest/api
+export OPENSVC_API_BASE_URL=https://127.0.0.1/init/rest/api
 ```
 
 Variables:
@@ -103,6 +103,10 @@ Variables:
 The MCP server does not read Collector usernames or passwords from environment
 variables. Clients must pass `Authorization: Basic ...`; the server validates
 those credentials against the Collector before executing tools.
+
+In the Collector shared network namespace, do not point `OPENSVC_API_BASE_URL`
+to `127.0.0.1:8001`: that port is the uWSGI socket behind nginx, not an HTTP
+REST endpoint. Use nginx over HTTPS on `https://127.0.0.1/init/rest/api`.
 
 ## Tool Discovery
 
