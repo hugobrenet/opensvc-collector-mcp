@@ -6,6 +6,7 @@ from pydantic import BaseModel, ValidationError
 
 from opensvc_collector_mcp.middleware import (
     CollectorBasicAuthMiddleware,
+    CollectorReadToolAuthorizationMiddleware,
     ToolSchemaValidationErrorMiddleware,
 )
 
@@ -58,3 +59,69 @@ async def test_internal_validation_error_is_not_reported_as_invalid_tool_argumen
     assert "expected_input_schema" not in message
     assert "InnerModel" in message
     assert "value" in message
+
+
+async def test_read_tool_authorization_allows_read_tagged_tool():
+    server = FastMCP("read-authorization-test")
+
+    @server.tool(name="read_tool", tags={"read"})
+    async def read_tool() -> dict[str, str]:
+        return {"status": "ok"}
+
+    server.add_middleware(CollectorReadToolAuthorizationMiddleware(server))
+
+    async with Client(server) as client:
+        result = await client.call_tool("read_tool", {})
+
+    assert result.structured_content == {"status": "ok"}
+
+
+async def test_read_tool_authorization_denies_non_read_tool():
+    server = FastMCP("read-authorization-test")
+
+    @server.tool(name="write_tool", tags={"write:nodes"})
+    async def write_tool() -> dict[str, str]:
+        return {"status": "changed"}
+
+    server.add_middleware(CollectorReadToolAuthorizationMiddleware(server))
+
+    async with Client(server) as client:
+        try:
+            await client.call_tool("write_tool", {})
+        except Exception as exc:
+            message = str(exc)
+        else:
+            raise AssertionError("expected non-read tool to be denied")
+
+    assert "Unauthorized tool" in message
+    assert "write_tool" in message
+    assert "required_tag" in message
+    assert "read" in message
+
+
+async def test_read_tool_authorization_checks_call_tool_target():
+    server = FastMCP("read-authorization-test")
+
+    @server.tool(name="write_tool", tags={"write:nodes"})
+    async def write_tool() -> dict[str, str]:
+        return {"status": "changed"}
+
+    @server.tool(name="call_tool")
+    async def call_tool(name: str, arguments: dict) -> dict[str, str]:
+        return {"target": name, "status": "called"}
+
+    server.add_middleware(CollectorReadToolAuthorizationMiddleware(server))
+
+    async with Client(server) as client:
+        try:
+            await client.call_tool(
+                "call_tool",
+                {"name": "write_tool", "arguments": {}},
+            )
+        except Exception as exc:
+            message = str(exc)
+        else:
+            raise AssertionError("expected non-read proxy target to be denied")
+
+    assert "Unauthorized tool" in message
+    assert "write_tool" in message
