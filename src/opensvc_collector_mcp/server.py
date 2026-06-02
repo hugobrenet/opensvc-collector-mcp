@@ -53,7 +53,7 @@ def build_mcp(*, require_basic_auth: bool = True) -> FastMCP:
 
     if require_basic_auth:
         server.add_middleware(CollectorBasicAuthMiddleware())
-    server.add_middleware(CollectorReadToolAuthorizationMiddleware(server))
+        server.add_middleware(CollectorReadToolAuthorizationMiddleware(server))
     server.add_middleware(ToolSchemaValidationErrorMiddleware(server))
 
     return server

@@ -1,6 +1,7 @@
 import base64
 import binascii
 import json
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 from fastmcp import FastMCP
@@ -14,6 +15,7 @@ from pydantic import ValidationError
 
 from opensvc_collector_mcp.client import (
     CollectorCredentials,
+    get_collector_group_roles,
     reset_collector_credentials,
     set_collector_credentials,
     validate_collector_credentials,
@@ -77,13 +79,17 @@ class CollectorReadToolAuthorizationMiddleware(Middleware):
         server: FastMCP,
         *,
         read_tag: str = "read",
+        read_groups: set[str] | None = None,
         call_tool_name: str = "call_tool",
         public_tool_names: set[str] | None = None,
+        group_roles_loader: Callable[[], Awaitable[set[str]]] | None = None,
     ) -> None:
         self.server = server
         self.read_tag = read_tag
+        self.read_groups = read_groups or {"Everybody", "Manager"}
         self.call_tool_name = call_tool_name
         self.public_tool_names = public_tool_names or {"search_tools"}
+        self.group_roles_loader = group_roles_loader or get_collector_group_roles
 
     @staticmethod
     def _tool_arguments(
@@ -106,13 +112,24 @@ class CollectorReadToolAuthorizationMiddleware(Middleware):
             return name
         return None
 
-    def _unauthorized_tool(self, tool_name: str, tags: set[str]) -> ToolError:
+    def _unauthorized_tool(
+        self,
+        tool_name: str,
+        tags: set[str],
+        *,
+        group_roles: set[str] | None = None,
+    ) -> ToolError:
         payload = {
             "error": "Unauthorized tool",
             "tool": tool_name,
             "required_tag": self.read_tag,
+            "required_groups": sorted(self.read_groups),
             "tags": sorted(tags),
-            "hint": "Only read-tagged Collector tools are allowed.",
+            "user_groups": sorted(group_roles) if group_roles is not None else None,
+            "hint": (
+                "Only read-tagged Collector tools are allowed for users in "
+                "the required Collector groups."
+            ),
         }
         return ToolError(json.dumps(payload, ensure_ascii=False, default=str))
 
@@ -135,6 +152,14 @@ class CollectorReadToolAuthorizationMiddleware(Middleware):
         tags = set(target_tool.tags or set())
         if self.read_tag not in tags:
             raise self._unauthorized_tool(target_tool_name, tags)
+
+        group_roles = await self.group_roles_loader()
+        if not self.read_groups & group_roles:
+            raise self._unauthorized_tool(
+                target_tool_name,
+                tags,
+                group_roles=group_roles,
+            )
 
         return await call_next(context)
 

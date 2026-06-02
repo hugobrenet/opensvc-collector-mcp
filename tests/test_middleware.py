@@ -68,7 +68,12 @@ async def test_read_tool_authorization_allows_read_tagged_tool():
     async def read_tool() -> dict[str, str]:
         return {"status": "ok"}
 
-    server.add_middleware(CollectorReadToolAuthorizationMiddleware(server))
+    server.add_middleware(
+        CollectorReadToolAuthorizationMiddleware(
+            server,
+            group_roles_loader=lambda: async_group_roles({"Everybody"}),
+        )
+    )
 
     async with Client(server) as client:
         result = await client.call_tool("read_tool", {})
@@ -83,7 +88,12 @@ async def test_read_tool_authorization_denies_non_read_tool():
     async def write_tool() -> dict[str, str]:
         return {"status": "changed"}
 
-    server.add_middleware(CollectorReadToolAuthorizationMiddleware(server))
+    server.add_middleware(
+        CollectorReadToolAuthorizationMiddleware(
+            server,
+            group_roles_loader=lambda: async_group_roles({"Everybody"}),
+        )
+    )
 
     async with Client(server) as client:
         try:
@@ -99,6 +109,36 @@ async def test_read_tool_authorization_denies_non_read_tool():
     assert "read" in message
 
 
+async def test_read_tool_authorization_denies_read_tool_without_required_group():
+    server = FastMCP("read-authorization-test")
+
+    @server.tool(name="read_tool", tags={"read"})
+    async def read_tool() -> dict[str, str]:
+        return {"status": "ok"}
+
+    server.add_middleware(
+        CollectorReadToolAuthorizationMiddleware(
+            server,
+            group_roles_loader=lambda: async_group_roles({"TeamA"}),
+        )
+    )
+
+    async with Client(server) as client:
+        try:
+            await client.call_tool("read_tool", {})
+        except Exception as exc:
+            message = str(exc)
+        else:
+            raise AssertionError("expected read tool to be denied without group")
+
+    assert "Unauthorized tool" in message
+    assert "read_tool" in message
+    assert "required_groups" in message
+    assert "Everybody" in message
+    assert "Manager" in message
+    assert "TeamA" in message
+
+
 async def test_read_tool_authorization_checks_call_tool_target():
     server = FastMCP("read-authorization-test")
 
@@ -110,7 +150,12 @@ async def test_read_tool_authorization_checks_call_tool_target():
     async def call_tool(name: str, arguments: dict) -> dict[str, str]:
         return {"target": name, "status": "called"}
 
-    server.add_middleware(CollectorReadToolAuthorizationMiddleware(server))
+    server.add_middleware(
+        CollectorReadToolAuthorizationMiddleware(
+            server,
+            group_roles_loader=lambda: async_group_roles({"Manager"}),
+        )
+    )
 
     async with Client(server) as client:
         try:
@@ -125,3 +170,7 @@ async def test_read_tool_authorization_checks_call_tool_target():
 
     assert "Unauthorized tool" in message
     assert "write_tool" in message
+
+
+async def async_group_roles(group_roles: set[str]) -> set[str]:
+    return group_roles
