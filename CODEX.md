@@ -35,6 +35,13 @@ Local project notes for working on `opensvc-collector-mcp`.
   Clients must send `Authorization: Basic ...`; the server validates those
   credentials against the Collector `GET /users/self` endpoint before handling
   the MCP request.
+- MCP tool execution is also protected by `CollectorReadToolAuthorizationMiddleware`
+  when Basic Auth is enabled. The middleware authorizes both direct tool calls
+  and proxied `call_tool` targets: the target tool must be tagged `read`, and
+  the authenticated Collector user must belong to `Everybody` or `Manager`.
+- `search_tools` remains public after authentication. BM25 discovery is not
+  filtered yet, by design, so clients can report "tool exists but is
+  unauthorized" instead of incorrectly reporting "no tool exists".
 - Collector user credentials are not loaded by the MCP server from `.env`.
   Validated Basic Auth credentials are stored in request context and reused by
   `client.py` for Collector API calls.
@@ -375,6 +382,13 @@ Error and production-readiness notes:
   with the correct payload after a single error. Keep the enrichment scoped to
   `call[tool_name]` validation errors so internal Pydantic validation failures
   are not misreported as client argument errors.
+- `CollectorReadToolAuthorizationMiddleware` is the execution-time RBAC guard
+  for the current read-only tool surface. It returns a structured
+  `Unauthorized tool` error containing the required tag, required groups, tool
+  tags, and current Collector groups.
+- Current read authorization is complete for authenticated users in
+  `Everybody` or `Manager`. Revisit the tag-to-group policy when adding tools
+  that perform Collector `POST`, `PUT`, `DELETE`, or action/exec calls.
 - `CollectorBasicAuthMiddleware` validates `Authorization: Basic ...` against
   Collector `GET /users/self`. FastMCP filters the `authorization` header by
   default, so keep `get_http_headers(include={"authorization"})` when reading
