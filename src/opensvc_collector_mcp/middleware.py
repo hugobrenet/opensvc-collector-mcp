@@ -13,8 +13,10 @@ from mcp import McpError
 from mcp import types as mt
 from pydantic import ValidationError
 
+from opensvc_collector_mcp.audit import log_tool_authorization_audit
 from opensvc_collector_mcp.client import (
     CollectorCredentials,
+    get_collector_credentials,
     get_collector_group_roles,
     reset_collector_credentials,
     set_collector_credentials,
@@ -133,6 +135,35 @@ class CollectorReadToolAuthorizationMiddleware(Middleware):
         }
         return ToolError(json.dumps(payload, ensure_ascii=False, default=str))
 
+    @staticmethod
+    def _collector_username() -> str | None:
+        credentials = get_collector_credentials()
+        if credentials is None:
+            return None
+        return credentials.username
+
+    def _log_authorization_decision(
+        self,
+        context: MiddlewareContext[mt.CallToolRequestParams],
+        *,
+        target_tool_name: str,
+        tags: set[str],
+        decision: str,
+        reason: str | None = None,
+        group_roles: set[str] | None = None,
+    ) -> None:
+        log_tool_authorization_audit(
+            user=self._collector_username(),
+            client_tool=context.message.name,
+            target_tool=target_tool_name,
+            decision=decision,
+            reason=reason,
+            required_tag=self.read_tag,
+            required_groups=self.read_groups,
+            user_groups=group_roles,
+            tool_tags=tags,
+        )
+
     async def on_call_tool(
         self,
         context: MiddlewareContext[mt.CallToolRequestParams],
@@ -151,16 +182,38 @@ class CollectorReadToolAuthorizationMiddleware(Middleware):
 
         tags = set(target_tool.tags or set())
         if self.read_tag not in tags:
+            self._log_authorization_decision(
+                context,
+                target_tool_name=target_tool_name,
+                tags=tags,
+                decision="denied",
+                reason="missing_required_tag",
+            )
             raise self._unauthorized_tool(target_tool_name, tags)
 
         group_roles = await self.group_roles_loader()
         if not self.read_groups & group_roles:
+            self._log_authorization_decision(
+                context,
+                target_tool_name=target_tool_name,
+                tags=tags,
+                decision="denied",
+                reason="missing_required_group",
+                group_roles=group_roles,
+            )
             raise self._unauthorized_tool(
                 target_tool_name,
                 tags,
                 group_roles=group_roles,
             )
 
+        self._log_authorization_decision(
+            context,
+            target_tool_name=target_tool_name,
+            tags=tags,
+            decision="allowed",
+            group_roles=group_roles,
+        )
         return await call_next(context)
 
 

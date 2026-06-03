@@ -1,9 +1,12 @@
 import base64
+import json
+import logging
 
 from fastmcp import Client, FastMCP
 from mcp import McpError
 from pydantic import BaseModel, ValidationError
 
+from opensvc_collector_mcp.audit import AUDIT_LOGGER_NAME
 from opensvc_collector_mcp.middleware import (
     CollectorBasicAuthMiddleware,
     CollectorReadToolAuthorizationMiddleware,
@@ -61,7 +64,8 @@ async def test_internal_validation_error_is_not_reported_as_invalid_tool_argumen
     assert "value" in message
 
 
-async def test_read_tool_authorization_allows_read_tagged_tool():
+async def test_read_tool_authorization_allows_read_tagged_tool(caplog):
+    caplog.set_level(logging.INFO, logger=AUDIT_LOGGER_NAME)
     server = FastMCP("read-authorization-test")
 
     @server.tool(name="read_tool", tags={"read"})
@@ -79,6 +83,15 @@ async def test_read_tool_authorization_allows_read_tagged_tool():
         result = await client.call_tool("read_tool", {})
 
     assert result.structured_content == {"status": "ok"}
+    event = _single_audit_event(caplog)
+    assert event["event"] == "mcp.tool_authorization"
+    assert event["client_tool"] == "read_tool"
+    assert event["target_tool"] == "read_tool"
+    assert event["decision"] == "allowed"
+    assert event["required_tag"] == "read"
+    assert event["required_groups"] == ["Everybody", "Manager"]
+    assert event["user_groups"] == ["Everybody"]
+    assert event["tool_tags"] == ["read"]
 
 
 async def test_read_tool_authorization_denies_non_read_tool():
@@ -109,7 +122,8 @@ async def test_read_tool_authorization_denies_non_read_tool():
     assert "read" in message
 
 
-async def test_read_tool_authorization_denies_read_tool_without_required_group():
+async def test_read_tool_authorization_denies_read_tool_without_required_group(caplog):
+    caplog.set_level(logging.INFO, logger=AUDIT_LOGGER_NAME)
     server = FastMCP("read-authorization-test")
 
     @server.tool(name="read_tool", tags={"read"})
@@ -137,6 +151,16 @@ async def test_read_tool_authorization_denies_read_tool_without_required_group()
     assert "Everybody" in message
     assert "Manager" in message
     assert "TeamA" in message
+    event = _single_audit_event(caplog)
+    assert event["event"] == "mcp.tool_authorization"
+    assert event["client_tool"] == "read_tool"
+    assert event["target_tool"] == "read_tool"
+    assert event["decision"] == "denied"
+    assert event["reason"] == "missing_required_group"
+    assert event["required_tag"] == "read"
+    assert event["required_groups"] == ["Everybody", "Manager"]
+    assert event["user_groups"] == ["TeamA"]
+    assert event["tool_tags"] == ["read"]
 
 
 async def test_read_tool_authorization_checks_call_tool_target():
@@ -174,3 +198,13 @@ async def test_read_tool_authorization_checks_call_tool_target():
 
 async def async_group_roles(group_roles: set[str]) -> set[str]:
     return group_roles
+
+
+def _single_audit_event(caplog) -> dict:
+    events = [
+        json.loads(record.message)
+        for record in caplog.records
+        if record.name == AUDIT_LOGGER_NAME
+    ]
+    assert len(events) == 1
+    return events[0]
