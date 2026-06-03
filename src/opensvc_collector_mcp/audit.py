@@ -12,6 +12,7 @@ _logger.setLevel(logging.INFO)
 
 def log_tool_authorization_audit(
     *,
+    request_id: str | None = None,
     user: str | None,
     client_tool: str,
     target_tool: str | None,
@@ -31,6 +32,8 @@ def log_tool_authorization_audit(
         "target_tool": target_tool,
         "decision": decision,
     }
+    if request_id is not None:
+        event["request_id"] = request_id
     if reason is not None:
         event["reason"] = reason
     if required_tag is not None:

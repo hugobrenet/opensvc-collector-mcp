@@ -28,6 +28,7 @@ _SKIP_NESTED_AUTHORIZATION_AUDIT: ContextVar[bool] = ContextVar(
     "skip_nested_authorization_audit",
     default=False,
 )
+AI_REQUEST_ID_HEADER = "x-opensvc-ai-request-id"
 
 
 class CollectorBasicAuthMiddleware(Middleware):
@@ -148,6 +149,14 @@ class CollectorReadToolAuthorizationMiddleware(Middleware):
             return None
         return credentials.username
 
+    @staticmethod
+    def _ai_request_id() -> str | None:
+        headers = get_http_headers(include={AI_REQUEST_ID_HEADER})
+        request_id = headers.get(AI_REQUEST_ID_HEADER)
+        if not isinstance(request_id, str) or not request_id:
+            return None
+        return request_id
+
     def _log_authorization_decision(
         self,
         context: MiddlewareContext[mt.CallToolRequestParams],
@@ -170,6 +179,7 @@ class CollectorReadToolAuthorizationMiddleware(Middleware):
             required_groups=self.read_groups,
             user_groups=group_roles,
             tool_tags=tags,
+            request_id=self._ai_request_id(),
         )
 
     async def on_call_tool(

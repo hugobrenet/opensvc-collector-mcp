@@ -194,6 +194,34 @@ async def test_read_tool_authorization_audits_public_search_tool(caplog):
     assert "tool_tags" not in event
 
 
+async def test_read_tool_authorization_includes_ai_request_id(monkeypatch, caplog):
+    caplog.set_level(logging.INFO, logger=AUDIT_LOGGER_NAME)
+    monkeypatch.setattr(
+        "opensvc_collector_mcp.middleware.get_http_headers",
+        lambda include=None: {"x-opensvc-ai-request-id": "ai_test"},
+    )
+    server = FastMCP("read-authorization-test")
+
+    @server.tool(name="search_tools")
+    async def search_tools(query: str) -> dict[str, str]:
+        return {"query": query}
+
+    server.add_middleware(
+        CollectorReadToolAuthorizationMiddleware(
+            server,
+            group_roles_loader=lambda: async_group_roles(set()),
+        )
+    )
+
+    async with Client(server) as client:
+        result = await client.call_tool("search_tools", {"query": "node detail"})
+
+    assert result.structured_content == {"query": "node detail"}
+    event = _single_audit_event(caplog)
+    assert event["client_tool"] == "search_tools"
+    assert event["request_id"] == "ai_test"
+
+
 async def test_read_tool_authorization_audits_call_tool_target(caplog):
     caplog.set_level(logging.INFO, logger=AUDIT_LOGGER_NAME)
     server = FastMCP("read-authorization-test")
