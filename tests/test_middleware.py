@@ -163,6 +163,74 @@ async def test_read_tool_authorization_denies_read_tool_without_required_group(c
     assert event["tool_tags"] == ["read"]
 
 
+async def test_read_tool_authorization_audits_public_search_tool(caplog):
+    caplog.set_level(logging.INFO, logger=AUDIT_LOGGER_NAME)
+    server = FastMCP("read-authorization-test")
+
+    @server.tool(name="search_tools")
+    async def search_tools(query: str) -> dict[str, str]:
+        return {"query": query}
+
+    server.add_middleware(
+        CollectorReadToolAuthorizationMiddleware(
+            server,
+            group_roles_loader=lambda: async_group_roles(set()),
+        )
+    )
+
+    async with Client(server) as client:
+        result = await client.call_tool("search_tools", {"query": "node detail"})
+
+    assert result.structured_content == {"query": "node detail"}
+    event = _single_audit_event(caplog)
+    assert event["event"] == "mcp.tool_authorization"
+    assert event["client_tool"] == "search_tools"
+    assert event["target_tool"] is None
+    assert event["decision"] == "allowed"
+    assert event["reason"] == "public_tool"
+    assert event["required_tag"] == "read"
+    assert event["required_groups"] == ["Everybody", "Manager"]
+    assert "user_groups" not in event
+    assert "tool_tags" not in event
+
+
+async def test_read_tool_authorization_audits_call_tool_target(caplog):
+    caplog.set_level(logging.INFO, logger=AUDIT_LOGGER_NAME)
+    server = FastMCP("read-authorization-test")
+
+    @server.tool(name="read_tool", tags={"read"})
+    async def read_tool() -> dict[str, str]:
+        return {"status": "ok"}
+
+    @server.tool(name="call_tool")
+    async def call_tool(name: str, arguments: dict) -> dict[str, str]:
+        return {"target": name, "status": "called"}
+
+    server.add_middleware(
+        CollectorReadToolAuthorizationMiddleware(
+            server,
+            group_roles_loader=lambda: async_group_roles({"Manager"}),
+        )
+    )
+
+    async with Client(server) as client:
+        result = await client.call_tool(
+            "call_tool",
+            {"name": "read_tool", "arguments": {}},
+        )
+
+    assert result.structured_content == {"target": "read_tool", "status": "called"}
+    event = _single_audit_event(caplog)
+    assert event["event"] == "mcp.tool_authorization"
+    assert event["client_tool"] == "call_tool"
+    assert event["target_tool"] == "read_tool"
+    assert event["decision"] == "allowed"
+    assert event["required_tag"] == "read"
+    assert event["required_groups"] == ["Everybody", "Manager"]
+    assert event["user_groups"] == ["Manager"]
+    assert event["tool_tags"] == ["read"]
+
+
 async def test_read_tool_authorization_checks_call_tool_target():
     server = FastMCP("read-authorization-test")
 

@@ -2,6 +2,7 @@ import base64
 import binascii
 import json
 from collections.abc import Awaitable, Callable
+from contextvars import ContextVar
 from typing import Any
 
 from fastmcp import FastMCP
@@ -21,6 +22,11 @@ from opensvc_collector_mcp.client import (
     reset_collector_credentials,
     set_collector_credentials,
     validate_collector_credentials,
+)
+
+_SKIP_NESTED_AUTHORIZATION_AUDIT: ContextVar[bool] = ContextVar(
+    "skip_nested_authorization_audit",
+    default=False,
 )
 
 
@@ -146,12 +152,14 @@ class CollectorReadToolAuthorizationMiddleware(Middleware):
         self,
         context: MiddlewareContext[mt.CallToolRequestParams],
         *,
-        target_tool_name: str,
-        tags: set[str],
+        target_tool_name: str | None,
+        tags: set[str] | None,
         decision: str,
         reason: str | None = None,
         group_roles: set[str] | None = None,
     ) -> None:
+        if _SKIP_NESTED_AUTHORIZATION_AUDIT.get():
+            return
         log_tool_authorization_audit(
             user=self._collector_username(),
             client_tool=context.message.name,
@@ -170,6 +178,13 @@ class CollectorReadToolAuthorizationMiddleware(Middleware):
         call_next: CallNext[mt.CallToolRequestParams, ToolResult],
     ) -> ToolResult:
         if context.message.name in self.public_tool_names:
+            self._log_authorization_decision(
+                context,
+                target_tool_name=None,
+                tags=None,
+                decision="allowed",
+                reason="public_tool",
+            )
             return await call_next(context)
 
         target_tool_name = self._target_tool_name(context)
@@ -214,7 +229,14 @@ class CollectorReadToolAuthorizationMiddleware(Middleware):
             decision="allowed",
             group_roles=group_roles,
         )
-        return await call_next(context)
+        if context.message.name != self.call_tool_name:
+            return await call_next(context)
+
+        token = _SKIP_NESTED_AUTHORIZATION_AUDIT.set(True)
+        try:
+            return await call_next(context)
+        finally:
+            _SKIP_NESTED_AUTHORIZATION_AUDIT.reset(token)
 
 
 class ToolSchemaValidationErrorMiddleware(Middleware):
