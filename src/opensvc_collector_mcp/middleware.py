@@ -3,6 +3,7 @@ import binascii
 import json
 from collections.abc import Awaitable, Callable
 from contextvars import ContextVar
+from time import perf_counter
 from typing import Any
 
 from fastmcp import FastMCP
@@ -14,7 +15,7 @@ from mcp import McpError
 from mcp import types as mt
 from pydantic import ValidationError
 
-from opensvc_collector_mcp.audit import log_tool_authorization_audit
+from opensvc_collector_mcp.audit import log_tool_call_audit
 from opensvc_collector_mcp.client import (
     CollectorCredentials,
     get_collector_credentials,
@@ -164,17 +165,21 @@ class CollectorReadToolAuthorizationMiddleware(Middleware):
         target_tool_name: str | None,
         tags: set[str] | None,
         decision: str,
-        reason: str | None = None,
-        group_roles: set[str] | None = None,
+        reason: str | None,
+        duration_ms: int,
+        status: str,
+        group_roles: set[str] | None,
     ) -> None:
         if _SKIP_NESTED_AUTHORIZATION_AUDIT.get():
             return
-        log_tool_authorization_audit(
+        log_tool_call_audit(
             user=self._collector_username(),
             client_tool=context.message.name,
             target_tool=target_tool_name,
             decision=decision,
             reason=reason,
+            duration_ms=duration_ms,
+            status=status,
             required_tag=self.read_tag,
             required_groups=self.read_groups,
             user_groups=group_roles,
@@ -182,20 +187,72 @@ class CollectorReadToolAuthorizationMiddleware(Middleware):
             request_id=self._ai_request_id(),
         )
 
+    @staticmethod
+    def _duration_ms(started_at: float) -> int:
+        return int(round((perf_counter() - started_at) * 1000))
+
+    async def _call_next_with_audit(
+        self,
+        context: MiddlewareContext[mt.CallToolRequestParams],
+        call_next: CallNext[mt.CallToolRequestParams, ToolResult],
+        *,
+        started_at: float,
+        target_tool_name: str | None,
+        tags: set[str] | None,
+        reason: str | None,
+        group_roles: set[str] | None,
+        suppress_nested_audit: bool = False,
+    ) -> ToolResult:
+        token = None
+        try:
+            if suppress_nested_audit:
+                token = _SKIP_NESTED_AUTHORIZATION_AUDIT.set(True)
+            result = await call_next(context)
+        except Exception:
+            if token is not None:
+                _SKIP_NESTED_AUTHORIZATION_AUDIT.reset(token)
+            self._log_authorization_decision(
+                context,
+                target_tool_name=target_tool_name,
+                tags=tags,
+                decision="allowed",
+                reason=reason,
+                duration_ms=self._duration_ms(started_at),
+                status="error",
+                group_roles=group_roles,
+            )
+            raise
+
+        if token is not None:
+            _SKIP_NESTED_AUTHORIZATION_AUDIT.reset(token)
+        self._log_authorization_decision(
+            context,
+            target_tool_name=target_tool_name,
+            tags=tags,
+            decision="allowed",
+            reason=reason,
+            duration_ms=self._duration_ms(started_at),
+            status="success",
+            group_roles=group_roles,
+        )
+        return result
+
     async def on_call_tool(
         self,
         context: MiddlewareContext[mt.CallToolRequestParams],
         call_next: CallNext[mt.CallToolRequestParams, ToolResult],
     ) -> ToolResult:
+        started_at = perf_counter()
         if context.message.name in self.public_tool_names:
-            self._log_authorization_decision(
+            return await self._call_next_with_audit(
                 context,
+                call_next,
+                started_at=started_at,
                 target_tool_name=None,
                 tags=None,
-                decision="allowed",
                 reason="public_tool",
+                group_roles=None,
             )
-            return await call_next(context)
 
         target_tool_name = self._target_tool_name(context)
         if target_tool_name is None:
@@ -213,6 +270,9 @@ class CollectorReadToolAuthorizationMiddleware(Middleware):
                 tags=tags,
                 decision="denied",
                 reason="missing_required_tag",
+                duration_ms=self._duration_ms(started_at),
+                status="denied",
+                group_roles=None,
             )
             raise self._unauthorized_tool(target_tool_name, tags)
 
@@ -224,6 +284,8 @@ class CollectorReadToolAuthorizationMiddleware(Middleware):
                 tags=tags,
                 decision="denied",
                 reason="missing_required_group",
+                duration_ms=self._duration_ms(started_at),
+                status="denied",
                 group_roles=group_roles,
             )
             raise self._unauthorized_tool(
@@ -232,21 +294,27 @@ class CollectorReadToolAuthorizationMiddleware(Middleware):
                 group_roles=group_roles,
             )
 
-        self._log_authorization_decision(
+        if context.message.name != self.call_tool_name:
+            return await self._call_next_with_audit(
+                context,
+                call_next,
+                started_at=started_at,
+                target_tool_name=target_tool_name,
+                tags=tags,
+                reason=None,
+                group_roles=group_roles,
+            )
+
+        return await self._call_next_with_audit(
             context,
+            call_next,
+            started_at=started_at,
             target_tool_name=target_tool_name,
             tags=tags,
-            decision="allowed",
+            reason=None,
             group_roles=group_roles,
+            suppress_nested_audit=True,
         )
-        if context.message.name != self.call_tool_name:
-            return await call_next(context)
-
-        token = _SKIP_NESTED_AUTHORIZATION_AUDIT.set(True)
-        try:
-            return await call_next(context)
-        finally:
-            _SKIP_NESTED_AUTHORIZATION_AUDIT.reset(token)
 
 
 class ToolSchemaValidationErrorMiddleware(Middleware):

@@ -84,10 +84,16 @@ async def test_read_tool_authorization_allows_read_tagged_tool(caplog):
 
     assert result.structured_content == {"status": "ok"}
     event = _single_audit_event(caplog)
-    assert event["event"] == "mcp.tool_authorization"
+    _assert_strict_tool_call_event(event)
+    assert event["event"] == "mcp.tool_call"
+    assert event["request_id"] is None
+    assert event["user"] is None
     assert event["client_tool"] == "read_tool"
     assert event["target_tool"] == "read_tool"
     assert event["decision"] == "allowed"
+    assert event["reason"] is None
+    assert isinstance(event["duration_ms"], int)
+    assert event["status"] == "success"
     assert event["required_tag"] == "read"
     assert event["required_groups"] == ["Everybody", "Manager"]
     assert event["user_groups"] == ["Everybody"]
@@ -122,6 +128,42 @@ async def test_read_tool_authorization_denies_non_read_tool():
     assert "read" in message
 
 
+async def test_read_tool_authorization_audits_tool_execution_error(caplog):
+    caplog.set_level(logging.INFO, logger=AUDIT_LOGGER_NAME)
+    server = FastMCP("read-authorization-test")
+
+    @server.tool(name="read_tool", tags={"read"})
+    async def read_tool() -> dict[str, str]:
+        raise RuntimeError("tool failed")
+
+    server.add_middleware(
+        CollectorReadToolAuthorizationMiddleware(
+            server,
+            group_roles_loader=lambda: async_group_roles({"Everybody"}),
+        )
+    )
+
+    async with Client(server) as client:
+        try:
+            await client.call_tool("read_tool", {})
+        except Exception as exc:
+            message = str(exc)
+        else:
+            raise AssertionError("expected read tool failure to raise")
+
+    assert "tool failed" in message
+    event = _single_audit_event(caplog)
+    _assert_strict_tool_call_event(event)
+    assert event["client_tool"] == "read_tool"
+    assert event["target_tool"] == "read_tool"
+    assert event["decision"] == "allowed"
+    assert event["reason"] is None
+    assert isinstance(event["duration_ms"], int)
+    assert event["status"] == "error"
+    assert event["user_groups"] == ["Everybody"]
+    assert event["tool_tags"] == ["read"]
+
+
 async def test_read_tool_authorization_denies_read_tool_without_required_group(caplog):
     caplog.set_level(logging.INFO, logger=AUDIT_LOGGER_NAME)
     server = FastMCP("read-authorization-test")
@@ -152,11 +194,16 @@ async def test_read_tool_authorization_denies_read_tool_without_required_group(c
     assert "Manager" in message
     assert "TeamA" in message
     event = _single_audit_event(caplog)
-    assert event["event"] == "mcp.tool_authorization"
+    _assert_strict_tool_call_event(event)
+    assert event["event"] == "mcp.tool_call"
+    assert event["request_id"] is None
+    assert event["user"] is None
     assert event["client_tool"] == "read_tool"
     assert event["target_tool"] == "read_tool"
     assert event["decision"] == "denied"
     assert event["reason"] == "missing_required_group"
+    assert isinstance(event["duration_ms"], int)
+    assert event["status"] == "denied"
     assert event["required_tag"] == "read"
     assert event["required_groups"] == ["Everybody", "Manager"]
     assert event["user_groups"] == ["TeamA"]
@@ -183,15 +230,20 @@ async def test_read_tool_authorization_audits_public_search_tool(caplog):
 
     assert result.structured_content == {"query": "node detail"}
     event = _single_audit_event(caplog)
-    assert event["event"] == "mcp.tool_authorization"
+    _assert_strict_tool_call_event(event)
+    assert event["event"] == "mcp.tool_call"
+    assert event["request_id"] is None
+    assert event["user"] is None
     assert event["client_tool"] == "search_tools"
     assert event["target_tool"] is None
     assert event["decision"] == "allowed"
     assert event["reason"] == "public_tool"
+    assert isinstance(event["duration_ms"], int)
+    assert event["status"] == "success"
     assert event["required_tag"] == "read"
     assert event["required_groups"] == ["Everybody", "Manager"]
-    assert "user_groups" not in event
-    assert "tool_tags" not in event
+    assert event["user_groups"] is None
+    assert event["tool_tags"] is None
 
 
 async def test_read_tool_authorization_includes_ai_request_id(monkeypatch, caplog):
@@ -218,6 +270,7 @@ async def test_read_tool_authorization_includes_ai_request_id(monkeypatch, caplo
 
     assert result.structured_content == {"query": "node detail"}
     event = _single_audit_event(caplog)
+    _assert_strict_tool_call_event(event)
     assert event["client_tool"] == "search_tools"
     assert event["request_id"] == "ai_test"
 
@@ -249,10 +302,16 @@ async def test_read_tool_authorization_audits_call_tool_target(caplog):
 
     assert result.structured_content == {"target": "read_tool", "status": "called"}
     event = _single_audit_event(caplog)
-    assert event["event"] == "mcp.tool_authorization"
+    _assert_strict_tool_call_event(event)
+    assert event["event"] == "mcp.tool_call"
+    assert event["request_id"] is None
+    assert event["user"] is None
     assert event["client_tool"] == "call_tool"
     assert event["target_tool"] == "read_tool"
     assert event["decision"] == "allowed"
+    assert event["reason"] is None
+    assert isinstance(event["duration_ms"], int)
+    assert event["status"] == "success"
     assert event["required_tag"] == "read"
     assert event["required_groups"] == ["Everybody", "Manager"]
     assert event["user_groups"] == ["Manager"]
@@ -304,3 +363,21 @@ def _single_audit_event(caplog) -> dict:
     ]
     assert len(events) == 1
     return events[0]
+
+
+def _assert_strict_tool_call_event(event: dict) -> None:
+    assert set(event) == {
+        "event",
+        "request_id",
+        "user",
+        "client_tool",
+        "target_tool",
+        "decision",
+        "reason",
+        "duration_ms",
+        "status",
+        "required_tag",
+        "required_groups",
+        "user_groups",
+        "tool_tags",
+    }
