@@ -168,6 +168,7 @@ class CollectorReadToolAuthorizationMiddleware(Middleware):
         reason: str | None,
         duration_ms: int,
         status: str,
+        error: Exception | None,
         group_roles: set[str] | None,
     ) -> None:
         if _SKIP_NESTED_AUTHORIZATION_AUDIT.get():
@@ -180,6 +181,8 @@ class CollectorReadToolAuthorizationMiddleware(Middleware):
             reason=reason,
             duration_ms=duration_ms,
             status=status,
+            error_type=type(error).__name__ if error is not None else None,
+            error_message=str(error) if error is not None else None,
             required_tag=self.read_tag,
             required_groups=self.read_groups,
             user_groups=group_roles,
@@ -190,6 +193,15 @@ class CollectorReadToolAuthorizationMiddleware(Middleware):
     @staticmethod
     def _duration_ms(started_at: float) -> int:
         return int(round((perf_counter() - started_at) * 1000))
+
+    @staticmethod
+    def _audit_error(error: Exception | None) -> Exception | None:
+        if error is None:
+            return None
+        current = error
+        while current.__cause__ is not None:
+            current = current.__cause__
+        return current
 
     async def _call_next_with_audit(
         self,
@@ -208,9 +220,10 @@ class CollectorReadToolAuthorizationMiddleware(Middleware):
             if suppress_nested_audit:
                 token = _SKIP_NESTED_AUTHORIZATION_AUDIT.set(True)
             result = await call_next(context)
-        except Exception:
+        except Exception as exc:
             if token is not None:
                 _SKIP_NESTED_AUTHORIZATION_AUDIT.reset(token)
+            audit_error = self._audit_error(exc)
             self._log_authorization_decision(
                 context,
                 target_tool_name=target_tool_name,
@@ -219,6 +232,7 @@ class CollectorReadToolAuthorizationMiddleware(Middleware):
                 reason=reason,
                 duration_ms=self._duration_ms(started_at),
                 status="error",
+                error=audit_error,
                 group_roles=group_roles,
             )
             raise
@@ -233,6 +247,7 @@ class CollectorReadToolAuthorizationMiddleware(Middleware):
             reason=reason,
             duration_ms=self._duration_ms(started_at),
             status="success",
+            error=None,
             group_roles=group_roles,
         )
         return result
@@ -272,6 +287,7 @@ class CollectorReadToolAuthorizationMiddleware(Middleware):
                 reason="missing_required_tag",
                 duration_ms=self._duration_ms(started_at),
                 status="denied",
+                error=None,
                 group_roles=None,
             )
             raise self._unauthorized_tool(target_tool_name, tags)
@@ -286,6 +302,7 @@ class CollectorReadToolAuthorizationMiddleware(Middleware):
                 reason="missing_required_group",
                 duration_ms=self._duration_ms(started_at),
                 status="denied",
+                error=None,
                 group_roles=group_roles,
             )
             raise self._unauthorized_tool(

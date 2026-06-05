@@ -6,7 +6,7 @@ from fastmcp import Client, FastMCP
 from mcp import McpError
 from pydantic import BaseModel, ValidationError
 
-from opensvc_collector_mcp.audit import AUDIT_LOGGER_NAME
+from opensvc_collector_mcp.audit import AUDIT_LOGGER_NAME, McpToolCallAuditEvent
 from opensvc_collector_mcp.middleware import (
     CollectorBasicAuthMiddleware,
     CollectorReadToolAuthorizationMiddleware,
@@ -94,6 +94,8 @@ async def test_read_tool_authorization_allows_read_tagged_tool(caplog):
     assert event["reason"] is None
     assert isinstance(event["duration_ms"], int)
     assert event["status"] == "success"
+    assert event["error_type"] is None
+    assert event["error_message"] is None
     assert event["required_tag"] == "read"
     assert event["required_groups"] == ["Everybody", "Manager"]
     assert event["user_groups"] == ["Everybody"]
@@ -160,6 +162,8 @@ async def test_read_tool_authorization_audits_tool_execution_error(caplog):
     assert event["reason"] is None
     assert isinstance(event["duration_ms"], int)
     assert event["status"] == "error"
+    assert event["error_type"] == "RuntimeError"
+    assert event["error_message"] == "tool failed"
     assert event["user_groups"] == ["Everybody"]
     assert event["tool_tags"] == ["read"]
 
@@ -204,6 +208,8 @@ async def test_read_tool_authorization_denies_read_tool_without_required_group(c
     assert event["reason"] == "missing_required_group"
     assert isinstance(event["duration_ms"], int)
     assert event["status"] == "denied"
+    assert event["error_type"] is None
+    assert event["error_message"] is None
     assert event["required_tag"] == "read"
     assert event["required_groups"] == ["Everybody", "Manager"]
     assert event["user_groups"] == ["TeamA"]
@@ -240,6 +246,8 @@ async def test_read_tool_authorization_audits_public_search_tool(caplog):
     assert event["reason"] == "public_tool"
     assert isinstance(event["duration_ms"], int)
     assert event["status"] == "success"
+    assert event["error_type"] is None
+    assert event["error_message"] is None
     assert event["required_tag"] == "read"
     assert event["required_groups"] == ["Everybody", "Manager"]
     assert event["user_groups"] is None
@@ -312,6 +320,8 @@ async def test_read_tool_authorization_audits_call_tool_target(caplog):
     assert event["reason"] is None
     assert isinstance(event["duration_ms"], int)
     assert event["status"] == "success"
+    assert event["error_type"] is None
+    assert event["error_message"] is None
     assert event["required_tag"] == "read"
     assert event["required_groups"] == ["Everybody", "Manager"]
     assert event["user_groups"] == ["Manager"]
@@ -366,18 +376,5 @@ def _single_audit_event(caplog) -> dict:
 
 
 def _assert_strict_tool_call_event(event: dict) -> None:
-    assert set(event) == {
-        "event",
-        "request_id",
-        "user",
-        "client_tool",
-        "target_tool",
-        "decision",
-        "reason",
-        "duration_ms",
-        "status",
-        "required_tag",
-        "required_groups",
-        "user_groups",
-        "tool_tags",
-    }
+    assert set(event) == set(McpToolCallAuditEvent.model_fields)
+    McpToolCallAuditEvent.model_validate(event)
