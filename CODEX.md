@@ -42,6 +42,11 @@ Local project notes for working on `opensvc-collector-mcp`.
 - `search_tools` remains public after authentication. BM25 discovery is not
   filtered yet, by design, so clients can report "tool exists but is
   unauthorized" instead of incorrectly reporting "no tool exists".
+- MCP tool calls emit structured JSON audit logs on stdout/stderr through the
+  `opensvc_collector_mcp.audit` logger. Audit V1 is intentionally log-based,
+  not database-persisted.
+- Gateway propagates a request id to MCP tool calls so multiple MCP events from
+  one AI prompt can be correlated.
 - Collector user credentials are not loaded by the MCP server from `.env`.
   Validated Basic Auth credentials are stored in request context and reused by
   `client.py` for Collector API calls.
@@ -389,6 +394,28 @@ Error and production-readiness notes:
 - Current read authorization is complete for authenticated users in
   `Everybody` or `Manager`. Revisit the tag-to-group policy when adding tools
   that perform Collector `POST`, `PUT`, `DELETE`, or action/exec calls.
+- Audit V1 logs one `mcp.tool_call` event for allowed, denied, and error cases.
+  Current event fields:
+  - `request_id`
+  - `user`
+  - `client_tool`
+  - `target_tool`
+  - `decision`
+  - `reason`
+  - `duration_ms`
+  - `status`
+  - `error_type`
+  - `error_message`
+  - `required_tag`
+  - `required_groups`
+  - `user_groups`
+  - `tool_tags`
+- Audit logs must stay sanitized: no passwords, no `Authorization` headers, no
+  API keys, and no raw sensitive payloads.
+- Audit V1 was validated from Docker/OpenSVC logs for:
+  - successful `call_tool` target execution.
+  - RBAC denied target execution.
+  - target tool execution error with sanitized root error type/message.
 - `CollectorBasicAuthMiddleware` validates `Authorization: Basic ...` against
   Collector `GET /users/self`. FastMCP filters the `authorization` header by
   default, so keep `get_http_headers(include={"authorization"})` when reading
