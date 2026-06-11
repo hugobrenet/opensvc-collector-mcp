@@ -394,6 +394,93 @@ Error and production-readiness notes:
 - Current read authorization is complete for authenticated users in
   `Everybody` or `Manager`. Revisit the tag-to-group policy when adding tools
   that perform Collector `POST`, `PUT`, `DELETE`, or action/exec calls.
+
+Future write/action RBAC chantier:
+
+- Public OpenSVC docs do not currently provide enough detail on Collector
+  privilege groups. Treat the Collector code as the source of truth, especially
+  `collector/init/models/auth.py::check_privilege()` and REST handlers under
+  `collector/init/models/rest/`.
+- Collector authorization model observed in code:
+  - `auth_group.role` is the group/privilege name.
+  - `auth_group.privilege` distinguishes privilege groups from organizational
+    groups.
+  - `Manager` is the global override in `check_privilege()`.
+  - `primary_group` is for task assignment/message routing, not authorization.
+  - `Everybody` is an organizational/publication group, not a write privilege.
+- Before adding any MCP tool backed by Collector `POST`, `PUT`, `DELETE`, or
+  action/exec endpoints, replace the read-only authorization guard with an
+  explicit policy table mapping MCP tags to Collector privilege groups. Deny by
+  default for unknown tags, missing tags, or mixed destructive intent.
+- Keep Collector REST as the final object/data-level authority. MCP RBAC should
+  decide whether a tool class may be attempted; Collector still enforces the
+  actual endpoint permissions and object scope.
+
+Proposed MCP tags and Collector groups:
+
+```text
+read                         -> authenticated user; current gate is Everybody or Manager
+write:nodes                  -> NodeManager
+delete:nodes                 -> NodeManager plus explicit destructive guard
+exec:nodes                   -> NodeExec
+write:apps                   -> AppManager
+write:users                  -> UserManager
+write:users:self             -> SelfManager or UserManager, and target user is current user
+write:users:primary_group:self -> SelfManager or UserManager, and target user is current user
+write:groups                 -> GroupManager
+write:privilege_groups       -> Manager
+write:compliance             -> CompManager
+exec:compliance              -> CompExec
+write:checks                 -> CheckManager
+exec:checks                  -> CheckExec
+write:context_checks         -> ContextCheckManager
+write:storage                -> StorageManager
+write:networks               -> NetworkManager
+write:tags                   -> TagManager
+write:dns                    -> DnsManager
+operate:dns                  -> DnsOperator
+write:reports                -> ReportsManager
+write:charts                 -> ChartsManager
+write:forms                  -> FormsManager
+write:provisioning_templates -> ProvisioningManager
+write:docker_registries      -> DockerRegistriesManager
+push:docker_registries       -> DockerRegistriesPusher
+write:alerts                 -> AlertsManager
+write:obsolescence           -> ObsManager
+upload:safe                  -> SafeUploader
+write:scheduler              -> Manager
+write:sysreport              -> Manager
+write:replication            -> ReplicationManager
+write:quotas                 -> QuotaManager
+```
+
+SelfManager notes:
+
+- `SelfManager` is relevant but contextual. It should never authorize generic
+  `write:users` operations by itself.
+- Use `SelfManager` only for self-scoped tools where the MCP request target is
+  proven to be the authenticated Collector user. Resolve the current user from
+  `/users/self` and compare against the requested user id/email or require the
+  request model to use `self`.
+- Known Collector behavior: modifying another user requires `UserManager`;
+  modifying the current user allows `UserManager` or `SelfManager`. The same
+  pattern exists for setting/unsetting the current user primary group.
+- Self-scoped MCP tools should have distinct names and tags, for example
+  `update_my_user_profile` with `write:users:self`, instead of overloading a
+  generic admin tool.
+
+Safety rules for the first write/action wave:
+
+- Do not start with `delete` or unrestricted `exec` tools.
+- Prefer one narrow, reversible domain first, with tests for allowed, denied,
+  Manager override, unknown tag, and Collector endpoint rejection.
+- Destructive tools must require explicit destructive tags such as
+  `delete:<domain>` and should add dry-run or confirmation conventions before
+  live execution.
+- Audit is mandatory for write/delete/exec attempts, including allowed, denied,
+  Collector-rejected, and execution-error cases. Include request id, user,
+  client tool, target tool, target object identifiers, required privileges,
+  user groups, status, duration, and sanitized error details.
 - Audit V1 logs one `mcp.tool_call` event for allowed, denied, and error cases.
   Current event fields:
   - `request_id`
@@ -431,8 +518,12 @@ Error and production-readiness notes:
   target tool schema. Keep tests for both paths.
 - Collector HTTP errors currently bubble up from `httpx`; before production use,
   add clean error mapping that does not expose credentials.
-- TLS verification is currently disabled for the local lab. Before production
-  use, add `OPENSVC_VERIFY_TLS` and/or `OPENSVC_CA_BUNDLE`.
+- TLS verification is currently disabled for the local lab. This is acceptable
+  for the intended sidecar topology where MCP runs in the Collector network
+  namespace and calls Collector nginx at `https://127.0.0.1/init/rest/api`; the
+  Basic Auth traffic stays on loopback and does not traverse a routed network.
+  If MCP ever targets an external hostname/IP, enable certificate verification
+  and add `OPENSVC_VERIFY_TLS` and/or `OPENSVC_CA_BUNDLE`.
 - Keep focused tests growing with the tool surface. At minimum, each new tool
   should get core tests for Collector request construction/business logic and a
   FastMCP tool test for request/model wiring.
@@ -619,8 +710,10 @@ configuration.
 ## Important Notes
 
 - `client.py` currently uses `verify=False` for local Collector TLS. This is
-  acceptable for the local lab but should become configurable before production
-  use.
+  justified only when `OPENSVC_API_BASE_URL` points to Collector nginx on
+  loopback inside the shared Collector network namespace, for example
+  `https://127.0.0.1/init/rest/api`. For any external Collector URL or routed
+  network path, TLS verification must be enabled and CA trust configured.
 - `pyproject.toml` declares `fastmcp==3.2.4` and `httpx==0.28.1`.
   Runtime imports also include `uvicorn`, `starlette`, and `pydantic` through
   the current FastMCP stack. Review dependency declarations before
