@@ -35,10 +35,11 @@ Local project notes for working on `opensvc-collector-mcp`.
   Clients must send `Authorization: Basic ...`; the server validates those
   credentials against the Collector `GET /users/self` endpoint before handling
   the MCP request.
-- MCP tool execution is also protected by `CollectorReadToolAuthorizationMiddleware`
+- MCP tool execution is also protected by `CollectorToolAuthorizationMiddleware`
   when Basic Auth is enabled. The middleware authorizes both direct tool calls
-  and proxied `call_tool` targets: the target tool must be tagged `read`, and
-  the authenticated Collector user must belong to `Everybody` or `Manager`.
+  and proxied `call_tool` targets from a deny-by-default tag-to-Collector-group
+  policy in `auth/rbac.py`. Current registered tools are read-only, so they use
+  `read -> Everybody or Manager`.
 - `search_tools` remains public after authentication. BM25 discovery is not
   filtered yet, by design, so clients can report "tool exists but is
   unauthorized" instead of incorrectly reporting "no tool exists".
@@ -393,13 +394,14 @@ Error and production-readiness notes:
   with the correct payload after a single error. Keep the enrichment scoped to
   `call[tool_name]` validation errors so internal Pydantic validation failures
   are not misreported as client argument errors.
-- `CollectorReadToolAuthorizationMiddleware` is the execution-time RBAC guard
-  for the current read-only tool surface. It returns a structured
-  `Unauthorized tool` error containing the required tag, required groups, tool
-  tags, and current Collector groups.
-- Current read authorization is complete for authenticated users in
-  `Everybody` or `Manager`. Revisit the tag-to-group policy when adding tools
-  that perform Collector `POST`, `PUT`, `DELETE`, or action/exec calls.
+- `CollectorToolAuthorizationMiddleware` is the execution-time RBAC guard for
+  the MCP tool surface. It returns a structured `Unauthorized tool` error
+  containing the denial reason, required tag, required groups, authorization
+  tags, tool tags, and current Collector groups.
+- The generic RBAC policy is deny-by-default: missing authorization tags,
+  unknown authorization tags, mixed authorization tags, and missing Collector
+  groups are refused before tool execution. Current registered tools remain
+  read-only and use `read -> Everybody or Manager`.
 
 Future write/action RBAC chantier:
 
@@ -415,9 +417,9 @@ Future write/action RBAC chantier:
   - `primary_group` is for task assignment/message routing, not authorization.
   - `Everybody` is an organizational/publication group, not a write privilege.
 - Before adding any MCP tool backed by Collector `POST`, `PUT`, `DELETE`, or
-  action/exec endpoints, replace the read-only authorization guard with an
-  explicit policy table mapping MCP tags to Collector privilege groups. Deny by
-  default for unknown tags, missing tags, or mixed destructive intent.
+  action/exec endpoints, keep using the explicit policy table mapping MCP tags
+  to Collector privilege groups. Deny by default for unknown tags, missing tags,
+  or mixed destructive intent.
 - Keep Collector REST as the final object/data-level authority. MCP RBAC should
   decide whether a tool class may be attempted; Collector still enforces the
   actual endpoint permissions and object scope.

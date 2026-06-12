@@ -9,7 +9,7 @@ from pydantic import BaseModel, ValidationError
 from opensvc_collector_mcp.audit import AUDIT_LOGGER_NAME, McpToolCallAuditEvent
 from opensvc_collector_mcp.auth.basic import CollectorBasicAuthMiddleware
 from opensvc_collector_mcp.auth.middleware import (
-    CollectorReadToolAuthorizationMiddleware,
+    CollectorToolAuthorizationMiddleware,
     ToolSchemaValidationErrorMiddleware,
 )
 
@@ -73,7 +73,7 @@ async def test_read_tool_authorization_allows_read_tagged_tool(caplog):
         return {"status": "ok"}
 
     server.add_middleware(
-        CollectorReadToolAuthorizationMiddleware(
+        CollectorToolAuthorizationMiddleware(
             server,
             group_roles_loader=lambda: async_group_roles({"Everybody"}),
         )
@@ -102,7 +102,7 @@ async def test_read_tool_authorization_allows_read_tagged_tool(caplog):
     assert event["tool_tags"] == ["read"]
 
 
-async def test_read_tool_authorization_denies_non_read_tool():
+async def test_tool_authorization_denies_write_tool_without_required_group():
     server = FastMCP("read-authorization-test")
 
     @server.tool(name="write_tool", tags={"write:nodes"})
@@ -110,7 +110,7 @@ async def test_read_tool_authorization_denies_non_read_tool():
         return {"status": "changed"}
 
     server.add_middleware(
-        CollectorReadToolAuthorizationMiddleware(
+        CollectorToolAuthorizationMiddleware(
             server,
             group_roles_loader=lambda: async_group_roles({"Everybody"}),
         )
@@ -122,12 +122,65 @@ async def test_read_tool_authorization_denies_non_read_tool():
         except Exception as exc:
             message = str(exc)
         else:
-            raise AssertionError("expected non-read tool to be denied")
+            raise AssertionError("expected unauthorized write tool to be denied")
 
     assert "Unauthorized tool" in message
     assert "write_tool" in message
     assert "required_tag" in message
-    assert "read" in message
+    assert "write:nodes" in message
+    assert "NodeManager" in message
+
+
+async def test_tool_authorization_allows_write_tool_with_required_group(caplog):
+    caplog.set_level(logging.INFO, logger=AUDIT_LOGGER_NAME)
+    server = FastMCP("tool-authorization-test")
+
+    @server.tool(name="write_tool", tags={"write:nodes"})
+    async def write_tool() -> dict[str, str]:
+        return {"status": "changed"}
+
+    server.add_middleware(
+        CollectorToolAuthorizationMiddleware(
+            server,
+            group_roles_loader=lambda: async_group_roles({"NodeManager"}),
+        )
+    )
+
+    async with Client(server) as client:
+        result = await client.call_tool("write_tool", {})
+
+    assert result.structured_content == {"status": "changed"}
+    event = _single_audit_event(caplog)
+    _assert_strict_tool_call_event(event)
+    assert event["client_tool"] == "write_tool"
+    assert event["target_tool"] == "write_tool"
+    assert event["decision"] == "allowed"
+    assert event["reason"] is None
+    assert event["status"] == "success"
+    assert event["required_tag"] == "write:nodes"
+    assert event["required_groups"] == ["Manager", "NodeManager"]
+    assert event["user_groups"] == ["NodeManager"]
+    assert event["tool_tags"] == ["write:nodes"]
+
+
+async def test_tool_authorization_allows_write_tool_with_manager_override():
+    server = FastMCP("tool-authorization-test")
+
+    @server.tool(name="write_tool", tags={"write:nodes"})
+    async def write_tool() -> dict[str, str]:
+        return {"status": "changed"}
+
+    server.add_middleware(
+        CollectorToolAuthorizationMiddleware(
+            server,
+            group_roles_loader=lambda: async_group_roles({"Manager"}),
+        )
+    )
+
+    async with Client(server) as client:
+        result = await client.call_tool("write_tool", {})
+
+    assert result.structured_content == {"status": "changed"}
 
 
 async def test_read_tool_authorization_audits_tool_execution_error(caplog):
@@ -139,7 +192,7 @@ async def test_read_tool_authorization_audits_tool_execution_error(caplog):
         raise RuntimeError("tool failed")
 
     server.add_middleware(
-        CollectorReadToolAuthorizationMiddleware(
+        CollectorToolAuthorizationMiddleware(
             server,
             group_roles_loader=lambda: async_group_roles({"Everybody"}),
         )
@@ -177,7 +230,7 @@ async def test_read_tool_authorization_denies_read_tool_without_required_group(c
         return {"status": "ok"}
 
     server.add_middleware(
-        CollectorReadToolAuthorizationMiddleware(
+        CollectorToolAuthorizationMiddleware(
             server,
             group_roles_loader=lambda: async_group_roles({"TeamA"}),
         )
@@ -225,7 +278,7 @@ async def test_read_tool_authorization_audits_public_search_tool(caplog):
         return {"query": query}
 
     server.add_middleware(
-        CollectorReadToolAuthorizationMiddleware(
+        CollectorToolAuthorizationMiddleware(
             server,
             group_roles_loader=lambda: async_group_roles(set()),
         )
@@ -267,7 +320,7 @@ async def test_read_tool_authorization_includes_ai_request_id(monkeypatch, caplo
         return {"query": query}
 
     server.add_middleware(
-        CollectorReadToolAuthorizationMiddleware(
+        CollectorToolAuthorizationMiddleware(
             server,
             group_roles_loader=lambda: async_group_roles(set()),
         )
@@ -296,7 +349,7 @@ async def test_read_tool_authorization_audits_call_tool_target(caplog):
         return {"target": name, "status": "called"}
 
     server.add_middleware(
-        CollectorReadToolAuthorizationMiddleware(
+        CollectorToolAuthorizationMiddleware(
             server,
             group_roles_loader=lambda: async_group_roles({"Manager"}),
         )
@@ -340,9 +393,9 @@ async def test_read_tool_authorization_checks_call_tool_target():
         return {"target": name, "status": "called"}
 
     server.add_middleware(
-        CollectorReadToolAuthorizationMiddleware(
+        CollectorToolAuthorizationMiddleware(
             server,
-            group_roles_loader=lambda: async_group_roles({"Manager"}),
+            group_roles_loader=lambda: async_group_roles({"Everybody"}),
         )
     )
 
@@ -355,7 +408,7 @@ async def test_read_tool_authorization_checks_call_tool_target():
         except Exception as exc:
             message = str(exc)
         else:
-            raise AssertionError("expected non-read proxy target to be denied")
+            raise AssertionError("expected unauthorized proxy target to be denied")
 
     assert "Unauthorized tool" in message
     assert "write_tool" in message

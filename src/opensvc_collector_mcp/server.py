@@ -11,7 +11,7 @@ from opensvc_collector_mcp.config import (
 )
 from opensvc_collector_mcp.auth.basic import CollectorBasicAuthMiddleware
 from opensvc_collector_mcp.auth.middleware import (
-    CollectorReadToolAuthorizationMiddleware,
+    CollectorToolAuthorizationMiddleware,
     ToolSchemaValidationErrorMiddleware,
 )
 from opensvc_collector_mcp.tools.apps import register_apps_tools
@@ -53,7 +53,7 @@ def build_mcp(*, require_basic_auth: bool = True) -> FastMCP:
 
     if require_basic_auth:
         server.add_middleware(CollectorBasicAuthMiddleware())
-        server.add_middleware(CollectorReadToolAuthorizationMiddleware(server))
+        server.add_middleware(CollectorToolAuthorizationMiddleware(server))
     server.add_middleware(ToolSchemaValidationErrorMiddleware(server))
 
     return server
