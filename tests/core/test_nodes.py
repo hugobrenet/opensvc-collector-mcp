@@ -4,6 +4,16 @@ from opensvc_collector_mcp.core.nodes import inventory, services, storage
 from opensvc_collector_mcp.models.nodes.storage import NodeDisksResponse
 
 
+class CollectorPostRecorder:
+    def __init__(self, response):
+        self.response = response
+        self.calls = []
+
+    async def __call__(self, path, data=None, params=None):
+        self.calls.append({"path": path, "data": data, "params": params})
+        return self.response
+
+
 @pytest.mark.parametrize("raw, expected", [(" node-a ", "/nodes/node-a"), ("node/a", "/nodes/node%2Fa")])
 async def test_get_node_uses_node_detail_endpoint(monkeypatch, collector_mock_factory, raw, expected):
     collector = collector_mock_factory([{"meta": {}, "data": [{"nodename": "node-a"}]}])
@@ -14,6 +24,65 @@ async def test_get_node_uses_node_detail_endpoint(monkeypatch, collector_mock_fa
     assert response["data"] == [{"nodename": "node-a"}]
     assert collector.calls[0].path == expected
     assert collector.calls[0].params is None
+
+
+async def test_update_node_properties_posts_allowlisted_fields(monkeypatch):
+    recorder = CollectorPostRecorder({"info": "node updated"})
+    monkeypatch.setattr(inventory, "collector_post", recorder)
+
+    response = await inventory.update_node_properties(
+        " node/a ",
+        {
+            " loc_city ": "Lab City",
+            "team_support": "Lab Support",
+        },
+    )
+
+    assert response["nodename"] == "node/a"
+    assert response["updated_properties"] == {
+        "loc_city": "Lab City",
+        "team_support": "Lab Support",
+    }
+    assert response["collector_response"] == {"info": "node updated"}
+    assert recorder.calls == [
+        {
+            "path": "/nodes/node%2Fa",
+            "data": {"loc_city": "Lab City", "team_support": "Lab Support"},
+            "params": None,
+        }
+    ]
+
+
+async def test_update_node_properties_rejects_empty_payload(monkeypatch):
+    recorder = CollectorPostRecorder({"info": "node updated"})
+    monkeypatch.setattr(inventory, "collector_post", recorder)
+
+    with pytest.raises(ValueError, match="properties must not be empty"):
+        await inventory.update_node_properties("node-a", {})
+
+    assert recorder.calls == []
+
+
+async def test_update_node_properties_accepts_writable_nodename(monkeypatch):
+    recorder = CollectorPostRecorder({"info": "node updated"})
+    monkeypatch.setattr(inventory, "collector_post", recorder)
+
+    response = await inventory.update_node_properties("node-a", {"nodename": "node-b"})
+
+    assert response["updated_properties"] == {"nodename": "node-b"}
+    assert recorder.calls == [
+        {"path": "/nodes/node-a", "data": {"nodename": "node-b"}, "params": None}
+    ]
+
+
+async def test_update_node_properties_rejects_readonly_fields(monkeypatch):
+    recorder = CollectorPostRecorder({"info": "node updated"})
+    monkeypatch.setattr(inventory, "collector_post", recorder)
+
+    with pytest.raises(ValueError, match="unsupported node update properties: node_env"):
+        await inventory.update_node_properties("node-a", {"node_env": "PPR"})
+
+    assert recorder.calls == []
 
 
 async def test_list_nodes_builds_collection_params(monkeypatch, collector_mock_factory):

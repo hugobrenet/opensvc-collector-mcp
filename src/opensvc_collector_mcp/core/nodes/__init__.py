@@ -5,6 +5,7 @@ from .inventory import (
     list_node_props,
     count_nodes,
     get_node,
+    update_node_properties,
 )
 
 from .tags import (
@@ -76,5 +77,6 @@ __all__ = [
     'get_node_tags',
     'get_nodes_inventory_stats',
     'list_node_props',
+    'update_node_properties',
     'list_nodes',
 ]

@@ -1,7 +1,7 @@
 from typing import Any
 from urllib.parse import quote
 
-from opensvc_collector_mcp.client import collector_get
+from opensvc_collector_mcp.client import collector_get, collector_post
 from opensvc_collector_mcp.core.utils import collection_params
 
 
@@ -9,6 +9,65 @@ DEFAULT_SEARCH_NODE_PROPS = (
     "nodename,status,asset_env,node_env,loc_city,loc_country,"
     "app,team_responsible,os_name"
 )
+
+NODE_UPDATE_ALLOWED_PROPERTIES = frozenset(
+    {
+        "action_type",
+        "app",
+        "asset_env",
+        "assetname",
+        "cluster_id",
+        "collector",
+        "connect_to",
+        "enclosure",
+        "enclosureslot",
+        "fqdn",
+        "hv",
+        "hvpool",
+        "hvvdc",
+        "hw_obs_alert_date",
+        "hw_obs_warn_date",
+        "last_comm",
+        "listener_port",
+        "loc_addr",
+        "loc_building",
+        "loc_city",
+        "loc_country",
+        "loc_floor",
+        "loc_rack",
+        "loc_room",
+        "loc_zip",
+        "maintenance_end",
+        "manufacturer",
+        "node_frozen",
+        "node_frozen_at",
+        "node_id",
+        "nodename",
+        "notifications",
+        "os_obs_alert_date",
+        "os_obs_warn_date",
+        "power_breaker1",
+        "power_breaker2",
+        "power_cabinet1",
+        "power_cabinet2",
+        "power_protect",
+        "power_protect_breaker",
+        "power_supply_nb",
+        "role",
+        "sec_zone",
+        "snooze_till",
+        "status",
+        "team_integ",
+        "team_responsible",
+        "team_support",
+        "type",
+        "tz",
+        "updated",
+        "version",
+        "warranty_end",
+    }
+)
+
 
 
 async def list_nodes(
@@ -161,6 +220,47 @@ async def get_node(nodename: str) -> dict[str, Any]:
         raise ValueError("nodename must not be empty")
 
     return await collector_get(f"/nodes/{quote(nodename, safe='')}")
+
+
+async def update_node_properties(
+    nodename: str,
+    properties: dict[str, Any],
+) -> dict[str, Any]:
+    nodename = nodename.strip()
+    if not nodename:
+        raise ValueError("nodename must not be empty")
+
+    payload = _normalized_node_update_payload(properties)
+    response = await collector_post(f"/nodes/{quote(nodename, safe='')}", data=payload)
+    return {
+        "nodename": nodename,
+        "updated_properties": payload,
+        "collector_response": response,
+        "meta": {
+            "source": "nodes/<nodename>",
+            "allowed_properties": sorted(NODE_UPDATE_ALLOWED_PROPERTIES),
+        },
+    }
+
+
+def _normalized_node_update_payload(properties: dict[str, Any]) -> dict[str, Any]:
+    payload: dict[str, Any] = {}
+    for raw_key, value in properties.items():
+        key = raw_key.strip()
+        if not key:
+            raise ValueError("node update property names must not be empty")
+        payload[key] = value
+
+    if not payload:
+        raise ValueError("properties must not be empty")
+
+    forbidden = sorted(set(payload) - NODE_UPDATE_ALLOWED_PROPERTIES)
+    if forbidden:
+        allowed = ", ".join(sorted(NODE_UPDATE_ALLOWED_PROPERTIES))
+        rejected = ", ".join(forbidden)
+        raise ValueError(f"unsupported node update properties: {rejected}; allowed: {allowed}")
+
+    return payload
 
 
 def _props_with_required(props: str, *required_props: str) -> str:

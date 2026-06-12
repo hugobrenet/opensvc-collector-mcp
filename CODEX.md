@@ -117,6 +117,7 @@ Current package layout:
 
 Current MCP node tool surface:
 
+- `update_node_properties`
 - `list_node_props`
 - `list_nodes`
 - `count_nodes`
@@ -572,6 +573,8 @@ Node tool design decisions:
 - Do not add wrapper tools like `get_nodes_by_status`,
   `get_nodes_by_env`, `get_nodes_by_location`, or `get_nodes_by_app`
   unless they add domain-specific logic beyond filtering.
+- `update_node_properties` uses `POST /nodes/<nodename>` and accepts the node properties marked `writable=true` by the Collector nodes API definition.
+- Mark node property updates with MCP `destructiveHint=true`: they are write operations on an existing node and can overwrite existing Collector values.
 - `list_nodes` lists rows and handles exact filters, Collector search, pagination, and bounded `nodename_contains` lookup.
 - `count_nodes` returns one optimized count using Collector `meta.total`.
 - `get_nodes_inventory_stats` returns distributions and possible values.

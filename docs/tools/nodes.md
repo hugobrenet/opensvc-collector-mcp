@@ -8,6 +8,99 @@ MCP tool definitions live in `src/opensvc_collector_mcp/tools/nodes.py`.
 
 ## Tools
 
+### `update_node_properties`
+
+Updates Collector-writable properties on one existing OpenSVC Collector node
+through `POST /nodes/<nodename>`. This is a write tool and requires
+`write:nodes`, authorized for Collector `NodeManager` or `Manager` users by MCP
+RBAC. The MCP `update` tag is descriptive for discovery only. MCP annotations
+mark the tool as a destructive write because it updates an existing Collector
+node and can overwrite previous property values.
+
+The tool does not expose node creation or deletion. It accepts the fields marked
+`writable=true` by the Collector nodes API definition, and rejects fields marked
+`writable=false` such as `node_env`.
+
+Accepted properties:
+
+```text
+action_type
+app
+asset_env
+assetname
+cluster_id
+collector
+connect_to
+enclosure
+enclosureslot
+fqdn
+hv
+hvpool
+hvvdc
+hw_obs_alert_date
+hw_obs_warn_date
+last_comm
+listener_port
+loc_addr
+loc_building
+loc_city
+loc_country
+loc_floor
+loc_rack
+loc_room
+loc_zip
+maintenance_end
+manufacturer
+node_frozen
+node_frozen_at
+node_id
+nodename
+notifications
+os_obs_alert_date
+os_obs_warn_date
+power_breaker1
+power_breaker2
+power_cabinet1
+power_cabinet2
+power_protect
+power_protect_breaker
+power_supply_nb
+role
+sec_zone
+snooze_till
+status
+team_integ
+team_responsible
+team_support
+type
+tz
+updated
+version
+warranty_end
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "nodename": "lab-node-01",
+    "properties": {
+      "asset_env": "PPR"
+    }
+  }
+}
+```
+
+Output fields:
+
+```text
+nodename
+updated_properties
+collector_response
+meta
+```
+
 ### `list_node_props`
 
 Returns the node properties exposed by the Collector.

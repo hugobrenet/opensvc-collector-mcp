@@ -12,6 +12,8 @@ from .inventory import (
     NodePropsResponse,
     NodeRowsResponse,
     CountNodesResponse,
+    UpdateNodePropertiesRequest,
+    UpdateNodePropertiesResponse,
 )
 
 from .tags import (
@@ -124,4 +126,6 @@ __all__ = [
     'NodeServicesRequest',
     'NodeServicesResponse',
     'NodeTagsResponse',
+    'UpdateNodePropertiesRequest',
+    'UpdateNodePropertiesResponse',
 ]

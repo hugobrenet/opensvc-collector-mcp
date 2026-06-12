@@ -120,3 +120,43 @@ class CountNodesResponse(BaseModel):
 
     count: int | None
     filters: dict[str, str]
+
+
+class UpdateNodePropertiesRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    nodename: str = Field(
+        description="Exact OpenSVC Collector nodename to update.",
+        min_length=1,
+        examples=["lab-node-01"],
+    )
+    properties: dict[str, Any] = Field(
+        description=(
+            "Node properties to update. The core layer accepts the properties "
+            "advertised as writable by the Collector nodes API definition."
+        ),
+        examples=[{"asset_env": "PPR", "nodename": "lab-node-02"}],
+    )
+
+    @model_validator(mode="after")
+    def normalize(self) -> "UpdateNodePropertiesRequest":
+        self.nodename = self.nodename.strip()
+        if not self.nodename:
+            raise ValueError("nodename must not be empty")
+        self.properties = {
+            key.strip(): value
+            for key, value in self.properties.items()
+            if key.strip()
+        }
+        if not self.properties:
+            raise ValueError("properties must not be empty")
+        return self
+
+
+class UpdateNodePropertiesResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    nodename: str
+    updated_properties: dict[str, Any]
+    collector_response: dict[str, Any]
+    meta: dict[str, Any] = Field(default_factory=dict)

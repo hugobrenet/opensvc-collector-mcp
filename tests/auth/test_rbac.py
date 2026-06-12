@@ -9,6 +9,7 @@ from opensvc_collector_mcp.auth.rbac import (
 def test_authorization_tags_extracts_only_authorization_tags():
     assert authorization_tags({"nodes", "inventory", "read"}) == {"read"}
     assert authorization_tags({"nodes", "write:nodes"}) == {"write:nodes"}
+    assert authorization_tags({"nodes", "update", "write:nodes"}) == {"write:nodes"}
     assert authorization_tags({"tags", "create", "write:tags"}) == {"write:tags"}
     assert authorization_tags({"tags", "delete", "delete:tags"}) == {"delete:tags"}
     assert authorization_tags({"nodes", "count"}) == set()

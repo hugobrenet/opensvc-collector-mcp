@@ -11,6 +11,36 @@ class CoreRecorder:
         return self.response
 
 
+async def test_update_node_properties_tool_passes_request_to_core(monkeypatch, mcp_client):
+    recorder = CoreRecorder(
+        {
+            "nodename": "node-a",
+            "updated_properties": {"loc_city": "Lab City"},
+            "collector_response": {"info": "node updated"},
+            "meta": {"source": "nodes/<nodename>"},
+        }
+    )
+    monkeypatch.setattr(node_tools, "core_update_node_properties", recorder)
+
+    result = await mcp_client.call_tool(
+        "update_node_properties",
+        {
+            "request": {
+                "nodename": "node-a",
+                "properties": {"loc_city": "Lab City"},
+            }
+        },
+    )
+
+    assert result.structured_content["updated_properties"] == {"loc_city": "Lab City"}
+    assert recorder.calls == [
+        {
+            "nodename": "node-a",
+            "properties": {"loc_city": "Lab City"},
+        }
+    ]
+
+
 async def test_list_nodes_tool_passes_request_to_core(monkeypatch, mcp_client):
     recorder = CoreRecorder({"meta": {"total": 1}, "data": [{"nodename": "node-a"}]})
     monkeypatch.setattr(node_tools, "core_list_nodes", recorder)

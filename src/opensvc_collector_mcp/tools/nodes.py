@@ -27,6 +27,8 @@ from opensvc_collector_mcp.models.nodes import (
     NodeServicesRequest,
     NodeServicesResponse,
     NodeTagsResponse,
+    UpdateNodePropertiesRequest,
+    UpdateNodePropertiesResponse,
 )
 from opensvc_collector_mcp.core.nodes import (
     count_nodes as core_count_nodes,
@@ -46,10 +48,41 @@ from opensvc_collector_mcp.core.nodes import (
     get_nodes_inventory_stats as core_get_nodes_inventory_stats,
     list_node_props as core_list_node_props,
     list_nodes as core_list_nodes,
+    update_node_properties as core_update_node_properties,
 )
 
 
 def register_nodes_tools(mcp: FastMCP) -> None:
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="update_node_properties",
+        description=(
+            "Update Collector-writable properties on one existing OpenSVC "
+            "Collector node selected by exact nodename. Requires Collector "
+            "NodeManager or Manager privileges through MCP RBAC."
+        ),
+        tags={"nodes", "update", "write:nodes"},
+        annotations={
+            "title": "Update OpenSVC Node Properties",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def update_node_properties(
+        request: Annotated[
+            UpdateNodePropertiesRequest,
+            Field(description="Node property update parameters."),
+        ],
+    ) -> UpdateNodePropertiesResponse:
+        """Update Collector-writable node properties."""
+        response = await core_update_node_properties(
+            nodename=request.nodename,
+            properties=request.properties,
+        )
+        return UpdateNodePropertiesResponse.model_validate(response)
+
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
         name="list_nodes",
