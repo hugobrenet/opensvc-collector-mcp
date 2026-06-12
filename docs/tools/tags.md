@@ -14,8 +14,8 @@ MCP tool definitions live in `src/opensvc_collector_mcp/tools/tags.py`.
 
 Creates one OpenSVC Collector tag through `POST /tags`. This is a write tool
 and requires `write:tags`, authorized for Collector `TagManager` or `Manager`
-users by MCP RBAC. It accepts `tag_name` and optional `tag_data` and
-`tag_exclude` fields.
+users by MCP RBAC. The MCP `create` tag is descriptive for discovery only. It
+accepts `tag_name` and optional `tag_data` and `tag_exclude` fields.
 
 Example:
 
@@ -33,6 +33,42 @@ Output fields:
 ```text
 meta
 data
+info
+```
+
+### `delete_tag`
+
+Deletes one OpenSVC Collector tag through `DELETE /tags/<id>`. This is a
+destructive tool and requires `delete:tags`, authorized for Collector
+`TagManager` or `Manager` users by MCP RBAC. The MCP `delete` tag is descriptive
+for discovery only. Collector also removes the tag attachments to nodes and
+services.
+
+The tool accepts exactly one selector, `tag_id` or `tag_name`. It always reads
+the resolved tag before deletion and requires `confirm_tag_name` to exactly
+match the resolved `tag_name`; the DELETE call is not sent if the confirmation
+does not match.
+
+Example:
+
+```json
+{
+  "request": {
+    "tag_name": "mcp-test-tag",
+    "confirm_tag_name": "mcp-test-tag"
+  }
+}
+```
+
+Output fields:
+
+```text
+tag_id
+tag_name
+tag
+deleted
+collector_response
+meta
 ```
 
 ### `count_tags`

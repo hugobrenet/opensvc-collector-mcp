@@ -9,6 +9,7 @@ from opensvc_collector_mcp.core.tags import (
     count_tag_services as core_count_tag_services,
     count_tags as core_count_tags,
     create_tag as core_create_tag,
+    delete_tag as core_delete_tag,
     get_tag as core_get_tag,
     get_tag_nodes as core_get_tag_nodes,
     get_tag_services as core_get_tag_services,
@@ -21,6 +22,8 @@ from opensvc_collector_mcp.models.tags import (
     CountTagsResponse,
     CreateTagRequest,
     CreateTagResponse,
+    DeleteTagRequest,
+    DeleteTagResponse,
     ListTagsRequest,
     TagIdentityRequest,
     TagNodesRequest,
@@ -42,7 +45,7 @@ def register_tags_tools(mcp: FastMCP) -> None:
             "Create one OpenSVC Collector tag. Requires Collector TagManager "
             "or Manager privileges through MCP RBAC."
         ),
-        tags={"tags", "write:tags"},
+        tags={"tags", "create", "write:tags"},
         annotations={
             "title": "Create OpenSVC Tag",
             "readOnlyHint": False,
@@ -64,6 +67,38 @@ def register_tags_tools(mcp: FastMCP) -> None:
             tag_exclude=request.tag_exclude,
         )
         return CreateTagResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="delete_tag",
+        description=(
+            "Delete one OpenSVC Collector tag selected by exact tag id or "
+            "exact tag name. This also deletes Collector attachments to "
+            "nodes and services. Requires confirm_tag_name and Collector "
+            "TagManager or Manager privileges through MCP RBAC."
+        ),
+        tags={"tags", "delete", "delete:tags"},
+        annotations={
+            "title": "Delete OpenSVC Tag",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def delete_tag(
+        request: Annotated[
+            DeleteTagRequest,
+            Field(description="Tag deletion selector and explicit confirmation."),
+        ],
+    ) -> DeleteTagResponse:
+        """Delete an OpenSVC Collector tag after explicit name confirmation."""
+        response = await core_delete_tag(
+            tag_id=request.tag_id,
+            tag_name=request.tag_name,
+            confirm_tag_name=request.confirm_tag_name,
+        )
+        return DeleteTagResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

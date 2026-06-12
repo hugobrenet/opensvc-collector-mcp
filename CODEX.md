@@ -31,6 +31,9 @@ Local project notes for working on `opensvc-collector-mcp`.
   `/health`
 - BM25 tool search is always enabled. `tools/list` exposes `search_tools` and
   `call_tool`, while the full catalog remains registered and callable.
+- Non-RBAC action tags such as `create` and `delete` are descriptive discovery
+  tags only. RBAC continues to use explicit authorization tags such as
+  `write:tags` and `delete:tags`.
 - MCP HTTP requests are protected by a native FastMCP Basic Auth middleware.
   Clients must send `Authorization: Basic ...`; the server validates those
   credentials against the Collector `GET /users/self` endpoint before handling
@@ -39,7 +42,7 @@ Local project notes for working on `opensvc-collector-mcp`.
   when Basic Auth is enabled. The middleware authorizes both direct tool calls
   and proxied `call_tool` targets from a deny-by-default tag-to-Collector-group
   policy in `auth/rbac.py`. Read tools use `read -> Everybody or Manager`;
-  write tag tools use `write:tags -> TagManager or Manager`.
+  tag write/delete tools use `write:tags` or `delete:tags` -> `TagManager` or `Manager`.
 - `search_tools` remains public after authentication. BM25 discovery is not
   filtered yet, by design, so clients can report "tool exists but is
   unauthorized" instead of incorrectly reporting "no tool exists".
@@ -195,6 +198,7 @@ Current MCP app tool surface:
 Current MCP tag tool surface:
 
 - `create_tag`
+- `delete_tag`
 - `list_tag_props`
 - `list_tags`
 - `count_tags`
@@ -402,8 +406,8 @@ Error and production-readiness notes:
 - The generic RBAC policy is deny-by-default: missing authorization tags,
   unknown authorization tags, mixed authorization tags, and missing Collector
   groups are refused before tool execution. Read tools use
-  `read -> Everybody or Manager`; write tag tools use
-  `write:tags -> TagManager or Manager`.
+  `read -> Everybody or Manager`; tag write/delete tools use
+  `write:tags` or `delete:tags` -> `TagManager or Manager`.
 
 Future write/action RBAC chantier:
 
@@ -447,6 +451,7 @@ write:context_checks         -> ContextCheckManager
 write:storage                -> StorageManager
 write:networks               -> NetworkManager
 write:tags                   -> TagManager
+delete:tags                  -> TagManager plus explicit destructive confirmation
 write:dns                    -> DnsManager
 operate:dns                  -> DnsOperator
 write:reports                -> ReportsManager
@@ -486,7 +491,9 @@ Safety rules for the first write/action wave:
   Manager override, unknown tag, and Collector endpoint rejection.
 - Destructive tools must require explicit destructive tags such as
   `delete:<domain>` and should add dry-run or confirmation conventions before
-  live execution.
+  live execution. The first tag delete tool uses `delete:tags` plus
+  `confirm_tag_name` matched against the resolved Collector tag before calling
+  `DELETE /tags/<id>`.
 - Audit is mandatory for write/delete/exec attempts, including allowed, denied,
   Collector-rejected, and execution-error cases. Include request id, user,
   client tool, target tool, target object identifiers, required privileges,

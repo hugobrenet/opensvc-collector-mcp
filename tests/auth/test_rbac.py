@@ -9,6 +9,8 @@ from opensvc_collector_mcp.auth.rbac import (
 def test_authorization_tags_extracts_only_authorization_tags():
     assert authorization_tags({"nodes", "inventory", "read"}) == {"read"}
     assert authorization_tags({"nodes", "write:nodes"}) == {"write:nodes"}
+    assert authorization_tags({"tags", "create", "write:tags"}) == {"write:tags"}
+    assert authorization_tags({"tags", "delete", "delete:tags"}) == {"delete:tags"}
     assert authorization_tags({"nodes", "count"}) == set()
 
 
@@ -111,6 +113,19 @@ def test_authorize_tool_denies_missing_required_group():
     assert decision.user_groups == {"Everybody"}
 
 
+def test_authorize_tool_allows_delete_tags_with_tag_manager():
+    decision = authorize_tool(
+        tool_tags={"delete:tags", "tags"},
+        user_groups={"TagManager"},
+    )
+
+    assert decision.allowed is True
+    assert decision.reason is None
+    assert decision.requirement is not None
+    assert decision.requirement.tag == "delete:tags"
+    assert decision.requirement.groups == {"TagManager", "Manager"}
+
+
 def test_default_policy_contains_expected_write_groups():
     assert DEFAULT_TOOL_AUTHORIZATION_POLICY["write:users:self"] == {
         "SelfManager",
@@ -119,5 +134,9 @@ def test_default_policy_contains_expected_write_groups():
     }
     assert DEFAULT_TOOL_AUTHORIZATION_POLICY["exec:compliance"] == {
         "CompExec",
+        "Manager",
+    }
+    assert DEFAULT_TOOL_AUTHORIZATION_POLICY["delete:tags"] == {
+        "TagManager",
         "Manager",
     }

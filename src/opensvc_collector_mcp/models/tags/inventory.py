@@ -270,4 +270,37 @@ class CreateTagRequest(BaseModel):
 
 
 class CreateTagResponse(TagRowsResponse):
-    pass
+    info: str | None = Field(
+        default=None,
+        description="Collector informational message returned after tag creation.",
+        exclude_if=_is_none,
+    )
+
+
+class DeleteTagRequest(TagIdentityRequest):
+    confirm_tag_name: str = Field(
+        description=(
+            "Exact resolved tag name required as a destructive-operation "
+            "confirmation before deleting the tag and its Collector attachments."
+        ),
+        min_length=1,
+        examples=["mcp-test-tag"],
+    )
+
+    @model_validator(mode="after")
+    def normalize_confirmation(self) -> "DeleteTagRequest":
+        self.confirm_tag_name = self.confirm_tag_name.strip()
+        if not self.confirm_tag_name:
+            raise ValueError("confirm_tag_name must not be empty")
+        return self
+
+
+class DeleteTagResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    tag_id: str
+    tag_name: str
+    tag: dict[str, Any]
+    deleted: bool
+    collector_response: dict[str, Any]
+    meta: dict[str, Any] = Field(default_factory=dict)

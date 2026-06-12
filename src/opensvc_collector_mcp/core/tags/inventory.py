@@ -1,7 +1,12 @@
 from typing import Any
 from urllib.parse import quote
 
-from opensvc_collector_mcp.client import collector_get, collector_get_all, collector_post
+from opensvc_collector_mcp.client import (
+    collector_delete,
+    collector_get,
+    collector_get_all,
+    collector_post,
+)
 from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
 
 
@@ -53,6 +58,36 @@ async def create_tag(
         payload["tag_exclude"] = tag_exclude
 
     return await collector_post("/tags", data=payload)
+
+
+async def delete_tag(
+    tag_id: str | None = None,
+    tag_name: str | None = None,
+    confirm_tag_name: str | None = None,
+) -> dict[str, Any]:
+    resolved = await _resolve_tag_selector(tag_id=tag_id, tag_name=tag_name)
+    tag = await _get_tag_snapshot(resolved["tag_id"])
+    resolved_tag_name = str(tag.get("tag_name") or resolved.get("tag_name") or "").strip()
+    confirmation = confirm_tag_name.strip() if confirm_tag_name else ""
+    if not resolved_tag_name:
+        raise ValueError("resolved tag has no tag_name; refusing to delete")
+    if confirmation != resolved_tag_name:
+        raise ValueError("confirm_tag_name must match the resolved tag_name")
+
+    response = await collector_delete(f"/tags/{quote(resolved['tag_id'], safe='')}")
+    return {
+        "tag_id": resolved["tag_id"],
+        "tag_name": resolved_tag_name,
+        "tag": tag,
+        "deleted": True,
+        "collector_response": response,
+        "meta": {
+            "source": "tags/<tag_id>",
+            "selector": resolved["selector"],
+            "resolution": resolved["resolution"],
+            "confirmation": "confirm_tag_name",
+        },
+    }
 
 
 async def count_tags(
@@ -249,6 +284,20 @@ async def list_tag_props() -> dict[str, Any]:
         "available_props": available_props,
         "tag_props": tag_props,
     }
+
+
+async def _get_tag_snapshot(tag_id: str) -> dict[str, Any]:
+    response = await collector_get(
+        f"/tags/{quote(tag_id, safe='')}",
+        params={"props": "tag_id,tag_name,tag_exclude,tag_created,tag_data"},
+    )
+    rows = response.get("data", [])
+    if not isinstance(rows, list) or not rows:
+        raise ValueError(f"tag_id {tag_id!r} not found")
+    row = rows[0]
+    if not isinstance(row, dict):
+        raise ValueError(f"tag_id {tag_id!r} returned an invalid tag row")
+    return row
 
 
 async def _resolve_tag_selector(

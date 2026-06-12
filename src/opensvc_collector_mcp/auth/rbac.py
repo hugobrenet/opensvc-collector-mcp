@@ -30,6 +30,7 @@ DEFAULT_TOOL_AUTHORIZATION_POLICY: dict[str, set[str]] = {
     "write:storage": {"StorageManager", "Manager"},
     "write:networks": {"NetworkManager", "Manager"},
     "write:tags": {"TagManager", "Manager"},
+    "delete:tags": {"TagManager", "Manager"},
     "write:dns": {"DnsManager", "Manager"},
     "operate:dns": {"DnsOperator", "Manager"},
     "write:reports": {"ReportsManager", "Manager"},

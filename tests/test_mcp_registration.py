@@ -17,6 +17,7 @@ EXPECTED_TOOL_NAMES = {
     "count_users_by_group",
     "count_users_by_primary_group",
     "create_tag",
+    "delete_tag",
     "get_app",
     "get_app_nodes",
     "get_app_publications",
