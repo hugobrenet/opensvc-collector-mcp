@@ -13,7 +13,7 @@
 - MCP server built with `FastMCP` and served over HTTP with `uvicorn`
 - custom health route: `/health`
 - typed Pydantic input and output models for MCP tools
-- OpenSVC Collector read-only tool surface for nodes, services, clusters, compliance, users, tags, apps, arrays, and disks
+- OpenSVC Collector tool surface for nodes, services, clusters, compliance, users, tags, apps, arrays, and disks, with write tools gated by Collector RBAC
 - architecture split between:
   - `tools/` for MCP tool definitions
   - `core/` for Collector workflows and business logic
@@ -28,7 +28,7 @@ This repository is focused on:
 - clear tool contracts for MCP clients
 - predictable environment-based configuration
 - BM25 tool discovery for large MCP catalogs
-- read-only Collector access patterns
+- safe Collector access patterns with RBAC-gated write operations
 - pagination-safe Collector reads
 - separation between MCP surface and Collector-specific logic
 
@@ -141,11 +141,11 @@ The current tool surface covers:
 - cluster node membership
 - compliance modulesets, rulesets, status, logs, usage, candidates, publications, and responsibles
 - user inventory, counts, user detail lookup, primary group lookup, and attached group lookup
-- tag inventory, tag detail, tagged nodes, and tagged services
+- tag inventory, tag detail, tagged nodes, tagged services, and RBAC-gated tag creation
 - application inventory, nodes, services, responsibles, publications, quotas, and responsibility check
 - storage array inventory, diskgroups, quotas, proxies, targets, and counts
 
-All tools are intended to be read-only against OpenSVC Collector.
+Most tools are read-only against OpenSVC Collector. Write tools are introduced incrementally and must be protected by MCP RBAC tags and Collector privilege groups.
 
 ## Development
 
@@ -167,7 +167,7 @@ Run the full local validation with:
 git diff --check
 ```
 
-New tools should include focused unit tests for their core logic and MCP wrapper behavior, then be validated with pytest, compile checks, FastMCP registration, Ruff, and read-only Collector tests.
+New tools should include focused unit tests for their core logic and MCP wrapper behavior, then be validated with pytest, compile checks, FastMCP registration, Ruff, and non-destructive Collector checks unless an explicit test object has been approved.
 
 ## Project Status
 

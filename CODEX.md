@@ -38,8 +38,8 @@ Local project notes for working on `opensvc-collector-mcp`.
 - MCP tool execution is also protected by `CollectorToolAuthorizationMiddleware`
   when Basic Auth is enabled. The middleware authorizes both direct tool calls
   and proxied `call_tool` targets from a deny-by-default tag-to-Collector-group
-  policy in `auth/rbac.py`. Current registered tools are read-only, so they use
-  `read -> Everybody or Manager`.
+  policy in `auth/rbac.py`. Read tools use `read -> Everybody or Manager`;
+  write tag tools use `write:tags -> TagManager or Manager`.
 - `search_tools` remains public after authentication. BM25 discovery is not
   filtered yet, by design, so clients can report "tool exists but is
   unauthorized" instead of incorrectly reporting "no tool exists".
@@ -194,6 +194,7 @@ Current MCP app tool surface:
 
 Current MCP tag tool surface:
 
+- `create_tag`
 - `list_tag_props`
 - `list_tags`
 - `count_tags`
@@ -400,8 +401,9 @@ Error and production-readiness notes:
   tags, tool tags, and current Collector groups.
 - The generic RBAC policy is deny-by-default: missing authorization tags,
   unknown authorization tags, mixed authorization tags, and missing Collector
-  groups are refused before tool execution. Current registered tools remain
-  read-only and use `read -> Everybody or Manager`.
+  groups are refused before tool execution. Read tools use
+  `read -> Everybody or Manager`; write tag tools use
+  `write:tags -> TagManager or Manager`.
 
 Future write/action RBAC chantier:
 

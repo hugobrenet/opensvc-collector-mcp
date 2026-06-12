@@ -242,3 +242,32 @@ class TagRowsResponse(BaseModel):
 
     meta: dict[str, Any] = Field(default_factory=dict)
     data: list[TagRow]
+
+
+class CreateTagRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    tag_name: str = Field(
+        description="Unique OpenSVC Collector tag name to create.",
+        min_length=1,
+        examples=["mcp-test-tag"],
+    )
+    tag_data: str | None = Field(
+        default=None,
+        description="Optional raw tag data stored by Collector.",
+    )
+    tag_exclude: str | None = Field(
+        default=None,
+        description="Optional Collector tag exclusion value.",
+    )
+
+    @model_validator(mode="after")
+    def normalize(self) -> "CreateTagRequest":
+        self.tag_name = self.tag_name.strip()
+        if not self.tag_name:
+            raise ValueError("tag_name must not be empty")
+        return self
+
+
+class CreateTagResponse(TagRowsResponse):
+    pass

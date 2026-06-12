@@ -1,7 +1,7 @@
 from typing import Any
 from urllib.parse import quote
 
-from opensvc_collector_mcp.client import collector_get, collector_get_all
+from opensvc_collector_mcp.client import collector_get, collector_get_all, collector_post
 from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
 
 
@@ -37,6 +37,22 @@ async def list_tags(
             offset=offset,
         ),
     )
+
+
+async def create_tag(
+    tag_name: str,
+    tag_data: str | None = None,
+    tag_exclude: str | None = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {"tag_name": tag_name.strip()}
+    if not payload["tag_name"]:
+        raise ValueError("tag_name must not be empty")
+    if tag_data is not None:
+        payload["tag_data"] = tag_data
+    if tag_exclude is not None:
+        payload["tag_exclude"] = tag_exclude
+
+    return await collector_post("/tags", data=payload)
 
 
 async def count_tags(

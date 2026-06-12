@@ -8,6 +8,7 @@ from opensvc_collector_mcp.core.tags import (
     count_tag_nodes as core_count_tag_nodes,
     count_tag_services as core_count_tag_services,
     count_tags as core_count_tags,
+    create_tag as core_create_tag,
     get_tag as core_get_tag,
     get_tag_nodes as core_get_tag_nodes,
     get_tag_services as core_get_tag_services,
@@ -18,6 +19,8 @@ from opensvc_collector_mcp.models.tags import (
     CountTagServicesRequest,
     CountTagsRequest,
     CountTagsResponse,
+    CreateTagRequest,
+    CreateTagResponse,
     ListTagsRequest,
     TagIdentityRequest,
     TagNodesRequest,
@@ -32,6 +35,36 @@ from opensvc_collector_mcp.models.tags import (
 
 
 def register_tags_tools(mcp: FastMCP) -> None:
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="create_tag",
+        description=(
+            "Create one OpenSVC Collector tag. Requires Collector TagManager "
+            "or Manager privileges through MCP RBAC."
+        ),
+        tags={"tags", "write:tags"},
+        annotations={
+            "title": "Create OpenSVC Tag",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        },
+    )
+    async def create_tag(
+        request: Annotated[
+            CreateTagRequest,
+            Field(description="Tag creation parameters."),
+        ],
+    ) -> CreateTagResponse:
+        """Create an OpenSVC Collector tag."""
+        response = await core_create_tag(
+            tag_name=request.tag_name,
+            tag_data=request.tag_data,
+            tag_exclude=request.tag_exclude,
+        )
+        return CreateTagResponse.model_validate(response)
+
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
         name="list_tags",

@@ -9,6 +9,32 @@ MCP tool definitions live in `src/opensvc_collector_mcp/tools/tags.py`.
 ## Tools
 
 
+
+### `create_tag`
+
+Creates one OpenSVC Collector tag through `POST /tags`. This is a write tool
+and requires `write:tags`, authorized for Collector `TagManager` or `Manager`
+users by MCP RBAC. It accepts `tag_name` and optional `tag_data` and
+`tag_exclude` fields.
+
+Example:
+
+```json
+{
+  "request": {
+    "tag_name": "mcp-test-tag",
+    "tag_data": "created by mcp"
+  }
+}
+```
+
+Output fields:
+
+```text
+meta
+data
+```
+
 ### `count_tags`
 
 Counts OpenSVC Collector tags matching exact-match tag filters. It reads
