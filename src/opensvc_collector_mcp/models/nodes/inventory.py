@@ -122,6 +122,58 @@ class CountNodesResponse(BaseModel):
     filters: dict[str, str]
 
 
+class DeleteNodeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    node_id: str = Field(
+        description=(
+            "Exact Collector node id to delete. Use list_nodes with props "
+            "node_id,nodename to resolve duplicate nodenames before deletion."
+        ),
+        min_length=1,
+        examples=["NODE-ID"],
+    )
+    confirm_node_id: str = Field(
+        description="Exact node_id confirmation required before deleting the node.",
+        min_length=1,
+        examples=["NODE-ID"],
+    )
+    confirm_nodename: str = Field(
+        description=(
+            "Exact nodename read from the node snapshot. This is a human safety "
+            "confirmation, not the deletion selector."
+        ),
+        min_length=1,
+        examples=["lab-node-01"],
+    )
+
+    @model_validator(mode="after")
+    def normalize(self) -> "DeleteNodeRequest":
+        self.node_id = self.node_id.strip()
+        self.confirm_node_id = self.confirm_node_id.strip()
+        self.confirm_nodename = self.confirm_nodename.strip()
+        if not self.node_id:
+            raise ValueError("node_id must not be empty")
+        if not self.confirm_node_id:
+            raise ValueError("confirm_node_id must not be empty")
+        if self.confirm_node_id != self.node_id:
+            raise ValueError("confirm_node_id must match node_id")
+        if not self.confirm_nodename:
+            raise ValueError("confirm_nodename must not be empty")
+        return self
+
+
+class DeleteNodeResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    node_id: str
+    nodename: str
+    node: dict[str, Any]
+    deleted: bool
+    collector_response: dict[str, Any]
+    meta: dict[str, Any] = Field(default_factory=dict)
+
+
 class UpdateNodePropertiesRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

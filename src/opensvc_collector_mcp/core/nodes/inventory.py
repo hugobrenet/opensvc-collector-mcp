@@ -1,13 +1,16 @@
 from typing import Any
 from urllib.parse import quote
 
-from opensvc_collector_mcp.client import collector_get, collector_post
+from opensvc_collector_mcp.client import collector_delete, collector_get, collector_post
 from opensvc_collector_mcp.core.utils import collection_params
 
 
 DEFAULT_SEARCH_NODE_PROPS = (
     "nodename,status,asset_env,node_env,loc_city,loc_country,"
     "app,team_responsible,os_name"
+)
+DEFAULT_NODE_DELETE_SNAPSHOT_PROPS = (
+    "node_id,nodename,status,asset_env,node_env,app,team_responsible,updated"
 )
 
 NODE_UPDATE_ALLOWED_PROPERTIES = frozenset(
@@ -67,7 +70,6 @@ NODE_UPDATE_ALLOWED_PROPERTIES = frozenset(
         "warranty_end",
     }
 )
-
 
 
 async def list_nodes(
@@ -241,6 +243,65 @@ async def update_node_properties(
             "allowed_properties": sorted(NODE_UPDATE_ALLOWED_PROPERTIES),
         },
     }
+
+
+async def delete_node(
+    node_id: str,
+    confirm_node_id: str,
+    confirm_nodename: str,
+) -> dict[str, Any]:
+    node_id = node_id.strip()
+    confirmation_id = confirm_node_id.strip() if confirm_node_id else ""
+    confirmation_name = confirm_nodename.strip() if confirm_nodename else ""
+
+    if not node_id:
+        raise ValueError("node_id must not be empty")
+    if confirmation_id != node_id:
+        raise ValueError("confirm_node_id must match node_id")
+    if not confirmation_name:
+        raise ValueError("confirm_nodename must not be empty")
+
+    node = await _get_node_delete_snapshot(node_id)
+    resolved_node_id = str(node.get("node_id") or "").strip()
+    resolved_nodename = str(node.get("nodename") or "").strip()
+    if not resolved_node_id:
+        raise ValueError("resolved node has no node_id; refusing to delete")
+    if resolved_node_id != node_id:
+        raise ValueError("resolved node_id does not match requested node_id")
+    if not resolved_nodename:
+        raise ValueError("resolved node has no nodename; refusing to delete")
+    if confirmation_name != resolved_nodename:
+        raise ValueError("confirm_nodename must match the resolved nodename")
+
+    response = await collector_delete(f"/nodes/{quote(node_id, safe='')}")
+    return {
+        "node_id": node_id,
+        "nodename": resolved_nodename,
+        "node": node,
+        "deleted": True,
+        "collector_response": response,
+        "meta": {
+            "source": "nodes/<node_id>",
+            "selector": "node_id",
+            "confirmation": ["confirm_node_id", "confirm_nodename"],
+        },
+    }
+
+
+async def _get_node_delete_snapshot(node_id: str) -> dict[str, Any]:
+    response = await collector_get(
+        f"/nodes/{quote(node_id, safe='')}",
+        params={"props": DEFAULT_NODE_DELETE_SNAPSHOT_PROPS},
+    )
+    data = response.get("data", [])
+    if not data:
+        raise ValueError("node_id not found")
+    if len(data) != 1:
+        raise ValueError("node_id resolved to multiple nodes; refusing to delete")
+    node = data[0]
+    if not isinstance(node, dict):
+        raise ValueError("resolved node payload is invalid; refusing to delete")
+    return node
 
 
 def _normalized_node_update_payload(properties: dict[str, Any]) -> dict[str, Any]:

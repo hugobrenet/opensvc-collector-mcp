@@ -7,6 +7,8 @@ from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.models.nodes import (
     CountNodesRequest,
     CountNodesResponse,
+    DeleteNodeRequest,
+    DeleteNodeResponse,
     InventoryStatsRequest,
     InventoryStatsResponse,
     ListNodesRequest,
@@ -32,6 +34,7 @@ from opensvc_collector_mcp.models.nodes import (
 )
 from opensvc_collector_mcp.core.nodes import (
     count_nodes as core_count_nodes,
+    delete_node as core_delete_node,
     get_node as core_get_node,
     get_node_cluster as core_get_node_cluster,
     get_node_checks as core_get_node_checks,
@@ -53,6 +56,39 @@ from opensvc_collector_mcp.core.nodes import (
 
 
 def register_nodes_tools(mcp: FastMCP) -> None:
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="delete_node",
+        description=(
+            "Delete one OpenSVC Collector node selected by exact Collector "
+            "node_id. Do not use nodename as the deletion selector because "
+            "Collector can contain duplicate nodenames. Requires confirm_node_id, "
+            "confirm_nodename, and Collector NodeManager or Manager privileges "
+            "through MCP RBAC."
+        ),
+        tags={"nodes", "delete", "delete:nodes"},
+        annotations={
+            "title": "Delete OpenSVC Node",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def delete_node(
+        request: Annotated[
+            DeleteNodeRequest,
+            Field(description="Node deletion selector and explicit confirmations."),
+        ],
+    ) -> DeleteNodeResponse:
+        "Delete an OpenSVC Collector node after explicit id and name confirmation."
+        response = await core_delete_node(
+            node_id=request.node_id,
+            confirm_node_id=request.confirm_node_id,
+            confirm_nodename=request.confirm_nodename,
+        )
+        return DeleteNodeResponse.model_validate(response)
+
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
         name="update_node_properties",

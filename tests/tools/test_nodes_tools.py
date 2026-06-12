@@ -11,6 +11,41 @@ class CoreRecorder:
         return self.response
 
 
+async def test_delete_node_tool_passes_request_to_core(monkeypatch, mcp_client):
+    recorder = CoreRecorder(
+        {
+            "node_id": "node-a-id",
+            "nodename": "node-a",
+            "node": {"node_id": "node-a-id", "nodename": "node-a"},
+            "deleted": True,
+            "collector_response": {"info": "node deleted"},
+            "meta": {"source": "nodes/<node_id>"},
+        }
+    )
+    monkeypatch.setattr(node_tools, "core_delete_node", recorder)
+
+    result = await mcp_client.call_tool(
+        "delete_node",
+        {
+            "request": {
+                "node_id": "node-a-id",
+                "confirm_node_id": "node-a-id",
+                "confirm_nodename": "node-a",
+            }
+        },
+    )
+
+    assert result.structured_content["deleted"] is True
+    assert result.structured_content["node_id"] == "node-a-id"
+    assert recorder.calls == [
+        {
+            "node_id": "node-a-id",
+            "confirm_node_id": "node-a-id",
+            "confirm_nodename": "node-a",
+        }
+    ]
+
+
 async def test_update_node_properties_tool_passes_request_to_core(monkeypatch, mcp_client):
     recorder = CoreRecorder(
         {

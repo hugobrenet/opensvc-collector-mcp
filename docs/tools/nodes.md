@@ -8,6 +8,54 @@ MCP tool definitions live in `src/opensvc_collector_mcp/tools/nodes.py`.
 
 ## Tools
 
+### `delete_node`
+
+Deletes one existing OpenSVC Collector node through `DELETE /nodes/<node_id>`.
+Collector cascades this deletion to related service instances, dashboard, checks,
+packages, and patches entries. This is a destructive write tool and requires
+`delete:nodes`, authorized for Collector `NodeManager` or `Manager` users by MCP
+RBAC.
+
+The deletion selector is `node_id` only. The tool intentionally does not accept
+`nodename` as a selector because Collector can contain duplicate nodenames. Use
+`list_nodes` with `props="node_id,nodename,status"` to identify the exact row
+first, then call `delete_node` with both confirmations.
+
+Required input fields:
+
+```text
+node_id
+confirm_node_id
+confirm_nodename
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "node_id": "NODE-ID",
+    "confirm_node_id": "NODE-ID",
+    "confirm_nodename": "lab-node-01"
+  }
+}
+```
+
+The tool reads a node snapshot before deleting. The DELETE call is not sent if
+`confirm_node_id` differs from `node_id`, if `confirm_nodename` differs from the
+resolved snapshot nodename, or if the snapshot is missing or ambiguous.
+
+Output fields:
+
+```text
+node_id
+nodename
+node
+deleted
+collector_response
+meta
+```
+
 ### `update_node_properties`
 
 Updates Collector-writable properties on one existing OpenSVC Collector node

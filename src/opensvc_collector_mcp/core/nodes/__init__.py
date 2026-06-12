@@ -6,6 +6,7 @@ from .inventory import (
     count_nodes,
     get_node,
     update_node_properties,
+    delete_node,
 )
 
 from .tags import (
@@ -62,6 +63,7 @@ from .stats import (
 
 __all__ = [
     'count_nodes',
+    'delete_node',
     'get_node',
     'get_node_checks',
     'get_node_cluster',

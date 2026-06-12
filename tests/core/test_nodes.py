@@ -14,6 +14,16 @@ class CollectorPostRecorder:
         return self.response
 
 
+class CollectorDeleteRecorder:
+    def __init__(self, response):
+        self.response = response
+        self.calls = []
+
+    async def __call__(self, path, data=None, params=None):
+        self.calls.append({"path": path, "data": data, "params": params})
+        return self.response
+
+
 @pytest.mark.parametrize("raw, expected", [(" node-a ", "/nodes/node-a"), ("node/a", "/nodes/node%2Fa")])
 async def test_get_node_uses_node_detail_endpoint(monkeypatch, collector_mock_factory, raw, expected):
     collector = collector_mock_factory([{"meta": {}, "data": [{"nodename": "node-a"}]}])
@@ -24,6 +34,119 @@ async def test_get_node_uses_node_detail_endpoint(monkeypatch, collector_mock_fa
     assert response["data"] == [{"nodename": "node-a"}]
     assert collector.calls[0].path == expected
     assert collector.calls[0].params is None
+
+
+async def test_delete_node_snapshots_confirms_and_deletes_by_node_id(
+    monkeypatch,
+    collector_mock_factory,
+):
+    collector = collector_mock_factory(
+        [
+            {
+                "meta": {},
+                "data": [
+                    {
+                        "node_id": "node/id",
+                        "nodename": "node-a",
+                        "status": "up",
+                    }
+                ],
+            }
+        ]
+    )
+    delete_recorder = CollectorDeleteRecorder({"info": "node deleted"})
+    monkeypatch.setattr(inventory, "collector_get", collector.get)
+    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+
+    response = await inventory.delete_node(
+        node_id=" node/id ",
+        confirm_node_id="node/id",
+        confirm_nodename=" node-a ",
+    )
+
+    assert response["deleted"] is True
+    assert response["node_id"] == "node/id"
+    assert response["nodename"] == "node-a"
+    assert response["node"]["node_id"] == "node/id"
+    assert response["collector_response"] == {"info": "node deleted"}
+    assert collector.calls[0].path == "/nodes/node%2Fid"
+    assert collector.calls[0].params == {
+        "props": inventory.DEFAULT_NODE_DELETE_SNAPSHOT_PROPS
+    }
+    assert delete_recorder.calls == [
+        {"path": "/nodes/node%2Fid", "data": None, "params": None}
+    ]
+
+
+async def test_delete_node_rejects_confirmation_id_mismatch_before_lookup(
+    monkeypatch,
+    collector_mock_factory,
+):
+    collector = collector_mock_factory([])
+    delete_recorder = CollectorDeleteRecorder({"info": "node deleted"})
+    monkeypatch.setattr(inventory, "collector_get", collector.get)
+    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+
+    with pytest.raises(ValueError, match="confirm_node_id must match node_id"):
+        await inventory.delete_node(
+            node_id="node-a-id",
+            confirm_node_id="other-node-id",
+            confirm_nodename="node-a",
+        )
+
+    assert collector.calls == []
+    assert delete_recorder.calls == []
+
+
+async def test_delete_node_rejects_confirmation_name_mismatch_before_delete(
+    monkeypatch,
+    collector_mock_factory,
+):
+    collector = collector_mock_factory(
+        [{"meta": {}, "data": [{"node_id": "node-a-id", "nodename": "node-a"}]}]
+    )
+    delete_recorder = CollectorDeleteRecorder({"info": "node deleted"})
+    monkeypatch.setattr(inventory, "collector_get", collector.get)
+    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+
+    with pytest.raises(ValueError, match="confirm_nodename must match"):
+        await inventory.delete_node(
+            node_id="node-a-id",
+            confirm_node_id="node-a-id",
+            confirm_nodename="node-b",
+        )
+
+    assert len(collector.calls) == 1
+    assert delete_recorder.calls == []
+
+
+async def test_delete_node_rejects_ambiguous_node_id_snapshot(
+    monkeypatch,
+    collector_mock_factory,
+):
+    collector = collector_mock_factory(
+        [
+            {
+                "meta": {},
+                "data": [
+                    {"node_id": "node-a-id", "nodename": "node-a"},
+                    {"node_id": "node-a-id", "nodename": "node-a-copy"},
+                ],
+            }
+        ]
+    )
+    delete_recorder = CollectorDeleteRecorder({"info": "node deleted"})
+    monkeypatch.setattr(inventory, "collector_get", collector.get)
+    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+
+    with pytest.raises(ValueError, match="node_id resolved to multiple nodes"):
+        await inventory.delete_node(
+            node_id="node-a-id",
+            confirm_node_id="node-a-id",
+            confirm_nodename="node-a",
+        )
+
+    assert delete_recorder.calls == []
 
 
 async def test_update_node_properties_posts_allowlisted_fields(monkeypatch):

@@ -12,6 +12,8 @@ from .inventory import (
     NodePropsResponse,
     NodeRowsResponse,
     CountNodesResponse,
+    DeleteNodeRequest,
+    DeleteNodeResponse,
     UpdateNodePropertiesRequest,
     UpdateNodePropertiesResponse,
 )
@@ -89,6 +91,8 @@ from .stats import (
 __all__ = [
     'CountNodesRequest',
     'CountNodesResponse',
+    'DeleteNodeRequest',
+    'DeleteNodeResponse',
     'InventoryStatsRequest',
     'InventoryStatsResponse',
     'ListNodesRequest',

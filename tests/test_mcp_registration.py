@@ -17,6 +17,7 @@ EXPECTED_TOOL_NAMES = {
     "count_users_by_group",
     "count_users_by_primary_group",
     "create_tag",
+    "delete_node",
     "delete_tag",
     "get_app",
     "get_app_nodes",
@@ -121,6 +122,15 @@ async def test_all_expected_tools_are_registered_in_underlying_catalog():
 
     assert tool_names == EXPECTED_TOOL_NAMES
     assert len(tool_names) == len(tools)
+
+
+async def test_delete_node_is_marked_as_destructive_write():
+    tools = await build_mcp()._list_tools()
+    tool = next(tool for tool in tools if tool.name == "delete_node")
+
+    assert tool.annotations.readOnlyHint is False
+    assert tool.annotations.idempotentHint is False
+    assert tool.annotations.destructiveHint is True
 
 
 async def test_update_node_properties_is_marked_as_destructive_write():

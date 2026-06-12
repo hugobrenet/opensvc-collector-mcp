@@ -12,6 +12,7 @@ def test_authorization_tags_extracts_only_authorization_tags():
     assert authorization_tags({"nodes", "update", "write:nodes"}) == {"write:nodes"}
     assert authorization_tags({"tags", "create", "write:tags"}) == {"write:tags"}
     assert authorization_tags({"tags", "delete", "delete:tags"}) == {"delete:tags"}
+    assert authorization_tags({"nodes", "delete", "delete:nodes"}) == {"delete:nodes"}
     assert authorization_tags({"nodes", "count"}) == set()
 
 
@@ -125,6 +126,19 @@ def test_authorize_tool_allows_delete_tags_with_tag_manager():
     assert decision.requirement is not None
     assert decision.requirement.tag == "delete:tags"
     assert decision.requirement.groups == {"TagManager", "Manager"}
+
+
+def test_authorize_tool_allows_delete_nodes_with_node_manager():
+    decision = authorize_tool(
+        tool_tags={"delete:nodes", "nodes"},
+        user_groups={"NodeManager"},
+    )
+
+    assert decision.allowed is True
+    assert decision.reason is None
+    assert decision.requirement is not None
+    assert decision.requirement.tag == "delete:nodes"
+    assert decision.requirement.groups == {"NodeManager", "Manager"}
 
 
 def test_default_policy_contains_expected_write_groups():
