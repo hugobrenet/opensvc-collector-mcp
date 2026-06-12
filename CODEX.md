@@ -57,9 +57,15 @@ Current package layout:
   environment variables and shared global configuration constants
 - `src/opensvc_collector_mcp/client.py`
   Collector API GET helpers using request-scoped Basic Auth credentials
-- `src/opensvc_collector_mcp/middleware.py`
-  FastMCP middleware, including Collector Basic Auth validation and tool
-  argument validation error enrichment
+- `src/opensvc_collector_mcp/auth/context.py`
+  request-scoped Collector Basic Auth credential context
+- `src/opensvc_collector_mcp/auth/basic.py`
+  FastMCP middleware for Collector Basic Auth validation
+- `src/opensvc_collector_mcp/auth/rbac.py`
+  pure RBAC policy helpers for MCP tool authorization
+- `src/opensvc_collector_mcp/auth/middleware.py`
+  FastMCP tool authorization middleware and tool argument validation error
+  enrichment
 - `src/opensvc_collector_mcp/tools/`
   FastMCP tool definitions
 - `src/opensvc_collector_mcp/core/`
