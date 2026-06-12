@@ -9,8 +9,8 @@ from opensvc_collector_mcp.config import (
     MCP_PORT,
     MCP_TOOL_SEARCH_MAX_RESULTS,
 )
-from opensvc_collector_mcp.middleware import (
-    CollectorBasicAuthMiddleware,
+from opensvc_collector_mcp.auth.basic import CollectorBasicAuthMiddleware
+from opensvc_collector_mcp.auth.middleware import (
     CollectorReadToolAuthorizationMiddleware,
     ToolSchemaValidationErrorMiddleware,
 )

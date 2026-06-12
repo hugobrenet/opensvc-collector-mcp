@@ -1,5 +1,5 @@
 from opensvc_collector_mcp import client
-from opensvc_collector_mcp.client import (
+from opensvc_collector_mcp.auth.context import (
     CollectorCredentials,
     reset_collector_credentials,
     set_collector_credentials,

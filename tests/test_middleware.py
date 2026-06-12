@@ -7,8 +7,8 @@ from mcp import McpError
 from pydantic import BaseModel, ValidationError
 
 from opensvc_collector_mcp.audit import AUDIT_LOGGER_NAME, McpToolCallAuditEvent
-from opensvc_collector_mcp.middleware import (
-    CollectorBasicAuthMiddleware,
+from opensvc_collector_mcp.auth.basic import CollectorBasicAuthMiddleware
+from opensvc_collector_mcp.auth.middleware import (
     CollectorReadToolAuthorizationMiddleware,
     ToolSchemaValidationErrorMiddleware,
 )
@@ -257,7 +257,7 @@ async def test_read_tool_authorization_audits_public_search_tool(caplog):
 async def test_read_tool_authorization_includes_ai_request_id(monkeypatch, caplog):
     caplog.set_level(logging.INFO, logger=AUDIT_LOGGER_NAME)
     monkeypatch.setattr(
-        "opensvc_collector_mcp.middleware.get_http_headers",
+        "opensvc_collector_mcp.auth.middleware.get_http_headers",
         lambda include=None: {"x-opensvc-ai-request-id": "ai_test"},
     )
     server = FastMCP("read-authorization-test")

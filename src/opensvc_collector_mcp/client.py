@@ -1,40 +1,30 @@
 from collections.abc import Sequence
-from contextvars import ContextVar, Token
-from dataclasses import dataclass
 from typing import Any
 
 import httpx
 
+from opensvc_collector_mcp.auth.context import (
+    CollectorCredentials,
+    get_collector_credentials,
+    reset_collector_credentials,
+    set_collector_credentials,
+)
 from opensvc_collector_mcp.config import (
     HTTP_REQUEST_TIMEOUT_SECONDS,
     OPENSVC_API_BASE_URL,
 )
 
-
-@dataclass(frozen=True)
-class CollectorCredentials:
-    username: str
-    password: str
-
-
-_COLLECTOR_CREDENTIALS: ContextVar[CollectorCredentials | None] = ContextVar(
-    "collector_credentials",
-    default=None,
-)
-
-
-def set_collector_credentials(
-    credentials: CollectorCredentials,
-) -> Token[CollectorCredentials | None]:
-    return _COLLECTOR_CREDENTIALS.set(credentials)
-
-
-def reset_collector_credentials(token: Token[CollectorCredentials | None]) -> None:
-    _COLLECTOR_CREDENTIALS.reset(token)
-
-
-def get_collector_credentials() -> CollectorCredentials | None:
-    return _COLLECTOR_CREDENTIALS.get()
+__all__ = [
+    "CollectorCredentials",
+    "collector_get",
+    "collector_get_all",
+    "collector_get_with_credentials",
+    "get_collector_credentials",
+    "get_collector_group_roles",
+    "reset_collector_credentials",
+    "set_collector_credentials",
+    "validate_collector_credentials",
+]
 
 
 async def collector_get(
