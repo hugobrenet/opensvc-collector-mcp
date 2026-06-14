@@ -267,7 +267,11 @@ async def delete_node(
     if not resolved_node_id:
         raise ValueError("resolved node has no node_id; refusing to delete")
     if resolved_node_id != node_id:
-        raise ValueError("resolved node_id does not match requested node_id")
+        raise ValueError(
+            "node_id must be the exact Collector node_id, not a nodename; "
+            "resolve the node first with list_nodes using "
+            "props=node_id,nodename,app"
+        )
     if not resolved_nodename:
         raise ValueError("resolved node has no nodename; refusing to delete")
     if confirmation_name != resolved_nodename:

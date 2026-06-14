@@ -34,6 +34,13 @@ Local project notes for working on `opensvc-collector-mcp`.
 - Non-RBAC action tags such as `create` and `delete` are descriptive discovery
   tags only. RBAC continues to use explicit authorization tags such as
   `write:tags` and `delete:tags`.
+- State-changing tools must include the shared Pydantic field
+  `request.confirmation.phrase` using `models/common.py::ToolConfirmation`. The
+  assistant generates this phrase after resolving/summarizing the target action,
+  asks the user to repeat it verbatim in a new message, and only then calls the
+  tool with that exact phrase. This field is part of the MCP input schema so
+  `search_tools` exposes it to the LLM. The field is a gateway/LLM safety gate;
+  core functions should keep receiving only business arguments.
 - MCP HTTP requests are protected by a native FastMCP Basic Auth middleware.
   Clients must send `Authorization: Basic ...`; the server validates those
   credentials against the Collector `GET /users/self` endpoint before handling

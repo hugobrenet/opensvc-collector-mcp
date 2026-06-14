@@ -30,6 +30,7 @@ async def test_delete_tag_tool_passes_request_to_core(monkeypatch, mcp_client):
             "request": {
                 "tag_name": "mcp-test-tag",
                 "confirm_tag_name": "mcp-test-tag",
+                "confirmation": {"phrase": "DELETE tag mcp-test-tag"},
             }
         },
     )
@@ -67,6 +68,7 @@ async def test_create_tag_tool_passes_request_to_core(monkeypatch, mcp_client):
             "request": {
                 "tag_name": "mcp-test-tag",
                 "tag_data": "created by test",
+                "confirmation": {"phrase": "CREATE tag mcp-test-tag"},
             }
         },
     )

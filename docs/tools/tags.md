@@ -15,7 +15,11 @@ MCP tool definitions live in `src/opensvc_collector_mcp/tools/tags.py`.
 Creates one OpenSVC Collector tag through `POST /tags`. This is a write tool
 and requires `write:tags`, authorized for Collector `TagManager` or `Manager`
 users by MCP RBAC. The MCP `create` tag is descriptive for discovery only. It
-accepts `tag_name` and optional `tag_data` and `tag_exclude` fields.
+accepts `tag_name` and optional `tag_data` and `tag_exclude` fields. Because
+it changes Collector state, the request requires `confirmation.phrase`: the
+assistant must summarize the tag creation, ask the user to repeat a concise
+phrase verbatim, and set `confirmation.phrase` only after that phrase appears in
+the latest user message.
 
 Example:
 
@@ -23,7 +27,10 @@ Example:
 {
   "request": {
     "tag_name": "mcp-test-tag",
-    "tag_data": "created by mcp"
+    "tag_data": "created by mcp",
+    "confirmation": {
+      "phrase": "CREATE tag mcp-test-tag"
+    }
   }
 }
 ```
@@ -47,7 +54,12 @@ services.
 The tool accepts exactly one selector, `tag_id` or `tag_name`. It always reads
 the resolved tag before deletion and requires `confirm_tag_name` to exactly
 match the resolved `tag_name`; the DELETE call is not sent if the confirmation
-does not match.
+does not match. Because this is destructive, the assistant must generate a
+concise confirmation phrase containing the exact resolved tag, ask the user to
+repeat it verbatim in a new message, and set `confirmation.phrase` only after
+that exact phrase appears in the latest user message. The gateway blocks the
+proxied `call_tool` before MCP execution if the phrase is missing from that
+latest message.
 
 Example:
 
@@ -55,7 +67,10 @@ Example:
 {
   "request": {
     "tag_name": "mcp-test-tag",
-    "confirm_tag_name": "mcp-test-tag"
+    "confirm_tag_name": "mcp-test-tag",
+    "confirmation": {
+      "phrase": "DELETE tag mcp-test-tag"
+    }
   }
 }
 ```

@@ -62,7 +62,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         description=(
             "Delete one OpenSVC Collector node selected by exact Collector "
             "node_id. Do not use nodename as the deletion selector because "
-            "Collector can contain duplicate nodenames. Requires confirm_node_id, "
+            "Collector can contain duplicate nodenames. Before calling, ask "
+            "the user to repeat an exact confirmation phrase and include it in "
+            "request.confirmation.phrase. Requires confirm_node_id, "
             "confirm_nodename, and Collector NodeManager or Manager privileges "
             "through MCP RBAC."
         ),
@@ -94,8 +96,10 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         name="update_node_properties",
         description=(
             "Update Collector-writable properties on one existing OpenSVC "
-            "Collector node selected by exact nodename. Requires Collector "
-            "NodeManager or Manager privileges through MCP RBAC."
+            "Collector node selected by exact nodename. Before calling, ask "
+            "the user to repeat an exact confirmation phrase and include it in "
+            "request.confirmation.phrase. Requires Collector NodeManager or "
+            "Manager privileges through MCP RBAC."
         ),
         tags={"nodes", "update", "write:nodes"},
         annotations={

@@ -117,6 +117,14 @@ BM25 tool search is enabled by default to avoid sending the full tool catalog to
 
 The full tool catalog remains registered and callable. The number of returned search results is defined by the `MCP_TOOL_SEARCH_MAX_RESULTS` constant in `config.py`; the current value is `10`.
 
+Search results include each matched tool's description, input schema, output
+schema, annotations, and FastMCP tags. State-changing tools declare a required
+`request.confirmation.phrase` field in their input schema. The assistant must
+resolve and summarize the intended change, ask the user to repeat a concise
+confirmation phrase verbatim in a new message, and only then call the tool with
+that exact phrase. The gateway verifies this generic field before forwarding the
+proxied `call_tool`; MCP keeps the field mandatory for write/delete schemas.
+
 ## Tool Documentation
 
 Tool documentation is organized by Collector domain:

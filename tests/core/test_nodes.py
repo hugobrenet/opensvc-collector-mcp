@@ -149,6 +149,38 @@ async def test_delete_node_rejects_ambiguous_node_id_snapshot(
     assert delete_recorder.calls == []
 
 
+async def test_delete_node_rejects_nodename_passed_as_node_id(
+    monkeypatch,
+    collector_mock_factory,
+):
+    collector = collector_mock_factory(
+        [
+            {
+                "meta": {},
+                "data": [
+                    {
+                        "node_id": "real-node-id",
+                        "nodename": "node-a",
+                    }
+                ],
+            }
+        ]
+    )
+    delete_recorder = CollectorDeleteRecorder({"info": "node deleted"})
+    monkeypatch.setattr(inventory, "collector_get", collector.get)
+    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+
+    with pytest.raises(ValueError, match="node_id must be the exact Collector node_id"):
+        await inventory.delete_node(
+            node_id="node-a",
+            confirm_node_id="node-a",
+            confirm_nodename="node-a",
+        )
+
+    assert collector.calls[0].path == "/nodes/node-a"
+    assert delete_recorder.calls == []
+
+
 async def test_update_node_properties_posts_allowlisted_fields(monkeypatch):
     recorder = CollectorPostRecorder({"info": "node updated"})
     monkeypatch.setattr(inventory, "collector_post", recorder)

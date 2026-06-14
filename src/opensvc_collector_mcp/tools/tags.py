@@ -42,8 +42,10 @@ def register_tags_tools(mcp: FastMCP) -> None:
         timeout=TOOL_TIMEOUT_SECONDS,
         name="create_tag",
         description=(
-            "Create one OpenSVC Collector tag. Requires Collector TagManager "
-            "or Manager privileges through MCP RBAC."
+            "Create one OpenSVC Collector tag. Before calling, ask the user "
+            "to repeat an exact confirmation phrase and include it in "
+            "request.confirmation.phrase. Requires Collector TagManager or "
+            "Manager privileges through MCP RBAC."
         ),
         tags={"tags", "create", "write:tags"},
         annotations={

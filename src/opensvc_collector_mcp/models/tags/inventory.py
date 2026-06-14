@@ -2,6 +2,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from opensvc_collector_mcp.models.common import ToolConfirmation
+
 
 def _is_none(value: object) -> bool:
     return value is None
@@ -260,6 +262,14 @@ class CreateTagRequest(BaseModel):
         default=None,
         description="Optional Collector tag exclusion value.",
     )
+    confirmation: ToolConfirmation = Field(
+        description=(
+            "Required confirmation gate for this state-changing tool. Before "
+            "calling create_tag, summarize the exact tag to create, ask the "
+            "user to repeat a concise confirmation phrase verbatim, and set this "
+            "field only when that exact phrase appears in the latest user message."
+        ),
+    )
 
     @model_validator(mode="after")
     def normalize(self) -> "CreateTagRequest":
@@ -285,6 +295,14 @@ class DeleteTagRequest(TagIdentityRequest):
         ),
         min_length=1,
         examples=["mcp-test-tag"],
+    )
+    confirmation: ToolConfirmation = Field(
+        description=(
+            "Required confirmation gate for this destructive tool. Before calling "
+            "delete_tag, generate a concise phrase containing the exact tag id or "
+            "tag name, ask the user to repeat it verbatim, and set this field "
+            "only when that exact phrase appears in the latest user message."
+        ),
     )
 
     @model_validator(mode="after")

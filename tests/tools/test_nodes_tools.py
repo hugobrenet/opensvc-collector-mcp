@@ -31,6 +31,7 @@ async def test_delete_node_tool_passes_request_to_core(monkeypatch, mcp_client):
                 "node_id": "node-a-id",
                 "confirm_node_id": "node-a-id",
                 "confirm_nodename": "node-a",
+                "confirmation": {"phrase": "DELETE node node-a-id node-a"},
             }
         },
     )
@@ -63,6 +64,7 @@ async def test_update_node_properties_tool_passes_request_to_core(monkeypatch, m
             "request": {
                 "nodename": "node-a",
                 "properties": {"loc_city": "Lab City"},
+                "confirmation": {"phrase": "UPDATE node node-a loc_city Lab City"},
             }
         },
     )

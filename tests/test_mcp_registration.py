@@ -142,6 +142,22 @@ async def test_update_node_properties_is_marked_as_destructive_write():
     assert tool.annotations.destructiveHint is True
 
 
+async def test_state_changing_tools_require_confirmation_phrase_in_schema():
+    tools = await build_mcp()._list_tools()
+    tools_by_name = {tool.name: tool for tool in tools}
+
+    for name in {"create_tag", "delete_tag", "delete_node", "update_node_properties"}:
+        schema = tools_by_name[name].parameters
+        request_ref = schema["properties"]["request"]["$ref"]
+        request_schema = schema["$defs"][request_ref.rsplit("/", 1)[-1]]
+        confirmation_ref = request_schema["properties"]["confirmation"]["$ref"]
+        confirmation_schema = schema["$defs"][confirmation_ref.rsplit("/", 1)[-1]]
+
+        assert "confirmation" in request_schema["required"]
+        assert confirmation_schema["properties"]["phrase"]["minLength"] == 1
+        assert "latest user message" in confirmation_schema["properties"]["phrase"]["description"]
+
+
 async def test_default_tool_listing_exposes_bm25_search_tools(mcp_client):
     tools = await mcp_client.list_tools()
     tool_names = {tool.name for tool in tools}

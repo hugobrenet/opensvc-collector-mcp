@@ -19,7 +19,9 @@ RBAC.
 The deletion selector is `node_id` only. The tool intentionally does not accept
 `nodename` as a selector because Collector can contain duplicate nodenames. Use
 `list_nodes` with `props="node_id,nodename,status"` to identify the exact row
-first, then call `delete_node` with both confirmations.
+first. Because this is destructive, the assistant must then generate a concise
+confirmation phrase containing the exact `node_id` and `nodename`, ask the user
+to repeat it verbatim in a new message, and only then call `delete_node`.
 
 Required input fields:
 
@@ -27,7 +29,13 @@ Required input fields:
 node_id
 confirm_node_id
 confirm_nodename
+confirmation.phrase
 ```
+
+`confirmation.phrase` is the gateway safety gate shared by all state-changing
+tools. It must be the exact phrase repeated by the user in the latest message;
+the gateway blocks the proxied `call_tool` before MCP execution if the phrase is
+missing from that latest message.
 
 Example:
 
@@ -36,14 +44,21 @@ Example:
   "request": {
     "node_id": "NODE-ID",
     "confirm_node_id": "NODE-ID",
-    "confirm_nodename": "lab-node-01"
+    "confirm_nodename": "lab-node-01",
+    "confirmation": {
+      "phrase": "DELETE node NODE-ID lab-node-01"
+    }
   }
 }
 ```
 
 The tool reads a node snapshot before deleting. The DELETE call is not sent if
-`confirm_node_id` differs from `node_id`, if `confirm_nodename` differs from the
-resolved snapshot nodename, or if the snapshot is missing or ambiguous.
+`confirm_node_id` differs from `node_id`, if the resolved snapshot `node_id`
+differs from the requested `node_id`, if `confirm_nodename` differs from the
+resolved snapshot nodename, or if the snapshot is missing or ambiguous. This
+prevents passing a nodename in the `node_id` field. The `confirmation.phrase`
+field is not forwarded to the Collector; it exists to make the user confirmation
+explicit and machine-checkable in the gateway.
 
 Output fields:
 
@@ -67,7 +82,11 @@ node and can overwrite previous property values.
 
 The tool does not expose node creation or deletion. It accepts the fields marked
 `writable=true` by the Collector nodes API definition, and rejects fields marked
-`writable=false` such as `node_env`.
+`writable=false` such as `node_env`. Because it changes Collector state, the
+request requires `confirmation.phrase`: the assistant must summarize the exact
+node and property changes, ask the user to repeat a concise phrase verbatim, and
+set `confirmation.phrase` only after that phrase appears in the latest user
+message.
 
 Accepted properties:
 
@@ -135,6 +154,22 @@ Example:
     "nodename": "lab-node-01",
     "properties": {
       "asset_env": "PPR"
+    }
+  }
+}
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "nodename": "lab-node-01",
+    "properties": {
+      "asset_env": "PPR"
+    },
+    "confirmation": {
+      "phrase": "UPDATE node lab-node-01 asset_env PPR"
     }
   }
 }

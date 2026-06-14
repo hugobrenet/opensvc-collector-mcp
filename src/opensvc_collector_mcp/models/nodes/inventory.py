@@ -2,6 +2,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from opensvc_collector_mcp.models.common import ToolConfirmation
+
 
 class NodeFilterRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -146,6 +148,14 @@ class DeleteNodeRequest(BaseModel):
         min_length=1,
         examples=["lab-node-01"],
     )
+    confirmation: ToolConfirmation = Field(
+        description=(
+            "Required confirmation gate for this destructive tool. Before calling "
+            "delete_node, generate a concise phrase containing the exact node_id "
+            "and nodename, ask the user to repeat it verbatim, and set this field "
+            "only when that exact phrase appears in the latest user message."
+        ),
+    )
 
     @model_validator(mode="after")
     def normalize(self) -> "DeleteNodeRequest":
@@ -188,6 +198,15 @@ class UpdateNodePropertiesRequest(BaseModel):
             "advertised as writable by the Collector nodes API definition."
         ),
         examples=[{"asset_env": "PPR", "nodename": "lab-node-02"}],
+    )
+    confirmation: ToolConfirmation = Field(
+        description=(
+            "Required confirmation gate for this state-changing tool. Before "
+            "calling update_node_properties, summarize the exact node and property "
+            "changes, ask the user to repeat a concise confirmation phrase "
+            "verbatim, and set this field only when that exact phrase appears in "
+            "the latest user message."
+        ),
     )
 
     @model_validator(mode="after")
