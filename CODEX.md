@@ -121,6 +121,9 @@ Current package layout:
   app-domain Pydantic contracts
 - `src/opensvc_collector_mcp/models/arrays/`
   array-domain Pydantic contracts
+- `src/opensvc_collector_mcp/models/common.py`
+  shared Pydantic contracts used across domains, including
+  `ToolConfirmation` for state-changing tool input schemas
 
 Current MCP node tool surface:
 
@@ -289,6 +292,35 @@ Tool implementation standard:
 - Response models should describe nested raw Collector objects when they are returned alongside flattened fields
 - Prefer descriptions that help an MCP client choose the tool correctly, not just descriptions of the Python implementation
 - Treat this as the default standard for all future tools in this repository
+
+State-changing confirmation contract:
+
+- Every MCP tool that creates, updates, deletes, executes, or otherwise changes
+  Collector state must expose a required `request.confirmation.phrase` field
+  using `models/common.py::ToolConfirmation`.
+- This is a schema-level MCP contract. Because it is in the Pydantic input
+  schema, `search_tools` returns it to the LLM together with the selected tool
+  metadata.
+- The MCP schema only requires a non-empty phrase. It intentionally does not
+  hard-code a semantic phrase, node id, tag id, or other object-specific token.
+  The LLM prompt and tool descriptions tell the assistant to generate a precise
+  phrase after resolving and summarizing the target action.
+- Gateway enforces the generic chat safety gate: when the proxied `call_tool`
+  payload contains `request.confirmation.phrase`, the phrase must appear
+  verbatim in the latest user message before the gateway forwards the call to
+  MCP.
+- Tool descriptions for state-changing tools must tell the assistant to ask the
+  user to repeat the exact phrase before calling the tool. Include stable
+  identifiers in the suggested phrase when available, for example `node_id`
+  plus `nodename` for node deletion.
+- Core functions should receive only business arguments. Do not pass
+  `confirmation` into `core/` or Collector REST payloads; it is a gateway/LLM
+  safety guard at the MCP boundary.
+- Current state-changing tools using this contract:
+  `create_tag`, `delete_tag`, `delete_node`, and `update_node_properties`.
+- When adding another state-changing tool, update:
+  `tests/test_mcp_registration.py`, the domain tool tests, tool docs under
+  `docs/tools/`, and the tool description/annotations.
 
 Async implementation standard:
 
