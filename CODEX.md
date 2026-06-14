@@ -322,6 +322,36 @@ State-changing confirmation contract:
   `tests/test_mcp_registration.py`, the domain tool tests, tool docs under
   `docs/tools/`, and the tool description/annotations.
 
+Delete tool selector and confirmation standard:
+
+- Destructive delete tools should use a stable Collector identifier as the live
+  delete selector whenever the domain has one, for example `node_id`. Do not
+  expose ambiguous `id_or_name` selectors for destructive tools.
+- Human-readable attributes such as `nodename`, tag name, username, app name, or
+  service path are correlation attributes. Use them for search/resolution, target
+  summaries, and explicit confirmation, not as the sole destructive selector
+  when a stable id exists.
+- If the user asks to delete by name, the assistant must first call read/search
+  tools to resolve candidates. If zero or multiple candidates are found, do not
+  delete; ask for clarification or present the candidate ids. If exactly one
+  candidate is found, summarize it and ask for explicit confirmation including
+  both the stable id and the human-readable correlation attribute.
+- Delete request models should use explicit field names such as `node_id`,
+  `tag_id`, or `user_id`, plus explicit confirmation/correlation fields such as
+  `confirm_nodename`, `confirm_tag_id`, or `confirm_tag_name` when useful. Avoid a generic field
+  named only `id` when users may confuse it with a name.
+- Delete core logic should re-read or validate the target by stable id just
+  before the DELETE call when the Collector API allows it, then verify the
+  supplied correlation attribute still matches. Reject on mismatch to catch stale
+  LLM context, renamed objects, or user copy/paste errors.
+- If a Collector endpoint only supports deletion by name and no stable id exists,
+  document that exception in the tool docs and keep a stricter guard: exact
+  prior read resolution, exact confirmation phrase, and explicit correlation
+  field matched against the resolved object.
+- The confirmation phrase should include the stable id and correlation attribute
+  whenever both exist. Example for node deletion:
+  `DELETE node <node_id> <nodename>`.
+
 Async implementation standard:
 
 - All new MCP tools must be implemented as `async def`.
@@ -532,9 +562,9 @@ Safety rules for the first write/action wave:
   Manager override, unknown tag, and Collector endpoint rejection.
 - Destructive tools must require explicit destructive tags such as
   `delete:<domain>` and should add dry-run or confirmation conventions before
-  live execution. The first tag delete tool uses `delete:tags` plus
-  `confirm_tag_name` matched against the resolved Collector tag before calling
-  `DELETE /tags/<id>`.
+  live execution. The tag delete tool uses `delete:tags`, selects by stable
+  `tag_id` only, requires `confirm_tag_id` plus `confirm_tag_name`, and matches
+  both against the resolved Collector tag before calling `DELETE /tags/<id>`.
 - Audit is mandatory for write/delete/exec attempts, including allowed, denied,
   Collector-rejected, and execution-error cases. Include request id, user,
   client tool, target tool, target object identifiers, required privileges,

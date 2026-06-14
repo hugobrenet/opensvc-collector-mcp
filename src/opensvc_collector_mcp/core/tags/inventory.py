@@ -61,31 +61,47 @@ async def create_tag(
 
 
 async def delete_tag(
-    tag_id: str | None = None,
-    tag_name: str | None = None,
-    confirm_tag_name: str | None = None,
+    tag_id: str,
+    confirm_tag_id: str,
+    confirm_tag_name: str,
 ) -> dict[str, Any]:
-    resolved = await _resolve_tag_selector(tag_id=tag_id, tag_name=tag_name)
-    tag = await _get_tag_snapshot(resolved["tag_id"])
-    resolved_tag_name = str(tag.get("tag_name") or resolved.get("tag_name") or "").strip()
-    confirmation = confirm_tag_name.strip() if confirm_tag_name else ""
+    tag_id = tag_id.strip()
+    confirmation_id = confirm_tag_id.strip() if confirm_tag_id else ""
+    confirmation_name = confirm_tag_name.strip() if confirm_tag_name else ""
+
+    if not tag_id:
+        raise ValueError("tag_id must not be empty")
+    if confirmation_id != tag_id:
+        raise ValueError("confirm_tag_id must match tag_id")
+    if not confirmation_name:
+        raise ValueError("confirm_tag_name must not be empty")
+
+    tag = await _get_tag_snapshot(tag_id)
+    resolved_tag_id = str(tag.get("tag_id") or "").strip()
+    resolved_tag_name = str(tag.get("tag_name") or "").strip()
+    if not resolved_tag_id:
+        raise ValueError("resolved tag has no tag_id; refusing to delete")
+    if resolved_tag_id != tag_id:
+        raise ValueError(
+            "tag_id must be the exact Collector tag_id, not a tag_name; "
+            "resolve the tag first with list_tags using props=tag_id,tag_name"
+        )
     if not resolved_tag_name:
         raise ValueError("resolved tag has no tag_name; refusing to delete")
-    if confirmation != resolved_tag_name:
+    if confirmation_name != resolved_tag_name:
         raise ValueError("confirm_tag_name must match the resolved tag_name")
 
-    response = await collector_delete(f"/tags/{quote(resolved['tag_id'], safe='')}")
+    response = await collector_delete(f"/tags/{quote(tag_id, safe='')}")
     return {
-        "tag_id": resolved["tag_id"],
+        "tag_id": tag_id,
         "tag_name": resolved_tag_name,
         "tag": tag,
         "deleted": True,
         "collector_response": response,
         "meta": {
             "source": "tags/<tag_id>",
-            "selector": resolved["selector"],
-            "resolution": resolved["resolution"],
-            "confirmation": "confirm_tag_name",
+            "selector": "tag_id",
+            "confirmation": ["confirm_tag_id", "confirm_tag_name"],
         },
     }
 
@@ -294,6 +310,8 @@ async def _get_tag_snapshot(tag_id: str) -> dict[str, Any]:
     rows = response.get("data", [])
     if not isinstance(rows, list) or not rows:
         raise ValueError(f"tag_id {tag_id!r} not found")
+    if len(rows) != 1:
+        raise ValueError("tag_id resolved to multiple tags; refusing to delete")
     row = rows[0]
     if not isinstance(row, dict):
         raise ValueError(f"tag_id {tag_id!r} returned an invalid tag row")

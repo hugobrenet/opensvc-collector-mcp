@@ -287,11 +287,26 @@ class CreateTagResponse(TagRowsResponse):
     )
 
 
-class DeleteTagRequest(TagIdentityRequest):
+class DeleteTagRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    tag_id: str = Field(
+        description=(
+            "Exact Collector tag id to delete. Use list_tags with props "
+            "tag_id,tag_name to resolve tag names before deletion."
+        ),
+        min_length=1,
+        examples=["TAG-ID"],
+    )
+    confirm_tag_id: str = Field(
+        description="Exact tag_id confirmation required before deleting the tag.",
+        min_length=1,
+        examples=["TAG-ID"],
+    )
     confirm_tag_name: str = Field(
         description=(
-            "Exact resolved tag name required as a destructive-operation "
-            "confirmation before deleting the tag and its Collector attachments."
+            "Exact tag_name read from the tag snapshot. This is a human safety "
+            "confirmation, not the deletion selector."
         ),
         min_length=1,
         examples=["mcp-test-tag"],
@@ -299,15 +314,23 @@ class DeleteTagRequest(TagIdentityRequest):
     confirmation: ToolConfirmation = Field(
         description=(
             "Required confirmation gate for this destructive tool. Before calling "
-            "delete_tag, generate a concise phrase containing the exact tag id or "
-            "tag name, ask the user to repeat it verbatim, and set this field "
+            "delete_tag, generate a concise phrase containing the exact tag_id "
+            "and tag_name, ask the user to repeat it verbatim, and set this field "
             "only when that exact phrase appears in the latest user message."
         ),
     )
 
     @model_validator(mode="after")
     def normalize_confirmation(self) -> "DeleteTagRequest":
+        self.tag_id = self.tag_id.strip()
+        self.confirm_tag_id = self.confirm_tag_id.strip()
         self.confirm_tag_name = self.confirm_tag_name.strip()
+        if not self.tag_id:
+            raise ValueError("tag_id must not be empty")
+        if not self.confirm_tag_id:
+            raise ValueError("confirm_tag_id must not be empty")
+        if self.confirm_tag_id != self.tag_id:
+            raise ValueError("confirm_tag_id must match tag_id")
         if not self.confirm_tag_name:
             raise ValueError("confirm_tag_name must not be empty")
         return self

@@ -74,10 +74,14 @@ def register_tags_tools(mcp: FastMCP) -> None:
         timeout=TOOL_TIMEOUT_SECONDS,
         name="delete_tag",
         description=(
-            "Delete one OpenSVC Collector tag selected by exact tag id or "
-            "exact tag name. This also deletes Collector attachments to "
-            "nodes and services. Requires confirm_tag_name and Collector "
-            "TagManager or Manager privileges through MCP RBAC."
+            "Delete one OpenSVC Collector tag selected by exact Collector "
+            "tag_id. Do not use tag_name as the deletion selector; resolve "
+            "names first with list_tags using props tag_id,tag_name. This also "
+            "deletes Collector attachments to nodes and services. Before "
+            "calling, ask the user to repeat an exact confirmation phrase and "
+            "include it in request.confirmation.phrase. Requires "
+            "confirm_tag_id, confirm_tag_name, and Collector TagManager or "
+            "Manager privileges through MCP RBAC."
         ),
         tags={"tags", "delete", "delete:tags"},
         annotations={
@@ -97,7 +101,7 @@ def register_tags_tools(mcp: FastMCP) -> None:
         """Delete an OpenSVC Collector tag after explicit name confirmation."""
         response = await core_delete_tag(
             tag_id=request.tag_id,
-            tag_name=request.tag_name,
+            confirm_tag_id=request.confirm_tag_id,
             confirm_tag_name=request.confirm_tag_name,
         )
         return DeleteTagResponse.model_validate(response)

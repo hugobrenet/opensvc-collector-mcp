@@ -28,9 +28,10 @@ async def test_delete_tag_tool_passes_request_to_core(monkeypatch, mcp_client):
         "delete_tag",
         {
             "request": {
-                "tag_name": "mcp-test-tag",
+                "tag_id": "tag-1",
+                "confirm_tag_id": "tag-1",
                 "confirm_tag_name": "mcp-test-tag",
-                "confirmation": {"phrase": "DELETE tag mcp-test-tag"},
+                "confirmation": {"phrase": "DELETE tag tag-1 mcp-test-tag"},
             }
         },
     )
@@ -39,8 +40,8 @@ async def test_delete_tag_tool_passes_request_to_core(monkeypatch, mcp_client):
     assert result.structured_content["tag_name"] == "mcp-test-tag"
     assert recorder.calls == [
         {
-            "tag_id": None,
-            "tag_name": "mcp-test-tag",
+            "tag_id": "tag-1",
+            "confirm_tag_id": "tag-1",
             "confirm_tag_name": "mcp-test-tag",
         }
     ]
