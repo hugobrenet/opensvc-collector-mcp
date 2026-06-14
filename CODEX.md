@@ -352,6 +352,50 @@ Delete tool selector and confirmation standard:
   whenever both exist. Example for node deletion:
   `DELETE node <node_id> <nodename>`.
 
+State-changing tool class standards:
+
+- All state-changing classes share the same baseline: explicit RBAC tag,
+  `request.confirmation.phrase`, clear MCP annotations, structured audit,
+  sanitized errors, and Collector as final authority.
+- `POST create` tools create new Collector objects. They do not need a mandatory
+  pre-check for object existence; let Collector return the conflict/error and
+  propagate it cleanly. The assistant should still summarize the object to
+  create and ask for confirmation before calling the tool. Use names naturally
+  for new objects when the object does not have a stable id yet.
+- `PUT/PATCH/POST update` tools modify existing Collector objects. Prefer stable
+  ids as selectors when the Collector endpoint supports them. If the Collector
+  endpoint requires a name selector, document the exception, resolve/summarize
+  the target first, and include the human-readable selector in confirmation.
+  Update request models should expose only writable fields, not arbitrary raw
+  payloads.
+- `DELETE` tools follow the stricter delete standard above: stable id selector
+  when available, human-readable correlation attribute, pre-delete snapshot,
+  exact confirmation fields, and no ambiguous `id_or_name` selector.
+- `attach/detach` tools are state-changing relation updates. Resolve both sides
+  before execution, for example source id/name and target id/name. The request
+  model should include stable ids for both sides when available and confirmation
+  fields for the human-readable correlation attributes. Do not silently batch
+  relation changes unless the tool name and schema are explicitly batch-oriented.
+- `rename` tools are logical updates and should be treated as sensitive. Prefer
+  a real Collector rename/update endpoint. Do not synthesize rename as
+  create/copy/reattach/delete unless the tool is explicitly designed for that
+  migration, all required state-changing tools exist, every affected object is
+  summarized, and the user confirms the full plan. Check destination conflicts
+  only when it is needed for target disambiguation or user clarity; Collector
+  remains final authority for conflicts.
+- `exec` tools trigger runtime or operational actions through Collector, for
+  example service start/stop/restart/switch, node actions, compliance runs,
+  provisioning, scheduler actions, or any endpoint that asks an OpenSVC agent or
+  backend worker to do operational work. They must use dedicated `exec:<domain>`
+  RBAC tags, explicit target resolution, confirmation with stable identifiers
+  when available, no implicit batch scope, and audit for accepted, denied,
+  Collector-rejected, and failed executions. Add dry-run/preview support when
+  Collector exposes it.
+- Do not claim a state-changing operation is executable just because a user asks
+  for it. The assistant must select real MCP tools returned by `search_tools`;
+  if the needed tool class is missing, answer that the operation is unsupported
+  by the current MCP surface and offer read-only analysis.
+
 Async implementation standard:
 
 - All new MCP tools must be implemented as `async def`.
@@ -653,6 +697,112 @@ Node tool design decisions:
 - `get_node` returns raw full node detail.
 - `get_node_health` returns an interpreted health summary.
 - `list_node_props` is the schema discovery tool for node properties.
+
+Node state-changing tool TODO list:
+
+- General rule for every item below: before implementation, re-check the
+  current Collector handler in `collector/init/models/rest/api_nodes.py`,
+  `collector/init/models/rest/api_tags.py`, and `api_handlers.py`; verify the
+  applicable state-changing rule from this `CODEX.md`; add
+  `request.confirmation.phrase`; add RBAC tags; add core/tool/schema tests; add
+  docs under `docs/tools/nodes.md` or `docs/tools/tags.md` depending on the
+  public tool domain.
+- [ ] `snooze_node_notifications`
+  - Collector API: `POST /nodes/<id>/snooze` with `duration`.
+  - Classification: `POST update` on node metadata, not runtime exec.
+  - RBAC: `write:nodes` (`NodeManager` or `Manager`).
+  - Selector/confirmation: resolve node first; call with `node_id`,
+    `confirm_node_id`, `confirm_nodename`, and `confirmation.phrase`.
+  - Request shape: explicit duration string; document Collector duration format
+    accepted by `convert_duration()`.
+  - Response: include node snapshot before/after when practical, returned
+    Collector response, and `snooze_till` if available.
+- [ ] `unsnooze_node_notifications`
+  - Collector API: `POST /nodes/<id>/snooze` without `duration`.
+  - Keep this as a separate tool from snooze so omission of `duration` does not
+    silently invert the operation.
+  - Same RBAC and selector/confirmation as `snooze_node_notifications`.
+- [ ] `attach_tag_to_node`
+  - Collector API: prefer `POST /tags/<tag_id>/nodes/<node_id>` over the bulk
+    style `POST /tags/nodes` for a single explicit relation.
+  - Classification: `attach/detach` relation update.
+  - RBAC decision needed before implementation: either reuse `write:tags`
+    (`TagManager` or `Manager`) because the Collector route lives in tags, or
+    introduce/choose a more explicit relation tag if needed. Do not mix
+    `write:tags` and `write:nodes` on one tool because RBAC denies mixed auth
+    tags.
+  - Selector/confirmation: resolve both sides first; call with `tag_id`,
+    `node_id`, `confirm_tag_name`, `confirm_node_id`, `confirm_nodename`, and
+    `confirmation.phrase`.
+  - Optional payload: `tag_attach_data` if exposed; keep it typed and documented
+    instead of raw dict passthrough.
+  - No implicit batch attach. Add a separate batch tool later only if it has an
+    explicit batch schema and confirmation summary.
+- [ ] `detach_tag_from_node`
+  - Collector API: prefer `DELETE /tags/<tag_id>/nodes/<node_id>` over the bulk
+    style `DELETE /tags/nodes`.
+  - Classification: destructive relation update, not deletion of the tag or
+    node object.
+  - RBAC should match `attach_tag_to_node`.
+  - Selector/confirmation: same two-sided resolution and confirmation fields as
+    attach. Re-read the current relation or attached tag/node snapshots before
+    DELETE when practical.
+- [ ] `create_node`
+  - Collector API: `POST /nodes`.
+  - Important exception: Collector `POST /nodes` is create-or-update. If
+    `nodename` or `node_id` resolves to an existing node, the handler delegates
+    to `rest_post_node()` and can update instead of creating. MCP must guard
+    against this by checking/resolving first and refusing to create when a node
+    already exists. This is an exception to the generic create rule that usually
+    lets Collector report conflicts.
+  - RBAC: `write:nodes`.
+  - Confirmation: include requested `nodename` and key properties to create.
+  - Request model: expose only writable/safe creation fields; avoid arbitrary raw
+    node payloads. Let Collector assign `node_id`.
+  - Suggested priority: implement after snooze and tag-node relation tools.
+- [ ] Node compliance attach/detach tools
+  - Collector APIs: `POST/DELETE /nodes/<id>/compliance/modulesets/<id>` and
+    `/nodes/<id>/compliance/rulesets/<id>`.
+  - Defer to the compliance domain unless there is a strong node UX reason.
+    These relations influence what the OpenSVC agent checks/fixes later, so
+    treat them as more sensitive than simple inventory metadata.
+  - Likely RBAC: `write:compliance` or a dedicated compliance relation policy,
+    not plain `write:nodes`, but confirm against Collector privilege checks
+    before implementation.
+- [ ] `freeze_node`
+  - Collector API: `PUT /actions` with `node_id=<node_id>` and `action=freeze`.
+  - Classification: `exec:nodes`; this enqueues `nodemgr freeze --local` through
+    the Collector action queue.
+  - RBAC: `exec:nodes` (`NodeExec` or `Manager`).
+  - Selector/confirmation: resolve node first; call with `node_id`,
+    `confirm_node_id`, `confirm_nodename`, and `confirmation.phrase`.
+  - No implicit batch. If freezing multiple nodes is needed later, create an
+    explicit batch tool with a full target summary.
+- [ ] `thaw_node`
+  - Collector API: `PUT /actions` with `node_id=<node_id>` and `action=thaw`.
+  - Classification/RBAC/confirmation: same as `freeze_node`.
+  - Use the OpenSVC/Collector action name `thaw`; describe it to users as thaw
+    or unfreeze.
+- [ ] Other node-only action queue tools
+  - Collector API: `PUT /actions` with `node_id=<node_id>` and one action.
+  - Candidate node-only actions observed in `api_action_queue.py` and
+    `json_action_one()`: `pushasset`, `pushdisks`, `pull`, `push`, `pushpkg`,
+    `pushpatch`, `pushstats`, `checks`, `sysreport`, `updatecomp`, `updatepkg`,
+    `rotate_root_pw`, `scanscsi`, `reboot`, `schedule_reboot`,
+    `unschedule_reboot`, `shutdown`, and `wol`.
+  - Implement as separate narrow tools or a constrained enum tool only after
+    deciding UX and risk. High-impact actions such as `reboot`, `shutdown`,
+    `rotate_root_pw`, and `scanscsi` need especially explicit descriptions,
+    confirmation phrases, and audit.
+  - Do not mix service-instance actions here. Actions requiring `svc_id` belong
+    to service/domain tools even when they also take `node_id`.
+- [ ] Node compliance exec tools
+  - Collector API: `PUT /actions` with `node_id=<node_id>`, action
+    `compliance_check` or `compliance_fix`, and `module`, `moduleset`, or
+    `ruleset`.
+  - Classification: `exec:compliance` (`CompExec` or `Manager`), not plain
+    `exec:nodes`, because `do_node_comp_action()` checks `CompExec`.
+  - Defer to the compliance domain unless there is a strong node UX reason.
 
 Generic node filters:
 
