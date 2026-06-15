@@ -8,8 +8,12 @@ from opensvc_collector_mcp.client import (
     collector_post,
 )
 from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
-from opensvc_collector_mcp.core.nodes._common import resolve_single_node_selector
-from opensvc_collector_mcp.core.tags._common import resolve_single_tag_selector
+from opensvc_collector_mcp.core.nodes._common import resolve_node_reference
+from opensvc_collector_mcp.core.prechecks import clean_value
+from opensvc_collector_mcp.core.tags._common import (
+    resolve_single_tag_selector,
+    resolve_tag_reference,
+)
 
 
 DEFAULT_LIST_TAG_PROPS = "tag_id,tag_name,tag_exclude,tag_created"
@@ -116,39 +120,32 @@ async def attach_tag_to_node(
     nodename: str | None = None,
     tag_attach_data: str | None = None,
 ) -> dict[str, Any]:
-    selector_tag_id = tag_id.strip() if tag_id else ""
-    selector_tag_name = tag_name.strip() if tag_name else ""
-    selector_node_id = node_id.strip() if node_id else ""
-    selector_nodename = nodename.strip() if nodename else ""
+    selector_tag_id = clean_value(tag_id)
+    selector_tag_name = clean_value(tag_name)
+    selector_node_id = clean_value(node_id)
+    selector_nodename = clean_value(nodename)
 
-    if not selector_tag_id and not selector_tag_name:
-        raise ValueError("attach tag to node requires tag_id or tag_name")
-    if not selector_node_id and not selector_nodename:
-        raise ValueError("attach tag to node requires node_id or nodename")
-
-    tag = await resolve_single_tag_selector(
+    tag = await resolve_tag_reference(
         tag_id=selector_tag_id or None,
-        tag_name=None if selector_tag_id else selector_tag_name or None,
+        tag_name=selector_tag_name or None,
         operation="attach tag to node",
+        missing_message="attach tag to node requires tag_id or tag_name",
     )
-    node = await resolve_single_node_selector(
+    node = await resolve_node_reference(
         node_id=selector_node_id or None,
-        nodename=None if selector_node_id else selector_nodename or None,
+        nodename=selector_nodename or None,
         props=(
             "node_id,nodename,status,updated,node_env,asset_env,"
             "team_responsible,loc_city"
         ),
         operation="attach tag to node",
+        missing_message="attach tag to node requires node_id or nodename",
     )
 
-    resolved_tag_id = str(tag.get("tag_id") or "").strip()
-    resolved_tag_name = str(tag.get("tag_name") or "").strip()
-    resolved_node_id = str(node.get("node_id") or "").strip()
-    resolved_nodename = str(node.get("nodename") or "").strip()
-    if selector_tag_name and selector_tag_name != resolved_tag_name:
-        raise ValueError("tag_name must match the resolved tag_id")
-    if selector_nodename and selector_nodename != resolved_nodename:
-        raise ValueError("nodename must match the resolved node_id")
+    resolved_tag_id = clean_value(tag.get("tag_id"))
+    resolved_tag_name = clean_value(tag.get("tag_name"))
+    resolved_node_id = clean_value(node.get("node_id"))
+    resolved_nodename = clean_value(node.get("nodename"))
     payload = None
     if tag_attach_data is not None:
         payload = {"tag_attach_data": tag_attach_data}

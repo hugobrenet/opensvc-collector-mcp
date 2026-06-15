@@ -2,6 +2,14 @@ from typing import Any
 from urllib.parse import quote
 
 from opensvc_collector_mcp.client import collector_get
+from opensvc_collector_mcp.core.prechecks import (
+    clean_value,
+    require_at_least_one_selector,
+    require_exactly_one_selector,
+    require_identity,
+    require_match,
+    require_single_row,
+)
 from opensvc_collector_mcp.core.utils import collection_params
 
 
@@ -28,33 +36,81 @@ async def resolve_single_node_selector(
     props: str = DEFAULT_NODE_SELECTOR_PROPS,
     operation: str = "node operation",
 ) -> dict[str, Any]:
-    node_id = node_id.strip() if node_id else ""
-    nodename = nodename.strip() if nodename else ""
-    if bool(node_id) == bool(nodename):
-        raise ValueError(
-            f"{operation} requires exactly one node selector: node_id or nodename"
-        )
+    selectors = require_exactly_one_selector(
+        operation,
+        {"node_id": node_id, "nodename": nodename},
+        selector_kind="node",
+    )
+    node = await _resolve_node_by_preferred_selector(
+        node_id=selectors["node_id"],
+        nodename=selectors["nodename"],
+        props=props,
+        operation=operation,
+    )
+    require_identity(
+        node,
+        operation=operation,
+        target="node",
+        id_field="node_id",
+        name_field="nodename",
+    )
+    return node
 
+
+async def resolve_node_reference(
+    *,
+    node_id: str | None = None,
+    nodename: str | None = None,
+    props: str = DEFAULT_NODE_SELECTOR_PROPS,
+    operation: str = "node operation",
+    missing_message: str | None = None,
+    correlation_message: str = "nodename must match the resolved node_id",
+) -> dict[str, Any]:
+    selectors = require_at_least_one_selector(
+        operation,
+        {"node_id": node_id, "nodename": nodename},
+        selector_kind="node",
+        message=missing_message,
+    )
+    node = await _resolve_node_by_preferred_selector(
+        node_id=selectors["node_id"],
+        nodename=selectors["nodename"],
+        props=props,
+        operation=operation,
+    )
+    _, resolved_nodename = require_identity(
+        node,
+        operation=operation,
+        target="node",
+        id_field="node_id",
+        name_field="nodename",
+    )
+    require_match(
+        selectors["nodename"],
+        resolved_nodename,
+        message=correlation_message,
+    )
+    return node
+
+
+async def _resolve_node_by_preferred_selector(
+    *,
+    node_id: str,
+    nodename: str,
+    props: str,
+    operation: str,
+) -> dict[str, Any]:
     if node_id:
-        node = await _resolve_node_id_selector(
+        return await _resolve_node_id_selector(
             node_id=node_id,
             props=props,
             operation=operation,
         )
-    else:
-        node = await _resolve_nodename_selector(
-            nodename=nodename,
-            props=props,
-            operation=operation,
-        )
-
-    resolved_node_id = str(node.get("node_id") or "").strip()
-    resolved_nodename = str(node.get("nodename") or "").strip()
-    if not resolved_node_id:
-        raise ValueError(f"{operation} resolved node has no node_id")
-    if not resolved_nodename:
-        raise ValueError(f"{operation} resolved node has no nodename")
-    return node
+    return await _resolve_nodename_selector(
+        nodename=nodename,
+        props=props,
+        operation=operation,
+    )
 
 
 async def _resolve_node_id_selector(
@@ -67,16 +123,14 @@ async def _resolve_node_id_selector(
         f"/nodes/{quote(node_id, safe='')}",
         params={"props": props},
     )
-    data = response.get("data", [])
-    if not data:
-        raise ValueError(f"{operation} node_id not found: {node_id}")
-    if len(data) != 1:
-        raise ValueError(f"{operation} node_id resolved to multiple nodes: {node_id}")
-    node = data[0]
-    if not isinstance(node, dict):
-        raise ValueError(f"{operation} resolved node payload is invalid")
+    node = require_single_row(
+        response,
+        not_found_message=f"{operation} node_id not found: {node_id}",
+        multiple_message=f"{operation} node_id resolved to multiple nodes: {node_id}",
+        invalid_message=f"{operation} resolved node payload is invalid",
+    )
 
-    resolved_node_id = str(node.get("node_id") or "").strip()
+    resolved_node_id = clean_value(node.get("node_id"))
     if resolved_node_id != node_id:
         raise ValueError(
             f"{operation} node_id selector did not resolve to the exact node_id; "
@@ -102,18 +156,17 @@ async def _resolve_nodename_selector(
             offset=0,
         ),
     )
-    data = response.get("data", [])
-    if not data:
-        raise ValueError(f"{operation} nodename not found: {nodename}")
-    if len(data) != 1:
-        raise ValueError(
+    return require_single_row(
+        response,
+        not_found_message=f"{operation} nodename not found: {nodename}",
+        multiple_message=(
             f"{operation} nodename is ambiguous: {nodename}; "
             "retry with node_id from list_nodes"
-        )
-    node = data[0]
-    if not isinstance(node, dict):
-        raise ValueError(f"{operation} resolved node payload is invalid")
-    return node
+        ),
+        invalid_message=f"{operation} resolved node payload is invalid",
+        exact_match_field="nodename",
+        exact_match_value=nodename,
+    )
 
 
 async def _ensure_node_nodename_available(nodename: str) -> None:
@@ -133,10 +186,9 @@ async def _ensure_node_nodename_available(nodename: str) -> None:
         return
 
     existing = data[0] if isinstance(data[0], dict) else {}
-    existing_node_id = str(existing.get("node_id") or "").strip()
+    existing_node_id = clean_value(existing.get("node_id"))
     suffix = f" existing node_id={existing_node_id}" if existing_node_id else ""
     raise ValueError(
         f"node nodename already exists: {nodename};"
         f" for existing nodes;{suffix}"
     )
-

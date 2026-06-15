@@ -2,6 +2,14 @@ from typing import Any
 from urllib.parse import quote
 
 from opensvc_collector_mcp.client import collector_get
+from opensvc_collector_mcp.core.prechecks import (
+    clean_value,
+    require_at_least_one_selector,
+    require_exactly_one_selector,
+    require_identity,
+    require_match,
+    require_single_row,
+)
 from opensvc_collector_mcp.core.utils import collection_params
 
 
@@ -15,33 +23,81 @@ async def resolve_single_tag_selector(
     props: str = DEFAULT_TAG_SELECTOR_PROPS,
     operation: str = "tag operation",
 ) -> dict[str, Any]:
-    tag_id = tag_id.strip() if tag_id else ""
-    tag_name = tag_name.strip() if tag_name else ""
-    if bool(tag_id) == bool(tag_name):
-        raise ValueError(
-            f"{operation} requires exactly one tag selector: tag_id or tag_name"
-        )
+    selectors = require_exactly_one_selector(
+        operation,
+        {"tag_id": tag_id, "tag_name": tag_name},
+        selector_kind="tag",
+    )
+    tag = await _resolve_tag_by_preferred_selector(
+        tag_id=selectors["tag_id"],
+        tag_name=selectors["tag_name"],
+        props=props,
+        operation=operation,
+    )
+    require_identity(
+        tag,
+        operation=operation,
+        target="tag",
+        id_field="tag_id",
+        name_field="tag_name",
+    )
+    return tag
 
+
+async def resolve_tag_reference(
+    *,
+    tag_id: str | None = None,
+    tag_name: str | None = None,
+    props: str = DEFAULT_TAG_SELECTOR_PROPS,
+    operation: str = "tag operation",
+    missing_message: str | None = None,
+    correlation_message: str = "tag_name must match the resolved tag_id",
+) -> dict[str, Any]:
+    selectors = require_at_least_one_selector(
+        operation,
+        {"tag_id": tag_id, "tag_name": tag_name},
+        selector_kind="tag",
+        message=missing_message,
+    )
+    tag = await _resolve_tag_by_preferred_selector(
+        tag_id=selectors["tag_id"],
+        tag_name=selectors["tag_name"],
+        props=props,
+        operation=operation,
+    )
+    _, resolved_tag_name = require_identity(
+        tag,
+        operation=operation,
+        target="tag",
+        id_field="tag_id",
+        name_field="tag_name",
+    )
+    require_match(
+        selectors["tag_name"],
+        resolved_tag_name,
+        message=correlation_message,
+    )
+    return tag
+
+
+async def _resolve_tag_by_preferred_selector(
+    *,
+    tag_id: str,
+    tag_name: str,
+    props: str,
+    operation: str,
+) -> dict[str, Any]:
     if tag_id:
-        tag = await _resolve_tag_id_selector(
+        return await _resolve_tag_id_selector(
             tag_id=tag_id,
             props=props,
             operation=operation,
         )
-    else:
-        tag = await _resolve_tag_name_selector(
-            tag_name=tag_name,
-            props=props,
-            operation=operation,
-        )
-
-    resolved_tag_id = str(tag.get("tag_id") or "").strip()
-    resolved_tag_name = str(tag.get("tag_name") or "").strip()
-    if not resolved_tag_id:
-        raise ValueError(f"{operation} resolved tag has no tag_id")
-    if not resolved_tag_name:
-        raise ValueError(f"{operation} resolved tag has no tag_name")
-    return tag
+    return await _resolve_tag_name_selector(
+        tag_name=tag_name,
+        props=props,
+        operation=operation,
+    )
 
 
 async def _resolve_tag_id_selector(
@@ -54,16 +110,14 @@ async def _resolve_tag_id_selector(
         f"/tags/{quote(tag_id, safe='')}",
         params={"props": props},
     )
-    rows = response.get("data", [])
-    if not isinstance(rows, list) or not rows:
-        raise ValueError(f"{operation} tag_id not found: {tag_id}")
-    if len(rows) != 1:
-        raise ValueError(f"{operation} tag_id resolved to multiple tags: {tag_id}")
-    tag = rows[0]
-    if not isinstance(tag, dict):
-        raise ValueError(f"{operation} resolved tag payload is invalid")
+    tag = require_single_row(
+        response,
+        not_found_message=f"{operation} tag_id not found: {tag_id}",
+        multiple_message=f"{operation} tag_id resolved to multiple tags: {tag_id}",
+        invalid_message=f"{operation} resolved tag payload is invalid",
+    )
 
-    resolved_tag_id = str(tag.get("tag_id") or "").strip()
+    resolved_tag_id = clean_value(tag.get("tag_id"))
     if resolved_tag_id != tag_id:
         raise ValueError(
             f"{operation} tag_id selector did not resolve to the exact tag_id; "
@@ -89,17 +143,14 @@ async def _resolve_tag_name_selector(
             offset=0,
         ),
     )
-    rows = response.get("data", [])
-    if not isinstance(rows, list) or not rows:
-        raise ValueError(f"{operation} tag_name not found: {tag_name}")
-
-    exact_rows = [row for row in rows if str(row.get("tag_name") or "") == tag_name]
-    if len(exact_rows) != 1:
-        raise ValueError(
+    return require_single_row(
+        response,
+        not_found_message=f"{operation} tag_name not found: {tag_name}",
+        multiple_message=(
             f"{operation} tag_name is ambiguous: {tag_name}; "
             "retry with tag_id from list_tags"
-        )
-    tag = exact_rows[0]
-    if not isinstance(tag, dict):
-        raise ValueError(f"{operation} resolved tag payload is invalid")
-    return tag
+        ),
+        invalid_message=f"{operation} resolved tag payload is invalid",
+        exact_match_field="tag_name",
+        exact_match_value=tag_name,
+    )
