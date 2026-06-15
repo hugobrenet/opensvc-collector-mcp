@@ -274,6 +274,27 @@ async def test_create_node_rejects_existing_nodename_before_post(
     assert recorder.calls == []
 
 
+@pytest.mark.parametrize("reserved", ["node_id", "nodename"])
+async def test_create_node_rejects_reserved_properties_before_post(
+    monkeypatch,
+    collector_mock_factory,
+    reserved,
+):
+    collector = collector_mock_factory([{"meta": {"total": 0}, "data": []}])
+    recorder = CollectorPostRecorder({"info": "node submitted"})
+    monkeypatch.setattr(node_common, "collector_get", collector.get)
+    monkeypatch.setattr(inventory, "collector_post", recorder)
+
+    with pytest.raises(
+        ValueError,
+        match=f"create_node properties must not include reserved fields: {reserved}",
+    ):
+        await inventory.create_node("node-a", {f" {reserved} ": "reserved-value"})
+
+    assert collector.calls[0].path == "/nodes"
+    assert recorder.calls == []
+
+
 async def test_update_node_properties_posts_allowlisted_fields(monkeypatch):
     recorder = CollectorPostRecorder({"info": "node updated"})
     monkeypatch.setattr(inventory, "collector_post", recorder)

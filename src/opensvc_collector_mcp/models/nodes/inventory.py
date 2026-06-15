@@ -136,10 +136,18 @@ class CreateNodeRequest(BaseModel):
         default_factory=dict,
         description=(
             "Additional node properties to forward to Collector with the "
-            "creation request. Collector validates these properties. The "
-            "explicit nodename field is always sent as the nodename payload "
-            "property."
+            "creation request. Do not include node_id or nodename here: "
+            "Collector generates node_id, and the explicit nodename field is "
+            "always sent as the nodename payload property. Collector validates "
+            "the remaining properties."
         ),
+        json_schema_extra={
+            "propertyNames": {
+                "not": {
+                    "enum": ["node_id", "nodename"],
+                },
+            },
+        },
         examples=[{"asset_env": "PPR", "loc_city": "Lab City"}],
     )
     confirmation: ToolConfirmation = Field(
@@ -161,6 +169,12 @@ class CreateNodeRequest(BaseModel):
             for key, value in self.properties.items()
             if key.strip()
         }
+        forbidden = sorted(set(self.properties) & {"node_id", "nodename"})
+        if forbidden:
+            rejected = ", ".join(forbidden)
+            raise ValueError(
+                f"create_node properties must not include reserved fields: {rejected}"
+            )
         return self
 
 

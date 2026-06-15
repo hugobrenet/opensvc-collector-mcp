@@ -134,6 +134,18 @@ async def test_create_node_is_marked_as_destructive_write():
     assert tool.annotations.destructiveHint is True
 
 
+async def test_create_node_schema_rejects_reserved_properties():
+    tools = await build_mcp()._list_tools()
+    tool = next(tool for tool in tools if tool.name == "create_node")
+
+    request_schema = tool.parameters["$defs"]["CreateNodeRequest"]
+    properties_schema = request_schema["properties"]["properties"]
+
+    assert properties_schema["propertyNames"] == {
+        "not": {"enum": ["node_id", "nodename"]}
+    }
+
+
 async def test_delete_node_is_marked_as_destructive_write():
     tools = await build_mcp()._list_tools()
     tool = next(tool for tool in tools if tool.name == "delete_node")

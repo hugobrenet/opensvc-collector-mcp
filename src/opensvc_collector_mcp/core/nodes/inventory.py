@@ -341,6 +341,12 @@ def _normalized_node_create_payload(
         key = raw_key.strip()
         if key:
             payload[key] = value
+    forbidden = sorted(set(payload) & {"node_id", "nodename"})
+    if forbidden:
+        rejected = ", ".join(forbidden)
+        raise ValueError(
+            f"create_node properties must not include reserved fields: {rejected}"
+        )
     payload["nodename"] = nodename
     return payload
 
