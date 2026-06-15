@@ -5,6 +5,8 @@ from ._common import (
 )
 
 from .inventory import (
+    AttachTagToNodeRequest,
+    AttachTagToNodeResponse,
     CountTagServicesRequest,
     CountTagsRequest,
     CountTagsResponse,
@@ -27,6 +29,8 @@ from .inventory import (
 )
 
 __all__ = [
+    "AttachTagToNodeRequest",
+    "AttachTagToNodeResponse",
     "CountTagServicesRequest",
     "CountTagsRequest",
     "CountTagsResponse",

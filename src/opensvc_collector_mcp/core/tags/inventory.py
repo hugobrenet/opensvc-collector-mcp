@@ -8,6 +8,7 @@ from opensvc_collector_mcp.client import (
     collector_post,
 )
 from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
+from opensvc_collector_mcp.core.nodes._common import resolve_single_node_selector
 from opensvc_collector_mcp.core.tags._common import resolve_single_tag_selector
 
 
@@ -103,6 +104,82 @@ async def delete_tag(
             "source": "tags/<tag_id>",
             "selector": "tag_id" if selector_tag_id else "tag_name",
             "confirmation": ["confirm_tag_id", "confirm_tag_name"],
+        },
+    }
+
+
+async def attach_tag_to_node(
+    *,
+    tag_id: str | None = None,
+    tag_name: str | None = None,
+    node_id: str | None = None,
+    nodename: str | None = None,
+    tag_attach_data: str | None = None,
+) -> dict[str, Any]:
+    selector_tag_id = tag_id.strip() if tag_id else ""
+    selector_tag_name = tag_name.strip() if tag_name else ""
+    selector_node_id = node_id.strip() if node_id else ""
+    selector_nodename = nodename.strip() if nodename else ""
+
+    if not selector_tag_id and not selector_tag_name:
+        raise ValueError("attach tag to node requires tag_id or tag_name")
+    if not selector_node_id and not selector_nodename:
+        raise ValueError("attach tag to node requires node_id or nodename")
+
+    tag = await resolve_single_tag_selector(
+        tag_id=selector_tag_id or None,
+        tag_name=None if selector_tag_id else selector_tag_name or None,
+        operation="attach tag to node",
+    )
+    node = await resolve_single_node_selector(
+        node_id=selector_node_id or None,
+        nodename=None if selector_node_id else selector_nodename or None,
+        props=(
+            "node_id,nodename,status,updated,node_env,asset_env,"
+            "team_responsible,loc_city"
+        ),
+        operation="attach tag to node",
+    )
+
+    resolved_tag_id = str(tag.get("tag_id") or "").strip()
+    resolved_tag_name = str(tag.get("tag_name") or "").strip()
+    resolved_node_id = str(node.get("node_id") or "").strip()
+    resolved_nodename = str(node.get("nodename") or "").strip()
+    if selector_tag_name and selector_tag_name != resolved_tag_name:
+        raise ValueError("tag_name must match the resolved tag_id")
+    if selector_nodename and selector_nodename != resolved_nodename:
+        raise ValueError("nodename must match the resolved node_id")
+    payload = None
+    if tag_attach_data is not None:
+        payload = {"tag_attach_data": tag_attach_data}
+
+    path = (
+        f"/tags/{quote(resolved_tag_id, safe='')}/nodes/"
+        f"{quote(resolved_node_id, safe='')}"
+    )
+    response = await collector_post(path, data=payload)
+    return {
+        "tag_id": resolved_tag_id,
+        "tag_name": resolved_tag_name,
+        "tag": tag,
+        "node_id": resolved_node_id,
+        "nodename": resolved_nodename,
+        "node": node,
+        "attached": True,
+        "tag_attach_data": tag_attach_data,
+        "collector_response": response,
+        "meta": {
+            "source": "tags/<tag_id>/nodes/<node_id>",
+            "tag_selector": (
+                "tag_id+tag_name"
+                if selector_tag_id and selector_tag_name
+                else "tag_id" if selector_tag_id else "tag_name"
+            ),
+            "node_selector": (
+                "node_id+nodename"
+                if selector_node_id and selector_nodename
+                else "node_id" if selector_node_id else "nodename"
+            ),
         },
     }
 

@@ -5,6 +5,7 @@ from pydantic import Field
 
 from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.tags import (
+    attach_tag_to_node as core_attach_tag_to_node,
     count_tag_nodes as core_count_tag_nodes,
     count_tag_services as core_count_tag_services,
     count_tags as core_count_tags,
@@ -17,6 +18,8 @@ from opensvc_collector_mcp.core.tags import (
     list_tags as core_list_tags,
 )
 from opensvc_collector_mcp.models.tags import (
+    AttachTagToNodeRequest,
+    AttachTagToNodeResponse,
     CountTagServicesRequest,
     CountTagsRequest,
     CountTagsResponse,
@@ -106,6 +109,44 @@ def register_tags_tools(mcp: FastMCP) -> None:
             confirm_tag_name=request.confirm_tag_name,
         )
         return DeleteTagResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="attach_tag_to_node",
+        description=(
+            "Attach one OpenSVC Collector tag to one node. Select the tag by "
+            "exact tag_id or exact tag_name, and select the node by exact "
+            "node_id or exact nodename. MCP resolves names to stable ids and "
+            "refuses missing or ambiguous matches before posting to Collector. "
+            "Before calling, ask the user to repeat an exact confirmation "
+            "phrase containing the resolved tag and node, and include it in "
+            "request.confirmation.phrase. Requires Collector TagManager or "
+            "Manager privileges through MCP RBAC."
+        ),
+        tags={"tags", "nodes", "attach", "write:tags"},
+        annotations={
+            "title": "Attach OpenSVC Tag To Node",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        },
+    )
+    async def attach_tag_to_node(
+        request: Annotated[
+            AttachTagToNodeRequest,
+            Field(description="Tag and node selectors for the attachment to create."),
+        ],
+    ) -> AttachTagToNodeResponse:
+        """Attach one OpenSVC Collector tag to one node after confirmation."""
+        response = await core_attach_tag_to_node(
+            tag_id=request.tag_id,
+            tag_name=request.tag_name,
+            node_id=request.node_id,
+            nodename=request.nodename,
+            tag_attach_data=request.tag_attach_data,
+        )
+        return AttachTagToNodeResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

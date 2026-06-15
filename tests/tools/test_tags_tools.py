@@ -120,3 +120,46 @@ async def test_create_tag_tool_passes_request_to_core(monkeypatch, mcp_client):
             "tag_exclude": None,
         }
     ]
+
+async def test_attach_tag_to_node_tool_passes_request_to_core(monkeypatch, mcp_client):
+    recorder = CoreRecorder(
+        {
+            "tag_id": "tag-1",
+            "tag_name": "mcp-test-tag",
+            "tag": {"tag_id": "tag-1", "tag_name": "mcp-test-tag"},
+            "node_id": "node-1",
+            "nodename": "lab-node-01",
+            "node": {"node_id": "node-1", "nodename": "lab-node-01"},
+            "attached": True,
+            "tag_attach_data": "scope=lab",
+            "collector_response": {"info": "tag attached"},
+            "meta": {"source": "tags/<tag_id>/nodes/<node_id>"},
+        }
+    )
+    monkeypatch.setattr(tag_tools, "core_attach_tag_to_node", recorder)
+
+    result = await mcp_client.call_tool(
+        "attach_tag_to_node",
+        {
+            "request": {
+                "tag_id": "tag-1",
+                "tag_name": "mcp-test-tag",
+                "node_id": "node-1",
+                "nodename": "lab-node-01",
+                "tag_attach_data": "scope=lab",
+                "confirmation": {"phrase": "ATTACH tag tag-1 mcp-test-tag to node node-1 lab-node-01"},
+            }
+        },
+    )
+
+    assert result.structured_content["attached"] is True
+    assert result.structured_content["node_id"] == "node-1"
+    assert recorder.calls == [
+        {
+            "tag_id": "tag-1",
+            "tag_name": "mcp-test-tag",
+            "node_id": "node-1",
+            "nodename": "lab-node-01",
+            "tag_attach_data": "scope=lab",
+        }
+    ]

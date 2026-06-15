@@ -380,9 +380,12 @@ State-changing tool class standards:
   exact confirmation fields, and no ambiguous `id_or_name` selector.
 - `attach/detach` tools are state-changing relation updates. Resolve both sides
   before execution, for example source id/name and target id/name. The request
-  model should include stable ids for both sides when available and confirmation
-  fields for the human-readable correlation attributes. Do not silently batch
-  relation changes unless the tool name and schema are explicitly batch-oriented.
+  model should expose exact selectors for both sides and core code should execute
+  Collector calls with resolved stable ids whenever available. Non-destructive
+  relation updates require `confirmation.phrase`; destructive or sensitive
+  relation updates may add stronger `confirm_*` fields for the resolved snapshot.
+  Do not silently batch relation changes unless the tool name and schema are
+  explicitly batch-oriented.
 - `rename` tools are logical updates and should be treated as sensitive. Prefer
   a real Collector rename/update endpoint. Do not synthesize rename as
   create/copy/reattach/delete unless the tool is explicitly designed for that
@@ -729,20 +732,20 @@ Node state-changing tool TODO list:
   - Collector API: `POST /nodes/<id>/snooze` without `duration`.
   - Separate tool from snooze so omission of `duration` cannot silently invert the operation.
   - Same RBAC and selector/confirmation as `snooze_node_notifications`.
-- [ ] `attach_tag_to_node`
-  - Collector API: prefer `POST /tags/<tag_id>/nodes/<node_id>` over the bulk
-    style `POST /tags/nodes` for a single explicit relation.
-  - Classification: `attach/detach` relation update.
-  - RBAC decision needed before implementation: either reuse `write:tags`
-    (`TagManager` or `Manager`) because the Collector route lives in tags, or
-    introduce/choose a more explicit relation tag if needed. Do not mix
-    `write:tags` and `write:nodes` on one tool because RBAC denies mixed auth
-    tags.
-  - Selector/confirmation: resolve both sides first; call with `tag_id`,
-    `node_id`, `confirm_tag_name`, `confirm_node_id`, `confirm_nodename`, and
-    `confirmation.phrase`.
-  - Optional payload: `tag_attach_data` if exposed; keep it typed and documented
-    instead of raw dict passthrough.
+- [x] `attach_tag_to_node`
+  - Collector API: `POST /tags/<tag_id>/nodes/<node_id>`; the tool deliberately
+    avoids bulk `POST /tags/nodes` for a single explicit relation.
+  - Classification: non-destructive `attach` relation update.
+  - RBAC: `write:tags` (`TagManager` or `Manager`) because the Collector route
+    lives in the tags API. Do not mix `write:tags` and `write:nodes` on one tool
+    because RBAC denies mixed auth tags.
+  - Selector/confirmation: accepts `tag_id`, exact `tag_name`, or both for the
+    tag side, and `node_id`, exact `nodename`, or both for the node side. Core
+    resolves both sides to a single snapshot, refuses missing or ambiguous names,
+    verifies `id + name` correlation when both are provided, executes with
+    resolved `tag_id` and `node_id`, and requires only `confirmation.phrase`.
+  - Optional payload: typed `tag_attach_data`, passed to Collector only when
+    provided.
   - No implicit batch attach. Add a separate batch tool later only if it has an
     explicit batch schema and confirmation summary.
 - [ ] `detach_tag_from_node`

@@ -317,3 +317,83 @@ class DeleteTagResponse(BaseModel):
     deleted: bool
     collector_response: dict[str, Any]
     meta: dict[str, Any] = Field(default_factory=dict)
+
+
+class AttachTagToNodeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    tag_id: str | None = Field(
+        default=None,
+        description=(
+            "Exact Collector tag_id. Provide tag_id, tag_name, or both when "
+            "the tag_name is the human-readable correlation for this tag_id."
+        ),
+        examples=["TAG-ID"],
+    )
+    tag_name: str | None = Field(
+        default=None,
+        description=(
+            "Exact Collector tag_name. MCP resolves it to one tag_id and refuses "
+            "ambiguous duplicate tag names. Provide tag_name, tag_id, or both "
+            "when the tag_name is the human-readable correlation for this tag_id."
+        ),
+        examples=["mcp-test-tag"],
+    )
+    node_id: str | None = Field(
+        default=None,
+        description=(
+            "Exact Collector node_id. Provide node_id, nodename, or both when "
+            "the nodename is the human-readable correlation for this node_id."
+        ),
+        examples=["NODE-ID"],
+    )
+    nodename: str | None = Field(
+        default=None,
+        description=(
+            "Exact Collector nodename. MCP resolves it to one node_id and refuses "
+            "ambiguous duplicate nodenames. Provide nodename, node_id, or both "
+            "when the nodename is the human-readable correlation for this node_id."
+        ),
+        examples=["lab-node-01"],
+    )
+    tag_attach_data: str | None = Field(
+        default=None,
+        description="Optional raw attach data passed to Collector as tag_attach_data.",
+    )
+    confirmation: ToolConfirmation = Field(
+        description=(
+            "Required confirmation gate for this state-changing tool. Before "
+            "calling attach_tag_to_node, resolve the target tag and node, "
+            "summarize the exact attachment to create, ask the user to repeat "
+            "a concise confirmation phrase verbatim, and set this field only "
+            "when that exact phrase appears in the latest user message."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def normalize_attach_selectors(self) -> "AttachTagToNodeRequest":
+        self.tag_id = self.tag_id.strip() if self.tag_id else None
+        self.tag_name = self.tag_name.strip() if self.tag_name else None
+        if not self.tag_id and not self.tag_name:
+            raise ValueError("provide at least one tag selector: tag_id or tag_name")
+
+        self.node_id = self.node_id.strip() if self.node_id else None
+        self.nodename = self.nodename.strip() if self.nodename else None
+        if not self.node_id and not self.nodename:
+            raise ValueError("provide at least one node selector: node_id or nodename")
+        return self
+
+
+class AttachTagToNodeResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    tag_id: str
+    tag_name: str
+    tag: dict[str, Any]
+    node_id: str
+    nodename: str
+    node: dict[str, Any]
+    attached: bool
+    tag_attach_data: str | None = Field(default=None, exclude_if=_is_none)
+    collector_response: dict[str, Any]
+    meta: dict[str, Any] = Field(default_factory=dict)

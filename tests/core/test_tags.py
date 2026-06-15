@@ -1,5 +1,6 @@
 import pytest
 
+from opensvc_collector_mcp.core.nodes import _common as node_common
 from opensvc_collector_mcp.core.tags import inventory
 from opensvc_collector_mcp.core.tags import _common as tag_common
 
@@ -296,3 +297,199 @@ async def test_delete_tag_rejects_tag_name_passed_as_tag_id(monkeypatch):
 
     assert get_recorder.calls[0]["path"] == "/tags/mcp-test-tag"
     assert delete_recorder.calls == []
+
+async def test_attach_tag_to_node_resolves_names_and_posts_ids(monkeypatch):
+    tag_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/tags": {
+                "data": [
+                    {
+                        "tag_id": "tag-1",
+                        "tag_name": "mcp-test-tag",
+                    }
+                ],
+            },
+        }
+    )
+    node_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/nodes": {
+                "data": [
+                    {
+                        "node_id": "node-1",
+                        "nodename": "lab-node-01",
+                        "status": "up",
+                    }
+                ],
+            },
+        }
+    )
+    post_recorder = CollectorPostRecorder({"info": "tag attached"})
+    monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
+    monkeypatch.setattr(node_common, "collector_get", node_get_recorder)
+    monkeypatch.setattr(inventory, "collector_post", post_recorder)
+
+    response = await inventory.attach_tag_to_node(
+        tag_name=" mcp-test-tag ",
+        nodename=" lab-node-01 ",
+        tag_attach_data="scope=lab",
+    )
+
+    assert response["attached"] is True
+    assert response["tag_id"] == "tag-1"
+    assert response["node_id"] == "node-1"
+    assert response["tag_attach_data"] == "scope=lab"
+    tag_params = tag_get_recorder.calls[0]["params"]
+    node_params = node_get_recorder.calls[0]["params"]
+    assert tag_get_recorder.calls[0]["path"] == "/tags"
+    assert ("filters", "tag_name=mcp-test-tag") in tag_params
+    assert ("limit", 2) in tag_params
+    assert node_get_recorder.calls[0]["path"] == "/nodes"
+    assert ("filters", "nodename=lab-node-01") in node_params
+    assert ("limit", 2) in node_params
+    assert post_recorder.calls == [
+        {
+            "path": "/tags/tag-1/nodes/node-1",
+            "data": {"tag_attach_data": "scope=lab"},
+            "params": None,
+        }
+    ]
+
+
+async def test_attach_tag_to_node_quotes_ids_in_post_path(monkeypatch):
+    tag_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/tags/tag%2F1": {
+                "data": [{"tag_id": "tag/1", "tag_name": "mcp-test-tag"}],
+            },
+        }
+    )
+    node_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/nodes/node%2F1": {
+                "data": [{"node_id": "node/1", "nodename": "lab-node-01"}],
+            },
+        }
+    )
+    post_recorder = CollectorPostRecorder({"info": "tag attached"})
+    monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
+    monkeypatch.setattr(node_common, "collector_get", node_get_recorder)
+    monkeypatch.setattr(inventory, "collector_post", post_recorder)
+
+    response = await inventory.attach_tag_to_node(tag_id=" tag/1 ", node_id=" node/1 ")
+
+    assert response["tag_id"] == "tag/1"
+    assert response["node_id"] == "node/1"
+    assert post_recorder.calls == [
+        {"path": "/tags/tag%2F1/nodes/node%2F1", "data": None, "params": None}
+    ]
+
+
+async def test_attach_tag_to_node_accepts_correlated_ids_and_names(monkeypatch):
+    tag_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/tags/tag-1": {
+                "data": [{"tag_id": "tag-1", "tag_name": "mcp-test-tag"}],
+            },
+        }
+    )
+    node_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/nodes/node-1": {
+                "data": [{"node_id": "node-1", "nodename": "lab-node-01"}],
+            },
+        }
+    )
+    post_recorder = CollectorPostRecorder({"info": "tag attached"})
+    monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
+    monkeypatch.setattr(node_common, "collector_get", node_get_recorder)
+    monkeypatch.setattr(inventory, "collector_post", post_recorder)
+
+    response = await inventory.attach_tag_to_node(
+        tag_id="tag-1",
+        tag_name="mcp-test-tag",
+        node_id="node-1",
+        nodename="lab-node-01",
+    )
+
+    assert response["attached"] is True
+    assert response["meta"]["tag_selector"] == "tag_id+tag_name"
+    assert response["meta"]["node_selector"] == "node_id+nodename"
+    assert tag_get_recorder.calls == [
+        {
+            "path": "/tags/tag-1",
+            "params": {"props": "tag_id,tag_name,tag_exclude,tag_created,tag_data"},
+        }
+    ]
+    assert node_get_recorder.calls == [
+        {
+            "path": "/nodes/node-1",
+            "params": {
+                "props": "node_id,nodename,status,updated,node_env,asset_env,"
+                "team_responsible,loc_city"
+            },
+        }
+    ]
+    assert post_recorder.calls == [
+        {"path": "/tags/tag-1/nodes/node-1", "data": None, "params": None}
+    ]
+
+
+async def test_attach_tag_to_node_rejects_correlated_name_mismatch(monkeypatch):
+    tag_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/tags/tag-1": {
+                "data": [{"tag_id": "tag-1", "tag_name": "mcp-test-tag"}],
+            },
+        }
+    )
+    node_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/nodes/node-1": {
+                "data": [{"node_id": "node-1", "nodename": "lab-node-01"}],
+            },
+        }
+    )
+    post_recorder = CollectorPostRecorder({"info": "tag attached"})
+    monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
+    monkeypatch.setattr(node_common, "collector_get", node_get_recorder)
+    monkeypatch.setattr(inventory, "collector_post", post_recorder)
+
+    with pytest.raises(ValueError, match="tag_name must match the resolved tag_id"):
+        await inventory.attach_tag_to_node(
+            tag_id="tag-1",
+            tag_name="other-tag",
+            node_id="node-1",
+            nodename="lab-node-01",
+        )
+
+    assert post_recorder.calls == []
+
+
+async def test_attach_tag_to_node_rejects_ambiguous_nodename_before_post(monkeypatch):
+    tag_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/tags/tag-1": {
+                "data": [{"tag_id": "tag-1", "tag_name": "mcp-test-tag"}],
+            },
+        }
+    )
+    node_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/nodes": {
+                "data": [
+                    {"node_id": "node-1", "nodename": "lab-node-01"},
+                    {"node_id": "node-2", "nodename": "lab-node-01"},
+                ],
+            },
+        }
+    )
+    post_recorder = CollectorPostRecorder({"info": "tag attached"})
+    monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
+    monkeypatch.setattr(node_common, "collector_get", node_get_recorder)
+    monkeypatch.setattr(inventory, "collector_post", post_recorder)
+
+    with pytest.raises(ValueError, match="nodename is ambiguous: lab-node-01"):
+        await inventory.attach_tag_to_node(tag_id="tag-1", nodename="lab-node-01")
+
+    assert post_recorder.calls == []

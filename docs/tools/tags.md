@@ -91,6 +91,57 @@ collector_response
 meta
 ```
 
+### `attach_tag_to_node`
+
+Attaches one OpenSVC Collector tag to one node through
+`POST /tags/<tag_id>/nodes/<node_id>`. This is a state-changing,
+non-destructive relation update and requires `write:tags`, authorized for
+Collector `TagManager` or `Manager` users by MCP RBAC.
+
+The request uses exact selectors on both sides. For the tag, provide `tag_id`,
+`tag_name`, or both. For the node, provide `node_id`, `nodename`, or both. MCP
+resolves names with exact Collector filters, refuses missing or ambiguous
+matches, verifies `id + name` correlation when both are provided, and then calls
+Collector with the resolved stable IDs.
+
+Because this changes Collector state, the request requires
+`confirmation.phrase`: the assistant must summarize the exact tag/node
+attachment, ask the user to repeat a concise phrase verbatim, and set
+`confirmation.phrase` only after that phrase appears in the latest user message.
+`tag_attach_data` can be provided when Collector-side attach metadata is needed.
+
+Example:
+
+```json
+{
+  "request": {
+    "tag_id": "tag-1",
+    "tag_name": "mcp-test-tag",
+    "node_id": "node-1",
+    "nodename": "lab-node-01",
+    "tag_attach_data": "scope=lab",
+    "confirmation": {
+      "phrase": "ATTACH tag tag-1 mcp-test-tag to node node-1 lab-node-01"
+    }
+  }
+}
+```
+
+Output fields:
+
+```text
+tag_id
+tag_name
+tag
+node_id
+nodename
+node
+attached
+tag_attach_data
+collector_response
+meta
+```
+
 ### `count_tags`
 
 Counts OpenSVC Collector tags matching exact-match tag filters. It reads

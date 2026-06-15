@@ -2,6 +2,7 @@ from opensvc_collector_mcp.server import build_mcp
 
 EXPECTED_TOOL_NAMES = {
     "am_i_responsible_for_app",
+    "attach_tag_to_node",
     "count_app_nodes",
     "count_app_services",
     "count_apps",
@@ -127,6 +128,15 @@ async def test_all_expected_tools_are_registered_in_underlying_catalog():
     assert len(tool_names) == len(tools)
 
 
+async def test_attach_tag_to_node_is_marked_as_non_destructive_write():
+    tools = await build_mcp()._list_tools()
+    tool = next(tool for tool in tools if tool.name == "attach_tag_to_node")
+
+    assert tool.annotations.readOnlyHint is False
+    assert tool.annotations.idempotentHint is False
+    assert tool.annotations.destructiveHint is False
+
+
 async def test_create_node_is_marked_as_destructive_write():
     tools = await build_mcp()._list_tools()
     tool = next(tool for tool in tools if tool.name == "create_node")
@@ -189,6 +199,7 @@ async def test_state_changing_tools_require_confirmation_phrase_in_schema():
     tools_by_name = {tool.name: tool for tool in tools}
 
     for name in {
+        "attach_tag_to_node",
         "create_tag",
         "delete_tag",
         "create_node",

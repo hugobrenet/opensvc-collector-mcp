@@ -1,6 +1,7 @@
 """Tag-domain business logic."""
 
 from .inventory import (
+    attach_tag_to_node,
     count_tag_nodes,
     count_tag_services,
     count_tags,
@@ -14,6 +15,7 @@ from .inventory import (
 )
 
 __all__ = [
+    "attach_tag_to_node",
     "count_tag_nodes",
     "count_tag_services",
     "count_tags",
