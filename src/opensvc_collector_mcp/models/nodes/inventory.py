@@ -124,6 +124,55 @@ class CountNodesResponse(BaseModel):
     filters: dict[str, str]
 
 
+class CreateNodeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    nodename: str = Field(
+        description="OpenSVC Collector nodename to submit to POST /nodes.",
+        min_length=1,
+        examples=["lab-node-01"],
+    )
+    properties: dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Additional node properties to forward to Collector with the "
+            "creation request. Collector validates these properties. The "
+            "explicit nodename field is always sent as the nodename payload "
+            "property."
+        ),
+        examples=[{"asset_env": "PPR", "loc_city": "Lab City"}],
+    )
+    confirmation: ToolConfirmation = Field(
+        description=(
+            "Required confirmation gate for this state-changing tool. Before "
+            "calling create_node, summarize the node payload, ask the user to "
+            "repeat a concise confirmation phrase verbatim, and set this field "
+            "only when that exact phrase appears in the latest user message."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def normalize(self) -> "CreateNodeRequest":
+        self.nodename = self.nodename.strip()
+        if not self.nodename:
+            raise ValueError("nodename must not be empty")
+        self.properties = {
+            key.strip(): value
+            for key, value in self.properties.items()
+            if key.strip()
+        }
+        return self
+
+
+class CreateNodeResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    nodename: str
+    submitted_properties: dict[str, Any]
+    collector_response: dict[str, Any]
+    meta: dict[str, Any] = Field(default_factory=dict)
+
+
 class DeleteNodeRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

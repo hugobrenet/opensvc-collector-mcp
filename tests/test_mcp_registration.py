@@ -16,6 +16,7 @@ EXPECTED_TOOL_NAMES = {
     "count_users",
     "count_users_by_group",
     "count_users_by_primary_group",
+    "create_node",
     "create_tag",
     "delete_node",
     "delete_tag",
@@ -124,6 +125,15 @@ async def test_all_expected_tools_are_registered_in_underlying_catalog():
     assert len(tool_names) == len(tools)
 
 
+async def test_create_node_is_marked_as_destructive_write():
+    tools = await build_mcp()._list_tools()
+    tool = next(tool for tool in tools if tool.name == "create_node")
+
+    assert tool.annotations.readOnlyHint is False
+    assert tool.annotations.idempotentHint is False
+    assert tool.annotations.destructiveHint is True
+
+
 async def test_delete_node_is_marked_as_destructive_write():
     tools = await build_mcp()._list_tools()
     tool = next(tool for tool in tools if tool.name == "delete_node")
@@ -146,7 +156,7 @@ async def test_state_changing_tools_require_confirmation_phrase_in_schema():
     tools = await build_mcp()._list_tools()
     tools_by_name = {tool.name: tool for tool in tools}
 
-    for name in {"create_tag", "delete_tag", "delete_node", "update_node_properties"}:
+    for name in {"create_tag", "delete_tag", "create_node", "delete_node", "update_node_properties"}:
         schema = tools_by_name[name].parameters
         request_ref = schema["properties"]["request"]["$ref"]
         request_schema = schema["$defs"][request_ref.rsplit("/", 1)[-1]]

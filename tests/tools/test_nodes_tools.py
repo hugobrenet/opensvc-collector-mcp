@@ -11,6 +11,40 @@ class CoreRecorder:
         return self.response
 
 
+async def test_create_node_tool_passes_request_to_core(monkeypatch, mcp_client):
+    recorder = CoreRecorder(
+        {
+            "nodename": "node-a",
+            "submitted_properties": {"nodename": "node-a", "loc_city": "Lab City"},
+            "collector_response": {"info": "node submitted"},
+            "meta": {"source": "nodes"},
+        }
+    )
+    monkeypatch.setattr(node_tools, "core_create_node", recorder)
+
+    result = await mcp_client.call_tool(
+        "create_node",
+        {
+            "request": {
+                "nodename": "node-a",
+                "properties": {"loc_city": "Lab City"},
+                "confirmation": {"phrase": "CREATE node node-a loc_city Lab City"},
+            }
+        },
+    )
+
+    assert result.structured_content["submitted_properties"] == {
+        "nodename": "node-a",
+        "loc_city": "Lab City",
+    }
+    assert recorder.calls == [
+        {
+            "nodename": "node-a",
+            "properties": {"loc_city": "Lab City"},
+        }
+    ]
+
+
 async def test_delete_node_tool_passes_request_to_core(monkeypatch, mcp_client):
     recorder = CoreRecorder(
         {

@@ -127,6 +127,7 @@ Current package layout:
 
 Current MCP node tool surface:
 
+- `create_node`
 - `delete_node`
 - `update_node_properties`
 - `list_node_props`
@@ -317,7 +318,7 @@ State-changing confirmation contract:
   `confirmation` into `core/` or Collector REST payloads; it is a gateway/LLM
   safety guard at the MCP boundary.
 - Current state-changing tools using this contract:
-  `create_tag`, `delete_tag`, `delete_node`, and `update_node_properties`.
+  `create_tag`, `delete_tag`, `create_node`, `delete_node`, and `update_node_properties`.
 - When adding another state-changing tool, update:
   `tests/test_mcp_registration.py`, the domain tool tests, tool docs under
   `docs/tools/`, and the tool description/annotations.
@@ -689,6 +690,7 @@ Node tool design decisions:
   unless they add domain-specific logic beyond filtering.
 - `delete_node` uses `DELETE /nodes/<node_id>` and intentionally does not accept `nodename` as the deletion selector because Collector can contain duplicate nodenames. It requires `confirm_node_id` and `confirm_nodename` before sending DELETE.
 - Mark node deletion with MCP `destructiveHint=true` and `delete:nodes`: Collector cascades node deletion to related runtime and inventory rows.
+- `create_node` uses `POST /nodes` with explicit `nodename` and optional `properties`. It requires only `request.confirmation.phrase` as the safety gate, but first checks exact `nodename` absence because Collector otherwise behaves like an upsert. Collector remains the authority for defaults, read-only fields, and payload validation.
 - `update_node_properties` uses `POST /nodes/<nodename>` and accepts the node properties marked `writable=true` by the Collector nodes API definition.
 - Mark node property updates with MCP `destructiveHint=true`: they are write operations on an existing node and can overwrite existing Collector values.
 - `list_nodes` lists rows and handles exact filters, Collector search, pagination, and bounded `nodename_contains` lookup.
@@ -747,19 +749,17 @@ Node state-changing tool TODO list:
   - Selector/confirmation: same two-sided resolution and confirmation fields as
     attach. Re-read the current relation or attached tag/node snapshots before
     DELETE when practical.
-- [ ] `create_node`
+- [x] `create_node`
   - Collector API: `POST /nodes`.
-  - Important exception: Collector `POST /nodes` is create-or-update. If
-    `nodename` or `node_id` resolves to an existing node, the handler delegates
-    to `rest_post_node()` and can update instead of creating. MCP must guard
-    against this by checking/resolving first and refusing to create when a node
-    already exists. This is an exception to the generic create rule that usually
-    lets Collector report conflicts.
+  - MCP first checks exact `nodename` absence with `/nodes` before calling
+    `POST /nodes`, because Collector otherwise behaves like an upsert. Collector
+    remains the final authority for defaults and payload validation.
   - RBAC: `write:nodes`.
-  - Confirmation: include requested `nodename` and key properties to create.
-  - Request model: expose only writable/safe creation fields; avoid arbitrary raw
-    node payloads. Let Collector assign `node_id`.
-  - Suggested priority: implement after snooze and tag-node relation tools.
+  - Confirmation: `request.confirmation.phrase` only; no delete-style
+    `confirm_*` fields.
+  - Request model: explicit `nodename`, optional `properties`; MCP refuses
+    existing nodenames and lets Collector validate other non-delete errors such
+    as read-only fields.
 - [ ] Node compliance attach/detach tools
   - Collector APIs: `POST/DELETE /nodes/<id>/compliance/modulesets/<id>` and
     `/nodes/<id>/compliance/rulesets/<id>`.

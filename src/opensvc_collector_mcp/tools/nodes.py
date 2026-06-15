@@ -7,6 +7,8 @@ from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.models.nodes import (
     CountNodesRequest,
     CountNodesResponse,
+    CreateNodeRequest,
+    CreateNodeResponse,
     DeleteNodeRequest,
     DeleteNodeResponse,
     InventoryStatsRequest,
@@ -34,6 +36,7 @@ from opensvc_collector_mcp.models.nodes import (
 )
 from opensvc_collector_mcp.core.nodes import (
     count_nodes as core_count_nodes,
+    create_node as core_create_node,
     delete_node as core_delete_node,
     get_node as core_get_node,
     get_node_cluster as core_get_node_cluster,
@@ -56,6 +59,41 @@ from opensvc_collector_mcp.core.nodes import (
 
 
 def register_nodes_tools(mcp: FastMCP) -> None:
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="create_node",
+        description=(
+            "Create or submit one OpenSVC Collector node through POST /nodes. "
+            "MCP first checks that no existing node has the exact nodename, "
+            "because Collector POST /nodes otherwise behaves like an upsert. "
+            "Collector remains the final authority for defaults such as "
+            "team_responsible and payload validation. Before calling, ask "
+            "the user to repeat an exact confirmation phrase and include it in "
+            "request.confirmation.phrase. Requires Collector NodeManager or "
+            "Manager privileges through MCP RBAC."
+        ),
+        tags={"nodes", "create", "write:nodes"},
+        annotations={
+            "title": "Create OpenSVC Node",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def create_node(
+        request: Annotated[
+            CreateNodeRequest,
+            Field(description="Node creation payload and confirmation."),
+        ],
+    ) -> CreateNodeResponse:
+        """Submit an OpenSVC Collector node creation request."""
+        response = await core_create_node(
+            nodename=request.nodename,
+            properties=request.properties,
+        )
+        return CreateNodeResponse.model_validate(response)
+
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
         name="delete_node",

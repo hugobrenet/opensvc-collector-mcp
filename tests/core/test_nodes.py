@@ -1,6 +1,7 @@
 import pytest
 
 from opensvc_collector_mcp.core.nodes import inventory, services, storage
+from opensvc_collector_mcp.core.nodes import _common as node_common
 from opensvc_collector_mcp.models.nodes.storage import NodeDisksResponse
 
 
@@ -181,6 +182,98 @@ async def test_delete_node_rejects_nodename_passed_as_node_id(
     assert delete_recorder.calls == []
 
 
+async def test_create_node_prechecks_nodename_then_posts_payload(
+    monkeypatch,
+    collector_mock_factory,
+):
+    collector = collector_mock_factory([{"meta": {"total": 0}, "data": []}])
+    recorder = CollectorPostRecorder({"info": "node submitted"})
+    monkeypatch.setattr(node_common, "collector_get", collector.get)
+    monkeypatch.setattr(inventory, "collector_post", recorder)
+
+    response = await inventory.create_node(
+        " node/a ",
+        {
+            " loc_city ": "Lab City",
+            "team_responsible": "Lab Team",
+        },
+    )
+
+    assert response["nodename"] == "node/a"
+    assert response["submitted_properties"] == {
+        "loc_city": "Lab City",
+        "team_responsible": "Lab Team",
+        "nodename": "node/a",
+    }
+    assert response["collector_response"] == {"info": "node submitted"}
+    precheck_call = collector.calls[0]
+    assert precheck_call.path == "/nodes"
+    assert precheck_call.single_param("props") == "node_id,nodename,app,updated"
+    assert precheck_call.single_param("limit") == 2
+    assert precheck_call.param_values("filters") == ["nodename=node/a"]
+    assert recorder.calls == [
+        {
+            "path": "/nodes",
+            "data": {
+                "loc_city": "Lab City",
+                "team_responsible": "Lab Team",
+                "nodename": "node/a",
+            },
+            "params": None,
+        }
+    ]
+
+
+async def test_create_node_lets_collector_validate_non_delete_errors(
+    monkeypatch,
+    collector_mock_factory,
+):
+    collector = collector_mock_factory([{"meta": {"total": 0}, "data": []}])
+    recorder = CollectorPostRecorder({"info": "node submitted"})
+    monkeypatch.setattr(node_common, "collector_get", collector.get)
+    monkeypatch.setattr(inventory, "collector_post", recorder)
+
+    response = await inventory.create_node("node-a", {"node_env": "PPR"})
+
+    assert response["submitted_properties"] == {"node_env": "PPR", "nodename": "node-a"}
+    assert recorder.calls == [
+        {
+            "path": "/nodes",
+            "data": {"node_env": "PPR", "nodename": "node-a"},
+            "params": None,
+        }
+    ]
+
+
+async def test_create_node_rejects_existing_nodename_before_post(
+    monkeypatch,
+    collector_mock_factory,
+):
+    collector = collector_mock_factory(
+        [
+            {
+                "meta": {"total": 1},
+                "data": [
+                    {
+                        "node_id": "existing-node-id",
+                        "nodename": "node-a",
+                    }
+                ],
+            }
+        ]
+    )
+    recorder = CollectorPostRecorder({"info": "node submitted"})
+    monkeypatch.setattr(node_common, "collector_get", collector.get)
+    monkeypatch.setattr(inventory, "collector_post", recorder)
+
+    with pytest.raises(ValueError, match="node nodename already exists: node-a"):
+        await inventory.create_node("node-a", {"role": "test-role"})
+
+    assert collector.calls[0].path == "/nodes"
+    assert collector.calls[0].param_values("filters") == ["nodename=node-a"]
+    assert recorder.calls == []
+
+
 async def test_update_node_properties_posts_allowlisted_fields(monkeypatch):
     recorder = CollectorPostRecorder({"info": "node updated"})
     monkeypatch.setattr(inventory, "collector_post", recorder)
@@ -234,7 +327,7 @@ async def test_update_node_properties_rejects_readonly_fields(monkeypatch):
     recorder = CollectorPostRecorder({"info": "node updated"})
     monkeypatch.setattr(inventory, "collector_post", recorder)
 
-    with pytest.raises(ValueError, match="unsupported node update properties: node_env"):
+    with pytest.raises(ValueError, match="unsupported node writable properties: node_env"):
         await inventory.update_node_properties("node-a", {"node_env": "PPR"})
 
     assert recorder.calls == []

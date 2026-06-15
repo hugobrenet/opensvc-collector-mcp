@@ -3,6 +3,7 @@ from urllib.parse import quote
 
 from opensvc_collector_mcp.client import collector_delete, collector_get, collector_post
 from opensvc_collector_mcp.core.utils import collection_params
+from opensvc_collector_mcp.core.nodes._common import _ensure_node_nodename_available
 
 
 DEFAULT_SEARCH_NODE_PROPS = (
@@ -224,6 +225,29 @@ async def get_node(nodename: str) -> dict[str, Any]:
     return await collector_get(f"/nodes/{quote(nodename, safe='')}")
 
 
+async def create_node(
+    nodename: str,
+    properties: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    nodename = nodename.strip()
+    if not nodename:
+        raise ValueError("nodename must not be empty")
+
+    await _ensure_node_nodename_available(nodename)
+    payload = _normalized_node_create_payload(nodename, properties)
+    response = await collector_post("/nodes", data=payload)
+    return {
+        "nodename": nodename,
+        "submitted_properties": payload,
+        "collector_response": response,
+        "meta": {
+            "source": "nodes",
+            "precheck": "nodename_absent",
+            "collector_validates_payload": True,
+        },
+    }
+
+
 async def update_node_properties(
     nodename: str,
     properties: dict[str, Any],
@@ -232,7 +256,7 @@ async def update_node_properties(
     if not nodename:
         raise ValueError("nodename must not be empty")
 
-    payload = _normalized_node_update_payload(properties)
+    payload = _normalized_node_write_payload(properties)
     response = await collector_post(f"/nodes/{quote(nodename, safe='')}", data=payload)
     return {
         "nodename": nodename,
@@ -308,12 +332,25 @@ async def _get_node_delete_snapshot(node_id: str) -> dict[str, Any]:
     return node
 
 
-def _normalized_node_update_payload(properties: dict[str, Any]) -> dict[str, Any]:
+def _normalized_node_create_payload(
+    nodename: str,
+    properties: dict[str, Any] | None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {}
+    for raw_key, value in (properties or {}).items():
+        key = raw_key.strip()
+        if key:
+            payload[key] = value
+    payload["nodename"] = nodename
+    return payload
+
+
+def _normalized_node_write_payload(properties: dict[str, Any]) -> dict[str, Any]:
     payload: dict[str, Any] = {}
     for raw_key, value in properties.items():
         key = raw_key.strip()
         if not key:
-            raise ValueError("node update property names must not be empty")
+            raise ValueError("node property names must not be empty")
         payload[key] = value
 
     if not payload:
@@ -323,7 +360,7 @@ def _normalized_node_update_payload(properties: dict[str, Any]) -> dict[str, Any
     if forbidden:
         allowed = ", ".join(sorted(NODE_UPDATE_ALLOWED_PROPERTIES))
         rejected = ", ".join(forbidden)
-        raise ValueError(f"unsupported node update properties: {rejected}; allowed: {allowed}")
+        raise ValueError(f"unsupported node writable properties: {rejected}; allowed: {allowed}")
 
     return payload
 

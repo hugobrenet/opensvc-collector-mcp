@@ -8,6 +8,69 @@ MCP tool definitions live in `src/opensvc_collector_mcp/tools/nodes.py`.
 
 ## Tools
 
+### `create_node`
+
+Submits one OpenSVC Collector node through `POST /nodes`. This is a write tool
+and requires `write:nodes`, authorized for Collector `NodeManager` or `Manager`
+users by MCP RBAC. The MCP `create` tag is descriptive for discovery only.
+
+The Collector API documentation describes `POST /nodes` as both creating a new
+node and updating nodes matching the specified query. To keep `create_node` a
+strict create tool, MCP first checks `/nodes` with an exact `nodename` filter and
+refuses to call `POST /nodes` if a matching node already exists. Collector
+remains the final authority for defaults and payload validation. If
+`team_responsible` is omitted, Collector defaults it to the user primary group.
+
+Because this changes Collector state, the request requires
+`confirmation.phrase`: the assistant must summarize the exact node payload, ask
+the user to repeat a concise phrase verbatim, and set `confirmation.phrase` only
+after that phrase appears in the latest user message. The confirmation field is
+not forwarded to Collector.
+
+Required input fields:
+
+```text
+nodename
+confirmation.phrase
+```
+
+Optional input fields:
+
+```text
+properties
+```
+
+`properties` is forwarded to Collector with the explicit `nodename` request
+field sent as the `nodename` payload property. MCP performs an exact `nodename`
+existence pre-check for this create tool; Collector validates the submitted
+payload fields.
+
+Example:
+
+```json
+{
+  "request": {
+    "nodename": "lab-node-01",
+    "properties": {
+      "asset_env": "PPR",
+      "loc_city": "Lab City"
+    },
+    "confirmation": {
+      "phrase": "CREATE node lab-node-01 asset_env PPR loc_city Lab City"
+    }
+  }
+}
+```
+
+Output fields:
+
+```text
+nodename
+submitted_properties
+collector_response
+meta
+```
+
 ### `delete_node`
 
 Deletes one existing OpenSVC Collector node through `DELETE /nodes/<node_id>`.

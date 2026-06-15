@@ -4,6 +4,7 @@ from .inventory import (
     list_nodes,
     list_node_props,
     count_nodes,
+    create_node,
     get_node,
     update_node_properties,
     delete_node,
@@ -63,6 +64,7 @@ from .stats import (
 
 __all__ = [
     'count_nodes',
+    'create_node',
     'delete_node',
     'get_node',
     'get_node_checks',

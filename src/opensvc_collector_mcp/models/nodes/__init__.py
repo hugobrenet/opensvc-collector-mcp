@@ -8,10 +8,12 @@ from ._common import (
 from .inventory import (
     NodeFilterRequest,
     CountNodesRequest,
+    CountNodesResponse,
+    CreateNodeRequest,
+    CreateNodeResponse,
     ListNodesRequest,
     NodePropsResponse,
     NodeRowsResponse,
-    CountNodesResponse,
     DeleteNodeRequest,
     DeleteNodeResponse,
     UpdateNodePropertiesRequest,
@@ -91,6 +93,8 @@ from .stats import (
 __all__ = [
     'CountNodesRequest',
     'CountNodesResponse',
+    'CreateNodeRequest',
+    'CreateNodeResponse',
     'DeleteNodeRequest',
     'DeleteNodeResponse',
     'InventoryStatsRequest',
