@@ -10,6 +10,32 @@ class NodeNameRequest(BaseModel):
         examples=["lab-node-01"],
     )
 
+class NodeSelector(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    node_id: str | None = Field(
+        default=None,
+        description="Exact Collector node_id. Provide either node_id or nodename.",
+        examples=["NODE-ID"],
+    )
+    nodename: str | None = Field(
+        default=None,
+        description=(
+            "Exact Collector nodename. MCP resolves it to one node_id and refuses "
+            "ambiguous duplicate nodenames. Provide either node_id or nodename."
+        ),
+        examples=["lab-node-01"],
+    )
+
+    @model_validator(mode="after")
+    def normalize_selector(self) -> "NodeSelector":
+        self.node_id = self.node_id.strip() if self.node_id else None
+        self.nodename = self.nodename.strip() if self.nodename else None
+        if bool(self.node_id) == bool(self.nodename):
+            raise ValueError("provide exactly one node selector: node_id or nodename")
+        return self
+
+
 class NodeRelationRequest(NodeNameRequest):
     filters: dict[str, str] = Field(
         default_factory=dict,

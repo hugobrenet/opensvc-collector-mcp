@@ -8,6 +8,8 @@ from .inventory import (
     get_node,
     update_node_properties,
     delete_node,
+    snooze_node_notifications,
+    unsnooze_node_notifications,
 )
 
 from .tags import (
@@ -81,6 +83,8 @@ __all__ = [
     'get_node_tags',
     'get_nodes_inventory_stats',
     'list_node_props',
+    'snooze_node_notifications',
+    'unsnooze_node_notifications',
     'update_node_properties',
     'list_nodes',
 ]

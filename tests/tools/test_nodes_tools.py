@@ -112,6 +112,71 @@ async def test_update_node_properties_tool_passes_request_to_core(monkeypatch, m
     ]
 
 
+async def test_snooze_node_notifications_tool_passes_request_to_core(
+    monkeypatch,
+    mcp_client,
+):
+    recorder = CoreRecorder(
+        {
+            "node_id": "node-a-id",
+            "nodename": "node-a",
+            "duration": "1h",
+            "node": {"node_id": "node-a-id", "nodename": "node-a"},
+            "snoozed": True,
+            "collector_response": {"info": "snoozed"},
+            "meta": {"source": "nodes/<node_id>/snooze"},
+        }
+    )
+    monkeypatch.setattr(node_tools, "core_snooze_node_notifications", recorder)
+
+    result = await mcp_client.call_tool(
+        "snooze_node_notifications",
+        {
+            "request": {
+                "nodename": "node-a",
+                "duration": "1h",
+                "confirmation": {"phrase": "SNOOZE node node-a for 1h"},
+            }
+        },
+    )
+
+    assert result.structured_content["snoozed"] is True
+    assert result.structured_content["duration"] == "1h"
+    assert recorder.calls == [
+        {"node_id": None, "nodename": "node-a", "duration": "1h"}
+    ]
+
+
+async def test_unsnooze_node_notifications_tool_passes_request_to_core(
+    monkeypatch,
+    mcp_client,
+):
+    recorder = CoreRecorder(
+        {
+            "node_id": "node-a-id",
+            "nodename": "node-a",
+            "node": {"node_id": "node-a-id", "nodename": "node-a"},
+            "unsnoozed": True,
+            "collector_response": {"info": "unsnoozed"},
+            "meta": {"source": "nodes/<node_id>/snooze"},
+        }
+    )
+    monkeypatch.setattr(node_tools, "core_unsnooze_node_notifications", recorder)
+
+    result = await mcp_client.call_tool(
+        "unsnooze_node_notifications",
+        {
+            "request": {
+                "node_id": "node-a-id",
+                "confirmation": {"phrase": "UNSNOOZE node node-a-id"},
+            }
+        },
+    )
+
+    assert result.structured_content["unsnoozed"] is True
+    assert recorder.calls == [{"node_id": "node-a-id", "nodename": None}]
+
+
 async def test_list_nodes_tool_passes_request_to_core(monkeypatch, mcp_client):
     recorder = CoreRecorder({"meta": {"total": 1}, "data": [{"nodename": "node-a"}]})
     monkeypatch.setattr(node_tools, "core_list_nodes", recorder)

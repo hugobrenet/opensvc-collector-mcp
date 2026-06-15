@@ -41,8 +41,11 @@ properties
 ```
 
 `properties` is forwarded to Collector with the explicit `nodename` request
-field sent as the `nodename` payload property. MCP performs an exact `nodename`
-existence pre-check for this create tool; Collector validates the submitted
+field sent as the `nodename` payload property. MCP rejects reserved
+`properties.node_id` and `properties.nodename`: Collector generates node ids,
+and allowing `node_id` in `POST /nodes` can turn a create request into an
+update of an existing node. MCP performs an exact `nodename` existence
+pre-check for this create tool; Collector validates the remaining submitted
 payload fields.
 
 Example:
@@ -130,6 +133,102 @@ node_id
 nodename
 node
 deleted
+collector_response
+meta
+```
+
+### `snooze_node_notifications`
+
+Snoozes notifications on one OpenSVC Collector node through
+`POST /nodes/<node_id>/snooze` with a `duration` field. This is a reversible
+state-changing write tool and requires `write:nodes`, authorized for Collector
+`NodeManager` or `Manager` users by MCP RBAC. MCP annotations mark it as
+non-destructive.
+
+The request uses the shared `NodeSelector` contract: provide exactly one of
+`node_id` or `nodename`. If `nodename` is provided, MCP resolves it with an
+exact `/nodes` filter, refuses zero matches, refuses duplicate matches, and then
+calls Collector using the resolved `node_id`.
+
+Because this changes Collector alerting state, the request requires
+`confirmation.phrase`. The assistant must summarize the selected node and
+duration, ask the user to repeat a concise phrase verbatim, and set
+`confirmation.phrase` only after that phrase appears in the latest user message.
+
+Required input fields:
+
+```text
+duration
+confirmation.phrase
+node_id or nodename
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "nodename": "lab-node-01",
+    "duration": "1h",
+    "confirmation": {
+      "phrase": "SNOOZE node lab-node-01 for 1h"
+    }
+  }
+}
+```
+
+Output fields:
+
+```text
+node_id
+nodename
+duration
+node
+snoozed
+collector_response
+meta
+```
+
+### `unsnooze_node_notifications`
+
+Unsnoozes notifications on one OpenSVC Collector node through
+`POST /nodes/<node_id>/snooze` without a `duration` field. It is intentionally a
+separate tool from `snooze_node_notifications`, so an omitted duration cannot
+silently invert the operation. This is a reversible state-changing write tool and
+requires `write:nodes`, authorized for Collector `NodeManager` or `Manager` users
+by MCP RBAC. MCP annotations mark it as non-destructive.
+
+The request uses the same shared `NodeSelector` contract: provide exactly one of
+`node_id` or `nodename`; nodenames are resolved to a single node_id before the
+Collector POST is sent. The request also requires `confirmation.phrase`.
+
+Required input fields:
+
+```text
+confirmation.phrase
+node_id or nodename
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "node_id": "NODE-ID",
+    "confirmation": {
+      "phrase": "UNSNOOZE node NODE-ID"
+    }
+  }
+}
+```
+
+Output fields:
+
+```text
+node_id
+nodename
+node
+unsnoozed
 collector_response
 meta
 ```

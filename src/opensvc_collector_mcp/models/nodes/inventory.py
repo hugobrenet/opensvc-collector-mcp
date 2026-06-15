@@ -3,6 +3,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from opensvc_collector_mcp.models.common import ToolConfirmation
+from opensvc_collector_mcp.models.nodes._common import NodeSelector
 
 
 class NodeFilterRequest(BaseModel):
@@ -292,5 +293,68 @@ class UpdateNodePropertiesResponse(BaseModel):
 
     nodename: str
     updated_properties: dict[str, Any]
+    collector_response: dict[str, Any]
+    meta: dict[str, Any] = Field(default_factory=dict)
+
+
+class SnoozeNodeNotificationsRequest(NodeSelector):
+    duration: str = Field(
+        description=(
+            "Collector duration string to snooze node notifications, for example "
+            "1h, 30m, or 2d. Collector validates the accepted duration syntax."
+        ),
+        min_length=1,
+        examples=["1h"],
+    )
+    confirmation: ToolConfirmation = Field(
+        description=(
+            "Required confirmation gate for this state-changing tool. Before "
+            "calling snooze_node_notifications, summarize the exact node selector "
+            "and duration, ask the user to repeat a concise confirmation phrase "
+            "verbatim, and set this field only when that exact phrase appears in "
+            "the latest user message."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def normalize(self) -> "SnoozeNodeNotificationsRequest":
+        super().normalize_selector()
+        self.duration = self.duration.strip()
+        if not self.duration:
+            raise ValueError("duration must not be empty")
+        return self
+
+
+class SnoozeNodeNotificationsResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    node_id: str
+    nodename: str
+    duration: str
+    node: dict[str, Any]
+    snoozed: bool
+    collector_response: dict[str, Any]
+    meta: dict[str, Any] = Field(default_factory=dict)
+
+
+class UnsnoozeNodeNotificationsRequest(NodeSelector):
+    confirmation: ToolConfirmation = Field(
+        description=(
+            "Required confirmation gate for this state-changing tool. Before "
+            "calling unsnooze_node_notifications, summarize the exact node "
+            "selector, ask the user to repeat a concise confirmation phrase "
+            "verbatim, and set this field only when that exact phrase appears in "
+            "the latest user message."
+        ),
+    )
+
+
+class UnsnoozeNodeNotificationsResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    node_id: str
+    nodename: str
+    node: dict[str, Any]
+    unsnoozed: bool
     collector_response: dict[str, Any]
     meta: dict[str, Any] = Field(default_factory=dict)

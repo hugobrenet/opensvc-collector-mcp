@@ -31,6 +31,10 @@ from opensvc_collector_mcp.models.nodes import (
     NodeServicesRequest,
     NodeServicesResponse,
     NodeTagsResponse,
+    SnoozeNodeNotificationsRequest,
+    SnoozeNodeNotificationsResponse,
+    UnsnoozeNodeNotificationsRequest,
+    UnsnoozeNodeNotificationsResponse,
     UpdateNodePropertiesRequest,
     UpdateNodePropertiesResponse,
 )
@@ -54,6 +58,8 @@ from opensvc_collector_mcp.core.nodes import (
     get_nodes_inventory_stats as core_get_nodes_inventory_stats,
     list_node_props as core_list_node_props,
     list_nodes as core_list_nodes,
+    snooze_node_notifications as core_snooze_node_notifications,
+    unsnooze_node_notifications as core_unsnooze_node_notifications,
     update_node_properties as core_update_node_properties,
 )
 
@@ -160,6 +166,75 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             properties=request.properties,
         )
         return UpdateNodePropertiesResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="snooze_node_notifications",
+        description=(
+            "Snooze notifications on one OpenSVC Collector node through "
+            "POST /nodes/<node_id>/snooze with duration. Accepts either exact "
+            "node_id or exact nodename; MCP resolves nodename to a single node_id "
+            "and refuses ambiguous duplicate nodenames. Before calling, ask the "
+            "user to repeat an exact confirmation phrase and include it in "
+            "request.confirmation.phrase. Requires Collector NodeManager or "
+            "Manager privileges through MCP RBAC."
+        ),
+        tags={"nodes", "snooze", "write:nodes"},
+        annotations={
+            "title": "Snooze OpenSVC Node Notifications",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        },
+    )
+    async def snooze_node_notifications(
+        request: Annotated[
+            SnoozeNodeNotificationsRequest,
+            Field(description="Node notification snooze selector and duration."),
+        ],
+    ) -> SnoozeNodeNotificationsResponse:
+        """Snooze notifications on one Collector node."""
+        response = await core_snooze_node_notifications(
+            node_id=request.node_id,
+            nodename=request.nodename,
+            duration=request.duration,
+        )
+        return SnoozeNodeNotificationsResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="unsnooze_node_notifications",
+        description=(
+            "Unsnooze notifications on one OpenSVC Collector node through "
+            "POST /nodes/<node_id>/snooze without duration. Accepts either "
+            "exact node_id or exact nodename; MCP resolves nodename to a single "
+            "node_id and refuses ambiguous duplicate nodenames. Before calling, "
+            "ask the user to repeat an exact confirmation phrase and include it "
+            "in request.confirmation.phrase. Requires Collector NodeManager or "
+            "Manager privileges through MCP RBAC."
+        ),
+        tags={"nodes", "unsnooze", "write:nodes"},
+        annotations={
+            "title": "Unsnooze OpenSVC Node Notifications",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        },
+    )
+    async def unsnooze_node_notifications(
+        request: Annotated[
+            UnsnoozeNodeNotificationsRequest,
+            Field(description="Node notification unsnooze selector."),
+        ],
+    ) -> UnsnoozeNodeNotificationsResponse:
+        """Unsnooze notifications on one Collector node."""
+        response = await core_unsnooze_node_notifications(
+            node_id=request.node_id,
+            nodename=request.nodename,
+        )
+        return UnsnoozeNodeNotificationsResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

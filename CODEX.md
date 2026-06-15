@@ -693,6 +693,8 @@ Node tool design decisions:
 - `create_node` uses `POST /nodes` with explicit `nodename` and optional `properties`. It requires only `request.confirmation.phrase` as the safety gate, but first checks exact `nodename` absence because Collector otherwise behaves like an upsert. Collector remains the authority for defaults, read-only fields, and payload validation.
 - `update_node_properties` uses `POST /nodes/<nodename>` and accepts the node properties marked `writable=true` by the Collector nodes API definition.
 - Mark node property updates with MCP `destructiveHint=true`: they are write operations on an existing node and can overwrite existing Collector values.
+- Reversible node write tools can use the shared `NodeSelector` Pydantic model (`node_id` or `nodename`, exactly one). Core code must resolve `nodename` to a single node snapshot with `resolve_single_node_selector()` and execute Collector calls with the resolved `node_id`; ambiguous duplicate nodenames are refused. Keep destructive tools such as `delete_node` stricter when needed.
+- `snooze_node_notifications` and `unsnooze_node_notifications` use `POST /nodes/<node_id>/snooze`, require `write:nodes`, require only `confirmation.phrase`, and are marked non-destructive writes.
 - `list_nodes` lists rows and handles exact filters, Collector search, pagination, and bounded `nodename_contains` lookup.
 - `count_nodes` returns one optimized count using Collector `meta.total`.
 - `get_nodes_inventory_stats` returns distributions and possible values.
@@ -709,20 +711,16 @@ Node state-changing tool TODO list:
   `request.confirmation.phrase`; add RBAC tags; add core/tool/schema tests; add
   docs under `docs/tools/nodes.md` or `docs/tools/tags.md` depending on the
   public tool domain.
-- [ ] `snooze_node_notifications`
+- [x] `snooze_node_notifications`
   - Collector API: `POST /nodes/<id>/snooze` with `duration`.
   - Classification: `POST update` on node metadata, not runtime exec.
   - RBAC: `write:nodes` (`NodeManager` or `Manager`).
-  - Selector/confirmation: resolve node first; call with `node_id`,
-    `confirm_node_id`, `confirm_nodename`, and `confirmation.phrase`.
-  - Request shape: explicit duration string; document Collector duration format
-    accepted by `convert_duration()`.
-  - Response: include node snapshot before/after when practical, returned
-    Collector response, and `snooze_till` if available.
-- [ ] `unsnooze_node_notifications`
+  - Selector/confirmation: uses shared `NodeSelector` (`node_id` or exact `nodename`, exactly one), resolves to a single `node_id`, refuses ambiguous nodenames, and requires only `confirmation.phrase`.
+  - Request shape: explicit duration string; Collector validates duration through `convert_duration()`.
+  - Response: includes the resolved node snapshot, returned Collector response, duration, and selector metadata.
+- [x] `unsnooze_node_notifications`
   - Collector API: `POST /nodes/<id>/snooze` without `duration`.
-  - Keep this as a separate tool from snooze so omission of `duration` does not
-    silently invert the operation.
+  - Separate tool from snooze so omission of `duration` cannot silently invert the operation.
   - Same RBAC and selector/confirmation as `snooze_node_notifications`.
 - [ ] `attach_tag_to_node`
   - Collector API: prefer `POST /tags/<tag_id>/nodes/<node_id>` over the bulk

@@ -3,6 +3,7 @@
 from ._common import (
     NodeNameRequest,
     NodeRelationRequest,
+    NodeSelector,
 )
 
 from .inventory import (
@@ -16,6 +17,10 @@ from .inventory import (
     NodeRowsResponse,
     DeleteNodeRequest,
     DeleteNodeResponse,
+    SnoozeNodeNotificationsRequest,
+    SnoozeNodeNotificationsResponse,
+    UnsnoozeNodeNotificationsRequest,
+    UnsnoozeNodeNotificationsResponse,
     UpdateNodePropertiesRequest,
     UpdateNodePropertiesResponse,
 )
@@ -120,6 +125,7 @@ __all__ = [
     'NodeMemoryHardware',
     'NodeNameRequest',
     'NodeRelationRequest',
+    'NodeSelector',
     'NodeNetworkEntry',
     'NodeNetworkResponse',
     'NodeOperatingSystem',
@@ -134,6 +140,10 @@ __all__ = [
     'NodeServicesRequest',
     'NodeServicesResponse',
     'NodeTagsResponse',
+    'SnoozeNodeNotificationsRequest',
+    'SnoozeNodeNotificationsResponse',
+    'UnsnoozeNodeNotificationsRequest',
+    'UnsnoozeNodeNotificationsResponse',
     'UpdateNodePropertiesRequest',
     'UpdateNodePropertiesResponse',
 ]

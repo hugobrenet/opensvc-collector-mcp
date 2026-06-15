@@ -182,6 +182,135 @@ async def test_delete_node_rejects_nodename_passed_as_node_id(
     assert delete_recorder.calls == []
 
 
+async def test_snooze_node_notifications_resolves_nodename_then_posts_node_id(
+    monkeypatch,
+    collector_mock_factory,
+):
+    collector = collector_mock_factory(
+        [
+            {
+                "meta": {"total": 1},
+                "data": [
+                    {
+                        "node_id": "node/id",
+                        "nodename": "node-a",
+                        "status": "up",
+                        "snooze_till": None,
+                    }
+                ],
+            }
+        ]
+    )
+    recorder = CollectorPostRecorder({"info": "snoozed"})
+    monkeypatch.setattr(node_common, "collector_get", collector.get)
+    monkeypatch.setattr(inventory, "collector_post", recorder)
+
+    response = await inventory.snooze_node_notifications(
+        nodename=" node-a ",
+        duration=" 1h ",
+    )
+
+    assert response["node_id"] == "node/id"
+    assert response["nodename"] == "node-a"
+    assert response["duration"] == "1h"
+    assert response["snoozed"] is True
+    assert collector.calls[0].path == "/nodes"
+    assert collector.calls[0].single_param("props") == inventory.DEFAULT_NODE_SNOOZE_SNAPSHOT_PROPS
+    assert collector.calls[0].single_param("limit") == 2
+    assert collector.calls[0].param_values("filters") == ["nodename=node-a"]
+    assert recorder.calls == [
+        {
+            "path": "/nodes/node%2Fid/snooze",
+            "data": {"duration": "1h"},
+            "params": None,
+        }
+    ]
+
+
+async def test_unsnooze_node_notifications_resolves_node_id_then_posts_without_duration(
+    monkeypatch,
+    collector_mock_factory,
+):
+    collector = collector_mock_factory(
+        [
+            {
+                "meta": {},
+                "data": [
+                    {
+                        "node_id": "node/id",
+                        "nodename": "node-a",
+                        "status": "up",
+                        "snooze_till": "2026-06-15 20:00:00",
+                    }
+                ],
+            }
+        ]
+    )
+    recorder = CollectorPostRecorder({"info": "unsnoozed"})
+    monkeypatch.setattr(node_common, "collector_get", collector.get)
+    monkeypatch.setattr(inventory, "collector_post", recorder)
+
+    response = await inventory.unsnooze_node_notifications(node_id=" node/id ")
+
+    assert response["node_id"] == "node/id"
+    assert response["nodename"] == "node-a"
+    assert response["unsnoozed"] is True
+    assert collector.calls[0].path == "/nodes/node%2Fid"
+    assert collector.calls[0].params == {"props": inventory.DEFAULT_NODE_SNOOZE_SNAPSHOT_PROPS}
+    assert recorder.calls == [
+        {"path": "/nodes/node%2Fid/snooze", "data": None, "params": None}
+    ]
+
+
+async def test_snooze_node_notifications_rejects_ambiguous_nodename(
+    monkeypatch,
+    collector_mock_factory,
+):
+    collector = collector_mock_factory(
+        [
+            {
+                "meta": {"total": 2},
+                "data": [
+                    {"node_id": "node-a-id", "nodename": "node-a"},
+                    {"node_id": "node-b-id", "nodename": "node-a"},
+                ],
+            }
+        ]
+    )
+    recorder = CollectorPostRecorder({"info": "snoozed"})
+    monkeypatch.setattr(node_common, "collector_get", collector.get)
+    monkeypatch.setattr(inventory, "collector_post", recorder)
+
+    with pytest.raises(ValueError, match="nodename is ambiguous: node-a"):
+        await inventory.snooze_node_notifications(nodename="node-a", duration="1h")
+
+    assert recorder.calls == []
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {},
+        {"node_id": "node-a-id", "nodename": "node-a"},
+    ],
+)
+async def test_snooze_node_notifications_requires_exactly_one_selector(
+    monkeypatch,
+    collector_mock_factory,
+    kwargs,
+):
+    collector = collector_mock_factory([])
+    recorder = CollectorPostRecorder({"info": "snoozed"})
+    monkeypatch.setattr(node_common, "collector_get", collector.get)
+    monkeypatch.setattr(inventory, "collector_post", recorder)
+
+    with pytest.raises(ValueError, match="requires exactly one node selector"):
+        await inventory.snooze_node_notifications(duration="1h", **kwargs)
+
+    assert collector.calls == []
+    assert recorder.calls == []
+
+
 async def test_create_node_prechecks_nodename_then_posts_payload(
     monkeypatch,
     collector_mock_factory,
