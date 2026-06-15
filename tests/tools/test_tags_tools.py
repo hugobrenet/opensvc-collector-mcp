@@ -41,6 +41,43 @@ async def test_delete_tag_tool_passes_request_to_core(monkeypatch, mcp_client):
     assert recorder.calls == [
         {
             "tag_id": "tag-1",
+            "tag_name": None,
+            "confirm_tag_id": "tag-1",
+            "confirm_tag_name": "mcp-test-tag",
+        }
+    ]
+
+
+async def test_delete_tag_tool_accepts_tag_name_selector(monkeypatch, mcp_client):
+    recorder = CoreRecorder(
+        {
+            "tag_id": "tag-1",
+            "tag_name": "mcp-test-tag",
+            "tag": {"tag_id": "tag-1", "tag_name": "mcp-test-tag"},
+            "deleted": True,
+            "collector_response": {"meta": {"count": 1}, "data": []},
+            "meta": {"source": "tags/<tag_id>", "selector": "tag_name"},
+        }
+    )
+    monkeypatch.setattr(tag_tools, "core_delete_tag", recorder)
+
+    result = await mcp_client.call_tool(
+        "delete_tag",
+        {
+            "request": {
+                "tag_name": "mcp-test-tag",
+                "confirm_tag_id": "tag-1",
+                "confirm_tag_name": "mcp-test-tag",
+                "confirmation": {"phrase": "DELETE tag tag-1 mcp-test-tag"},
+            }
+        },
+    )
+
+    assert result.structured_content["deleted"] is True
+    assert recorder.calls == [
+        {
+            "tag_id": None,
+            "tag_name": "mcp-test-tag",
             "confirm_tag_id": "tag-1",
             "confirm_tag_name": "mcp-test-tag",
         }

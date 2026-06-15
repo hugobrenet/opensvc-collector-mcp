@@ -1,5 +1,9 @@
 """Pydantic contracts for tag tools."""
 
+from ._common import (
+    TagSelector,
+)
+
 from .inventory import (
     CountTagServicesRequest,
     CountTagsRequest,
@@ -40,6 +44,7 @@ __all__ = [
     "TagPropsResponse",
     "TagRow",
     "TagRelationCountResponse",
+    "TagSelector",
     "TagSelectorRequest",
     "TagRowsResponse",
 ]

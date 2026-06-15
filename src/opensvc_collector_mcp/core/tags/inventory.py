@@ -8,6 +8,7 @@ from opensvc_collector_mcp.client import (
     collector_post,
 )
 from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
+from opensvc_collector_mcp.core.tags._common import resolve_single_tag_selector
 
 
 DEFAULT_LIST_TAG_PROPS = "tag_id,tag_name,tag_exclude,tag_created"
@@ -61,46 +62,46 @@ async def create_tag(
 
 
 async def delete_tag(
-    tag_id: str,
+    *,
+    tag_id: str | None = None,
+    tag_name: str | None = None,
     confirm_tag_id: str,
     confirm_tag_name: str,
 ) -> dict[str, Any]:
-    tag_id = tag_id.strip()
+    selector_tag_id = tag_id.strip() if tag_id else ""
+    selector_tag_name = tag_name.strip() if tag_name else ""
     confirmation_id = confirm_tag_id.strip() if confirm_tag_id else ""
     confirmation_name = confirm_tag_name.strip() if confirm_tag_name else ""
 
-    if not tag_id:
-        raise ValueError("tag_id must not be empty")
-    if confirmation_id != tag_id:
-        raise ValueError("confirm_tag_id must match tag_id")
+    if not confirmation_id:
+        raise ValueError("confirm_tag_id must not be empty")
     if not confirmation_name:
         raise ValueError("confirm_tag_name must not be empty")
+    if selector_tag_id and confirmation_id != selector_tag_id:
+        raise ValueError("confirm_tag_id must match tag_id")
 
-    tag = await _get_tag_snapshot(tag_id)
+    tag = await resolve_single_tag_selector(
+        tag_id=selector_tag_id or None,
+        tag_name=selector_tag_name or None,
+        operation="delete tag",
+    )
     resolved_tag_id = str(tag.get("tag_id") or "").strip()
     resolved_tag_name = str(tag.get("tag_name") or "").strip()
-    if not resolved_tag_id:
-        raise ValueError("resolved tag has no tag_id; refusing to delete")
-    if resolved_tag_id != tag_id:
-        raise ValueError(
-            "tag_id must be the exact Collector tag_id, not a tag_name; "
-            "resolve the tag first with list_tags using props=tag_id,tag_name"
-        )
-    if not resolved_tag_name:
-        raise ValueError("resolved tag has no tag_name; refusing to delete")
+    if confirmation_id != resolved_tag_id:
+        raise ValueError("confirm_tag_id must match the resolved tag_id")
     if confirmation_name != resolved_tag_name:
         raise ValueError("confirm_tag_name must match the resolved tag_name")
 
-    response = await collector_delete(f"/tags/{quote(tag_id, safe='')}")
+    response = await collector_delete(f"/tags/{quote(resolved_tag_id, safe='')}")
     return {
-        "tag_id": tag_id,
+        "tag_id": resolved_tag_id,
         "tag_name": resolved_tag_name,
         "tag": tag,
         "deleted": True,
         "collector_response": response,
         "meta": {
             "source": "tags/<tag_id>",
-            "selector": "tag_id",
+            "selector": "tag_id" if selector_tag_id else "tag_name",
             "confirmation": ["confirm_tag_id", "confirm_tag_name"],
         },
     }
@@ -300,22 +301,6 @@ async def list_tag_props() -> dict[str, Any]:
         "available_props": available_props,
         "tag_props": tag_props,
     }
-
-
-async def _get_tag_snapshot(tag_id: str) -> dict[str, Any]:
-    response = await collector_get(
-        f"/tags/{quote(tag_id, safe='')}",
-        params={"props": "tag_id,tag_name,tag_exclude,tag_created,tag_data"},
-    )
-    rows = response.get("data", [])
-    if not isinstance(rows, list) or not rows:
-        raise ValueError(f"tag_id {tag_id!r} not found")
-    if len(rows) != 1:
-        raise ValueError("tag_id resolved to multiple tags; refusing to delete")
-    row = rows[0]
-    if not isinstance(row, dict):
-        raise ValueError(f"tag_id {tag_id!r} returned an invalid tag row")
-    return row
 
 
 async def _resolve_tag_selector(

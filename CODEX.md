@@ -318,33 +318,39 @@ State-changing confirmation contract:
   `confirmation` into `core/` or Collector REST payloads; it is a gateway/LLM
   safety guard at the MCP boundary.
 - Current state-changing tools using this contract:
-  `create_tag`, `delete_tag`, `create_node`, `delete_node`, and `update_node_properties`.
+  `create_tag`, `delete_tag`, `create_node`, `delete_node`, `update_node_properties`, `snooze_node_notifications`, and `unsnooze_node_notifications`.
 - When adding another state-changing tool, update:
   `tests/test_mcp_registration.py`, the domain tool tests, tool docs under
   `docs/tools/`, and the tool description/annotations.
 
 Delete tool selector and confirmation standard:
 
-- Destructive delete tools should use a stable Collector identifier as the live
-  delete selector whenever the domain has one, for example `node_id`. Do not
-  expose ambiguous `id_or_name` selectors for destructive tools.
+- Destructive delete tools must execute the Collector DELETE with a stable
+  Collector identifier whenever the domain has one, for example `node_id` or
+  `tag_id`. They may expose a reusable selector model such as `NodeSelector` or
+  `TagSelector` (`id` or exact name, exactly one), but core code must resolve the
+  name to one snapshot first and refuse zero or multiple matches. Do not expose
+  ambiguous `id_or_name` string fields for destructive tools.
 - Human-readable attributes such as `nodename`, tag name, username, app name, or
-  service path are correlation attributes. Use them for search/resolution, target
-  summaries, and explicit confirmation, not as the sole destructive selector
-  when a stable id exists.
-- If the user asks to delete by name, the assistant must first call read/search
-  tools to resolve candidates. If zero or multiple candidates are found, do not
-  delete; ask for clarification or present the candidate ids. If exactly one
-  candidate is found, summarize it and ask for explicit confirmation including
-  both the stable id and the human-readable correlation attribute.
-- Delete request models should use explicit field names such as `node_id`,
-  `tag_id`, or `user_id`, plus explicit confirmation/correlation fields such as
-  `confirm_nodename`, `confirm_tag_id`, or `confirm_tag_name` when useful. Avoid a generic field
-  named only `id` when users may confuse it with a name.
-- Delete core logic should re-read or validate the target by stable id just
-  before the DELETE call when the Collector API allows it, then verify the
-  supplied correlation attribute still matches. Reject on mismatch to catch stale
-  LLM context, renamed objects, or user copy/paste errors.
+  service path are correlation attributes. Use them for resolution, target
+  summaries, and explicit confirmation; never send a destructive DELETE directly
+  with a name when a stable id exists.
+- If the user asks to delete by name, the assistant may call the delete tool with
+  the exact name selector only when that tool implements strict selector
+  resolution. Otherwise it must first call read/search tools. In all cases, if
+  zero or multiple candidates are found, do not delete; ask for clarification or
+  present the candidate ids. If exactly one candidate is found, summarize it and
+  ask for explicit confirmation including both the stable id and the
+  human-readable correlation attribute.
+- Delete request models should use explicit selector fields such as `node_id` /
+  `nodename` or `tag_id` / `tag_name`, plus explicit confirmation/correlation
+  fields such as `confirm_node_id`, `confirm_nodename`, `confirm_tag_id`, or
+  `confirm_tag_name`. Avoid a generic field named only `id` when users may
+  confuse it with a name.
+- Delete core logic should resolve or re-read the target immediately before the
+  DELETE call, execute the DELETE with the stable id, then verify the supplied
+  confirmation fields match the resolved snapshot. Reject on mismatch to catch
+  stale LLM context, renamed objects, or user copy/paste errors.
 - If a Collector endpoint only supports deletion by name and no stable id exists,
   document that exception in the tool docs and keep a stricter guard: exact
   prior read resolution, exact confirmation phrase, and explicit correlation
@@ -607,9 +613,10 @@ Safety rules for the first write/action wave:
   Manager override, unknown tag, and Collector endpoint rejection.
 - Destructive tools must require explicit destructive tags such as
   `delete:<domain>` and should add dry-run or confirmation conventions before
-  live execution. The tag delete tool uses `delete:tags`, selects by stable
-  `tag_id` only, requires `confirm_tag_id` plus `confirm_tag_name`, and matches
-  both against the resolved Collector tag before calling `DELETE /tags/<id>`.
+  live execution. The tag delete tool uses `delete:tags`, accepts `TagSelector`
+  (`tag_id` or exact `tag_name`, exactly one), resolves to one tag snapshot,
+  requires `confirm_tag_id` plus `confirm_tag_name`, and matches both against
+  the resolved Collector tag before calling `DELETE /tags/<tag_id>`.
 - Audit is mandatory for write/delete/exec attempts, including allowed, denied,
   Collector-rejected, and execution-error cases. Include request id, user,
   client tool, target tool, target object identifiers, required privileges,

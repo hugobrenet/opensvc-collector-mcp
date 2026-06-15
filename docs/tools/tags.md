@@ -51,25 +51,26 @@ destructive tool and requires `delete:tags`, authorized for Collector
 for discovery only. Collector also removes the tag attachments to nodes and
 services.
 
-The tool accepts only the stable Collector `tag_id` as the destructive
-selector. If the user gives a tag name, first resolve it with `list_tags` using
-`props=tag_id,tag_name`; do not call `delete_tag` with `tag_name` as a selector.
-The tool always reads the tag snapshot by `tag_id` before deletion and requires
-`confirm_tag_id` to match `tag_id` and `confirm_tag_name` to match the resolved
-`tag_name`; the DELETE call is not sent if either confirmation does not match.
-Because this is destructive, the assistant must generate a concise confirmation
-phrase containing the exact resolved `tag_id` and `tag_name`, ask the user to
-repeat it verbatim in a new message, and set `confirmation.phrase` only after
-that exact phrase appears in the latest user message. The gateway blocks the
-proxied `call_tool` before MCP execution if the phrase is missing from that
-latest message.
+The deletion selector uses the shared `TagSelector` contract: provide exactly
+one of `tag_id` or `tag_name`. If `tag_name` is provided, MCP resolves it with
+an exact `/tags` filter, refuses zero matches, refuses duplicate matches, and
+then calls Collector using the resolved `tag_id`. The tool always reads a tag
+snapshot before deletion and requires `confirm_tag_id` to match the resolved
+`tag_id` and `confirm_tag_name` to match the resolved `tag_name`; the DELETE
+call is not sent if either confirmation does not match. Because this is
+destructive, the assistant must generate a concise confirmation phrase
+containing the exact resolved `tag_id` and `tag_name`, ask the user to repeat it
+verbatim in a new message, and set `confirmation.phrase` only after that exact
+phrase appears in the latest user message. The gateway blocks the proxied
+`call_tool` before MCP execution if the phrase is missing from that latest
+message.
 
 Example:
 
 ```json
 {
   "request": {
-    "tag_id": "tag-1",
+    "tag_name": "mcp-test-tag",
     "confirm_tag_id": "tag-1",
     "confirm_tag_name": "mcp-test-tag",
     "confirmation": {
