@@ -188,26 +188,19 @@ class CreateNodeResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class DeleteNodeRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    node_id: str = Field(
-        description=(
-            "Exact Collector node id to delete. Use list_nodes with props "
-            "node_id,nodename to resolve duplicate nodenames before deletion."
-        ),
-        min_length=1,
-        examples=["NODE-ID"],
-    )
+class DeleteNodeRequest(NodeSelector):
     confirm_node_id: str = Field(
-        description="Exact node_id confirmation required before deleting the node.",
+        description=(
+            "Exact node_id read from the resolved node snapshot. Required before "
+            "deleting the node, even when the selector is nodename."
+        ),
         min_length=1,
         examples=["NODE-ID"],
     )
     confirm_nodename: str = Field(
         description=(
-            "Exact nodename read from the node snapshot. This is a human safety "
-            "confirmation, not the deletion selector."
+            "Exact nodename read from the resolved node snapshot. This is a human "
+            "safety confirmation, not necessarily the deletion selector."
         ),
         min_length=1,
         examples=["lab-node-01"],
@@ -215,23 +208,20 @@ class DeleteNodeRequest(BaseModel):
     confirmation: ToolConfirmation = Field(
         description=(
             "Required confirmation gate for this destructive tool. Before calling "
-            "delete_node, generate a concise phrase containing the exact node_id "
-            "and nodename, ask the user to repeat it verbatim, and set this field "
-            "only when that exact phrase appears in the latest user message."
+            "delete_node, resolve the target node, generate a concise phrase "
+            "containing the exact node_id and nodename, ask the user to repeat it "
+            "verbatim, and set this field only when that exact phrase appears in "
+            "the latest user message."
         ),
     )
 
     @model_validator(mode="after")
     def normalize(self) -> "DeleteNodeRequest":
-        self.node_id = self.node_id.strip()
+        super().normalize_selector()
         self.confirm_node_id = self.confirm_node_id.strip()
         self.confirm_nodename = self.confirm_nodename.strip()
-        if not self.node_id:
-            raise ValueError("node_id must not be empty")
         if not self.confirm_node_id:
             raise ValueError("confirm_node_id must not be empty")
-        if self.confirm_node_id != self.node_id:
-            raise ValueError("confirm_node_id must match node_id")
         if not self.confirm_nodename:
             raise ValueError("confirm_nodename must not be empty")
         return self

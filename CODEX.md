@@ -688,12 +688,12 @@ Node tool design decisions:
 - Do not add wrapper tools like `get_nodes_by_status`,
   `get_nodes_by_env`, `get_nodes_by_location`, or `get_nodes_by_app`
   unless they add domain-specific logic beyond filtering.
-- `delete_node` uses `DELETE /nodes/<node_id>` and intentionally does not accept `nodename` as the deletion selector because Collector can contain duplicate nodenames. It requires `confirm_node_id` and `confirm_nodename` before sending DELETE.
+- `delete_node` uses shared `NodeSelector` (`node_id` or exact `nodename`, exactly one), resolves the selector to one node snapshot, refuses missing or ambiguous nodenames, then calls `DELETE /nodes/<resolved node_id>`. It still requires `confirm_node_id` and `confirm_nodename` matching the resolved snapshot before sending DELETE.
 - Mark node deletion with MCP `destructiveHint=true` and `delete:nodes`: Collector cascades node deletion to related runtime and inventory rows.
 - `create_node` uses `POST /nodes` with explicit `nodename` and optional `properties`. It requires only `request.confirmation.phrase` as the safety gate, but first checks exact `nodename` absence because Collector otherwise behaves like an upsert. Collector remains the authority for defaults, read-only fields, and payload validation.
 - `update_node_properties` uses `POST /nodes/<nodename>` and accepts the node properties marked `writable=true` by the Collector nodes API definition.
 - Mark node property updates with MCP `destructiveHint=true`: they are write operations on an existing node and can overwrite existing Collector values.
-- Reversible node write tools can use the shared `NodeSelector` Pydantic model (`node_id` or `nodename`, exactly one). Core code must resolve `nodename` to a single node snapshot with `resolve_single_node_selector()` and execute Collector calls with the resolved `node_id`; ambiguous duplicate nodenames are refused. Keep destructive tools such as `delete_node` stricter when needed.
+- Node write tools that operate on an existing node can use the shared `NodeSelector` Pydantic model (`node_id` or `nodename`, exactly one). Core code must resolve `nodename` to a single node snapshot with `resolve_single_node_selector()` and execute Collector calls with the resolved `node_id`; ambiguous duplicate nodenames are refused. Destructive tools must add their own stronger confirmation fields on top of this selector.
 - `snooze_node_notifications` and `unsnooze_node_notifications` use `POST /nodes/<node_id>/snooze`, require `write:nodes`, require only `confirmation.phrase`, and are marked non-destructive writes.
 - `list_nodes` lists rows and handles exact filters, Collector search, pagination, and bounded `nodename_contains` lookup.
 - `count_nodes` returns one optimized count using Collector `meta.total`.
