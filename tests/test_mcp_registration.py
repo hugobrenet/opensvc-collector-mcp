@@ -1,3 +1,5 @@
+import pytest
+
 from opensvc_collector_mcp.server import build_mcp
 
 EXPECTED_TOOL_NAMES = {
@@ -26,6 +28,8 @@ EXPECTED_TOOL_NAMES = {
     "detach_tag_from_service",
     "freeze_node",
     "thaw_node",
+    "run_node_checks",
+    "collect_node_sysreport",
     "get_app",
     "get_app_nodes",
     "get_app_publications",
@@ -187,6 +191,16 @@ async def test_thaw_node_is_marked_as_destructive_exec():
     assert tool.annotations.destructiveHint is True
 
 
+@pytest.mark.parametrize("name", ["run_node_checks", "collect_node_sysreport"])
+async def test_low_risk_node_exec_actions_are_marked_as_non_destructive_exec(name):
+    tools = await build_mcp()._list_tools()
+    tool = next(tool for tool in tools if tool.name == name)
+
+    assert tool.annotations.readOnlyHint is False
+    assert tool.annotations.idempotentHint is False
+    assert tool.annotations.destructiveHint is False
+
+
 async def test_create_node_is_marked_as_destructive_write():
     tools = await build_mcp()._list_tools()
     tool = next(tool for tool in tools if tool.name == "create_node")
@@ -257,6 +271,8 @@ async def test_state_changing_tools_require_confirmation_phrase_in_schema():
         "detach_tag_from_service",
         "freeze_node",
         "thaw_node",
+        "run_node_checks",
+        "collect_node_sysreport",
         "create_node",
         "delete_node",
         "snooze_node_notifications",

@@ -465,6 +465,84 @@ async def test_thaw_node_requires_exactly_one_selector(
     assert put_recorder.calls == []
 
 
+@pytest.mark.parametrize(
+    ("function_name", "expected_action"),
+    [
+        ("run_node_checks", "checks"),
+        ("collect_node_sysreport", "sysreport"),
+    ],
+)
+async def test_node_exec_action_resolves_nodename_confirms_and_enqueues_action(
+    monkeypatch,
+    collector_mock_factory,
+    function_name,
+    expected_action,
+):
+    collector = collector_mock_factory(
+        [
+            {
+                "meta": {"total": 1},
+                "data": [
+                    {
+                        "node_id": "node/id",
+                        "nodename": "node-a",
+                        "status": "up",
+                        "node_frozen": False,
+                    }
+                ],
+            }
+        ]
+    )
+    put_recorder = CollectorPutRecorder({"info": "action queued"})
+    monkeypatch.setattr(node_common, "collector_get", collector.get)
+    monkeypatch.setattr(inventory, "collector_put", put_recorder)
+
+    function = getattr(inventory, function_name)
+    response = await function(
+        nodename=" node-a ",
+        confirm_node_id="node/id",
+        confirm_nodename=" node-a ",
+    )
+
+    assert response["queued"] is True
+    assert response["action"] == expected_action
+    assert response["node_id"] == "node/id"
+    assert response["nodename"] == "node-a"
+    assert response["meta"]["exec_tag"] == "exec:nodes"
+    assert collector.calls[0].path == "/nodes"
+    assert collector.calls[0].single_param("props") == inventory.DEFAULT_NODE_ACTION_SNAPSHOT_PROPS
+    assert collector.calls[0].single_param("limit") == 2
+    assert collector.calls[0].param_values("filters") == ["nodename=node-a"]
+    assert put_recorder.calls == [
+        {
+            "path": "/actions",
+            "data": {"node_id": "node/id", "action": expected_action},
+            "params": None,
+        }
+    ]
+
+
+async def test_run_node_checks_requires_exactly_one_selector(
+    monkeypatch,
+    collector_mock_factory,
+):
+    collector = collector_mock_factory([])
+    put_recorder = CollectorPutRecorder({"info": "action queued"})
+    monkeypatch.setattr(node_common, "collector_get", collector.get)
+    monkeypatch.setattr(inventory, "collector_put", put_recorder)
+
+    with pytest.raises(ValueError, match="requires exactly one node selector"):
+        await inventory.run_node_checks(
+            node_id="node-a-id",
+            nodename="node-a",
+            confirm_node_id="node-a-id",
+            confirm_nodename="node-a",
+        )
+
+    assert collector.calls == []
+    assert put_recorder.calls == []
+
+
 async def test_snooze_node_notifications_resolves_nodename_then_posts_node_id(
     monkeypatch,
     collector_mock_factory,

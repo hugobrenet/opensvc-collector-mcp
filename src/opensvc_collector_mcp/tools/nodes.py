@@ -15,6 +15,10 @@ from opensvc_collector_mcp.models.nodes import (
     FreezeNodeResponse,
     ThawNodeRequest,
     ThawNodeResponse,
+    RunNodeChecksRequest,
+    RunNodeChecksResponse,
+    CollectNodeSysreportRequest,
+    CollectNodeSysreportResponse,
     InventoryStatsRequest,
     InventoryStatsResponse,
     ListNodesRequest,
@@ -48,6 +52,8 @@ from opensvc_collector_mcp.core.nodes import (
     delete_node as core_delete_node,
     freeze_node as core_freeze_node,
     thaw_node as core_thaw_node,
+    run_node_checks as core_run_node_checks,
+    collect_node_sysreport as core_collect_node_sysreport,
     get_node as core_get_node,
     get_node_cluster as core_get_node_cluster,
     get_node_checks as core_get_node_checks,
@@ -217,6 +223,82 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             confirm_nodename=request.confirm_nodename,
         )
         return ThawNodeResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="run_node_checks",
+        description=(
+            "Enqueue an OpenSVC checks action for one Collector node through "
+            "PUT /actions with action=checks and the resolved node_id. Accepts "
+            "either exact node_id or exact nodename; MCP resolves nodename to "
+            "one node_id, refuses ambiguous matches, and verifies explicit "
+            "confirm_node_id and confirm_nodename before enqueueing the action. "
+            "Before calling, ask the user to repeat an exact confirmation phrase "
+            "containing the resolved node_id and nodename, and include it in "
+            "request.confirmation.phrase. Requires Collector NodeExec or Manager "
+            "privileges through MCP RBAC."
+        ),
+        tags={"nodes", "checks", "exec:nodes"},
+        annotations={
+            "title": "Run OpenSVC Node Checks",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        },
+    )
+    async def run_node_checks(
+        request: Annotated[
+            RunNodeChecksRequest,
+            Field(description="Node checks selector and explicit confirmations."),
+        ],
+    ) -> RunNodeChecksResponse:
+        """Enqueue a checks action for one OpenSVC Collector node."""
+        response = await core_run_node_checks(
+            node_id=request.node_id,
+            nodename=request.nodename,
+            confirm_node_id=request.confirm_node_id,
+            confirm_nodename=request.confirm_nodename,
+        )
+        return RunNodeChecksResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="collect_node_sysreport",
+        description=(
+            "Enqueue a sysreport collection action for one OpenSVC Collector "
+            "node through PUT /actions with action=sysreport and the resolved "
+            "node_id. Accepts either exact node_id or exact nodename; MCP "
+            "resolves nodename to one node_id, refuses ambiguous matches, and "
+            "verifies explicit confirm_node_id and confirm_nodename before "
+            "enqueueing the action. Before calling, ask the user to repeat an "
+            "exact confirmation phrase containing the resolved node_id and "
+            "nodename, and include it in request.confirmation.phrase. Requires "
+            "Collector NodeExec or Manager privileges through MCP RBAC."
+        ),
+        tags={"nodes", "sysreport", "exec:nodes"},
+        annotations={
+            "title": "Collect OpenSVC Node Sysreport",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        },
+    )
+    async def collect_node_sysreport(
+        request: Annotated[
+            CollectNodeSysreportRequest,
+            Field(description="Node sysreport selector and explicit confirmations."),
+        ],
+    ) -> CollectNodeSysreportResponse:
+        """Enqueue a sysreport action for one OpenSVC Collector node."""
+        response = await core_collect_node_sysreport(
+            node_id=request.node_id,
+            nodename=request.nodename,
+            confirm_node_id=request.confirm_node_id,
+            confirm_nodename=request.confirm_nodename,
+        )
+        return CollectNodeSysreportResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

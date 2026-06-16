@@ -131,6 +131,8 @@ Current MCP node tool surface:
 - `delete_node`
 - `freeze_node`
 - `thaw_node`
+- `run_node_checks`
+- `collect_node_sysreport`
 - `update_node_properties`
 - `list_node_props`
 - `list_nodes`
@@ -324,7 +326,7 @@ State-changing confirmation contract:
   `confirmation` into `core/` or Collector REST payloads; it is a gateway/LLM
   safety guard at the MCP boundary.
 - Current state-changing tools using this contract:
-  `create_tag`, `delete_tag`, `attach_tag_to_node`, `attach_tag_to_service`, `detach_tag_from_node`, `detach_tag_from_service`, `create_node`, `delete_node`, `freeze_node`, `thaw_node`, `update_node_properties`, `snooze_node_notifications`, and `unsnooze_node_notifications`.
+  `create_tag`, `delete_tag`, `attach_tag_to_node`, `attach_tag_to_service`, `detach_tag_from_node`, `detach_tag_from_service`, `create_node`, `delete_node`, `freeze_node`, `thaw_node`, `run_node_checks`, `collect_node_sysreport`, `update_node_properties`, `snooze_node_notifications`, and `unsnooze_node_notifications`.
 - When adding another state-changing tool, update:
   `tests/test_mcp_registration.py`, the domain tool tests, tool docs under
   `docs/tools/`, and the tool description/annotations.
@@ -813,35 +815,52 @@ Node state-changing tool TODO list:
   - Likely RBAC: `write:compliance` or a dedicated compliance relation policy,
     not plain `write:nodes`, but confirm against Collector privilege checks
     before implementation.
-- [x] `freeze_node`
-  - Collector API: `PUT /actions` with `node_id=<node_id>` and `action=freeze`.
-  - Classification: `exec:nodes`; this enqueues `nodemgr freeze --local` through
-    the Collector action queue.
-  - RBAC: `exec:nodes` (`NodeExec` or `Manager`).
-  - Selector/confirmation: resolve node first; call with `node_id`,
-    `confirm_node_id`, `confirm_nodename`, and `confirmation.phrase`.
-    MCP uses `collector_put("/actions", data={"node_id": ..., "action": "freeze"})`.
-  - No implicit batch. If freezing multiple nodes is needed later, create an
-    explicit batch tool with a full target summary.
-- [x] `thaw_node`
-  - Collector API: `PUT /actions` with `node_id=<node_id>` and `action=thaw`.
-  - Classification/RBAC/confirmation: same as `freeze_node`.
-  - Use the OpenSVC/Collector action name `thaw`; describe it to users as thaw
-    or unfreeze.
-    MCP uses `collector_put("/actions", data={"node_id": ..., "action": "thaw"})`.
-- [ ] Other node-only action queue tools
+- [ ] Node-only `/actions` tools
   - Collector API: `PUT /actions` with `node_id=<node_id>` and one action.
-  - Candidate node-only actions observed in `api_action_queue.py` and
-    `json_action_one()`: `pushasset`, `pushdisks`, `pull`, `push`, `pushpkg`,
-    `pushpatch`, `pushstats`, `checks`, `sysreport`, `updatecomp`, `updatepkg`,
-    `rotate_root_pw`, `scanscsi`, `reboot`, `schedule_reboot`,
-    `unschedule_reboot`, `shutdown`, and `wol`.
-  - Implement as separate narrow tools or a constrained enum tool only after
-    deciding UX and risk. High-impact actions such as `reboot`, `shutdown`,
-    `rotate_root_pw`, and `scanscsi` need especially explicit descriptions,
-    confirmation phrases, and audit.
+  - Completed node action tools are not kept in this TODO list. Current completed
+    `/actions` node tools: `freeze_node`, `thaw_node`, `run_node_checks`,
+    `collect_node_sysreport`.
+  - Use the existing core helper `_enqueue_confirmed_node_action()` for simple
+    node-only `exec:nodes` actions unless the action requires extra payload or a
+    different RBAC domain.
+  - Shared rule: each tool must be narrow and named after one Collector action,
+    resolve exactly one node through `resolve_single_node_selector()`, require
+    `confirm_node_id`, `confirm_nodename`, and `confirmation.phrase`, and enqueue
+    with the resolved `node_id` only.
   - Do not mix service-instance actions here. Actions requiring `svc_id` belong
-    to service/domain tools even when they also take `node_id`.
+    to service-domain tools even when they also take `node_id`.
+
+  Lower-risk remaining first pass:
+  - [ ] `push_node_asset` -> action `pushasset`
+  - [ ] `push_node_disks` -> action `pushdisks`
+  - [ ] `push_node_stats` -> action `pushstats`
+  - [ ] `pull_node_config` -> action `pull`
+  - [ ] `push_node_config` -> action `push`
+
+  Medium-risk package/compliance-data refresh actions:
+  - [ ] `push_node_packages` -> action `pushpkg`
+  - [ ] `push_node_patches` -> action `pushpatch`
+  - [ ] `update_node_compliance_data` -> action `updatecomp`
+  - [ ] `update_node_package_data` -> action `updatepkg`
+  - [ ] `scan_node_scsi` -> action `scanscsi`
+
+  Checkpoint before high-impact actions:
+  - [ ] Re-read Collector `api_action_queue.py` and
+    `action_menu/action_menu.py` for exact privilege checks and command effects.
+  - [ ] Decide if high-impact tools need stronger UX than a simple confirmation
+    phrase, for example an explicit danger summary or dedicated confirmation
+    wording.
+  - [ ] Confirm naming and descriptions with the user before implementation.
+  - [ ] Live-test one lower-risk node action end to end before adding reboot,
+    shutdown, password rotation, or wake-on-LAN tools.
+
+  High-impact actions, deferred until after the checkpoint:
+  - [ ] `reboot_node` -> action `reboot`
+  - [ ] `schedule_node_reboot` -> action `schedule_reboot`
+  - [ ] `unschedule_node_reboot` -> action `unschedule_reboot`
+  - [ ] `shutdown_node` -> action `shutdown`
+  - [ ] `rotate_node_root_password` -> action `rotate_root_pw`
+  - [ ] `wake_node_on_lan` -> action `wol`
 - [ ] Node compliance exec tools
   - Collector API: `PUT /actions` with `node_id=<node_id>`, action
     `compliance_check` or `compliance_fix`, and `module`, `moduleset`, or

@@ -1,3 +1,5 @@
+import pytest
+
 from opensvc_collector_mcp.tools import nodes as node_tools
 
 
@@ -184,6 +186,63 @@ async def test_thaw_node_tool_passes_request_to_core(monkeypatch, mcp_client):
 
     assert result.structured_content["queued"] is True
     assert result.structured_content["action"] == "thaw"
+    assert recorder.calls == [
+        {
+            "node_id": "node-a-id",
+            "nodename": None,
+            "confirm_node_id": "node-a-id",
+            "confirm_nodename": "node-a",
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    ("tool_name", "core_attr", "action", "phrase"),
+    [
+        ("run_node_checks", "core_run_node_checks", "checks", "RUN checks node node-a-id node-a"),
+        (
+            "collect_node_sysreport",
+            "core_collect_node_sysreport",
+            "sysreport",
+            "COLLECT sysreport node node-a-id node-a",
+        ),
+    ],
+)
+async def test_node_exec_action_tool_passes_request_to_core(
+    monkeypatch,
+    mcp_client,
+    tool_name,
+    core_attr,
+    action,
+    phrase,
+):
+    recorder = CoreRecorder(
+        {
+            "node_id": "node-a-id",
+            "nodename": "node-a",
+            "node": {"node_id": "node-a-id", "nodename": "node-a"},
+            "action": action,
+            "queued": True,
+            "collector_response": {"info": "action queued"},
+            "meta": {"source": "actions", "exec_tag": "exec:nodes"},
+        }
+    )
+    monkeypatch.setattr(node_tools, core_attr, recorder)
+
+    result = await mcp_client.call_tool(
+        tool_name,
+        {
+            "request": {
+                "node_id": "node-a-id",
+                "confirm_node_id": "node-a-id",
+                "confirm_nodename": "node-a",
+                "confirmation": {"phrase": phrase},
+            }
+        },
+    )
+
+    assert result.structured_content["queued"] is True
+    assert result.structured_content["action"] == action
     assert recorder.calls == [
         {
             "node_id": "node-a-id",
