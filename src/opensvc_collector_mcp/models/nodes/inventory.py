@@ -287,6 +287,57 @@ class UpdateNodePropertiesResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
+class FreezeNodeRequest(NodeSelector):
+    confirm_node_id: str = Field(
+        description=(
+            "Exact node_id read from the resolved node snapshot. Required before "
+            "enqueuing the freeze action, even when the selector is nodename."
+        ),
+        min_length=1,
+        examples=["NODE-ID"],
+    )
+    confirm_nodename: str = Field(
+        description=(
+            "Exact nodename read from the resolved node snapshot. This confirms "
+            "the intended target before enqueuing the freeze action."
+        ),
+        min_length=1,
+        examples=["lab-node-01"],
+    )
+    confirmation: ToolConfirmation = Field(
+        description=(
+            "Required confirmation gate for this node execution tool. Before "
+            "calling freeze_node, resolve the target node, generate a concise "
+            "phrase containing the exact node_id and nodename, ask the user to "
+            "repeat it verbatim, and set this field only when that exact phrase "
+            "appears in the latest user message."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def normalize(self) -> "FreezeNodeRequest":
+        super().normalize_selector()
+        self.confirm_node_id = self.confirm_node_id.strip()
+        self.confirm_nodename = self.confirm_nodename.strip()
+        if not self.confirm_node_id:
+            raise ValueError("confirm_node_id must not be empty")
+        if not self.confirm_nodename:
+            raise ValueError("confirm_nodename must not be empty")
+        return self
+
+
+class FreezeNodeResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    node_id: str
+    nodename: str
+    node: dict[str, Any]
+    action: str
+    queued: bool
+    collector_response: dict[str, Any]
+    meta: dict[str, Any] = Field(default_factory=dict)
+
+
 class SnoozeNodeNotificationsRequest(NodeSelector):
     duration: str = Field(
         description=(

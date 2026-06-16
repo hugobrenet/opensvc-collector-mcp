@@ -1,7 +1,12 @@
 from typing import Any
 from urllib.parse import quote
 
-from opensvc_collector_mcp.client import collector_delete, collector_get, collector_post
+from opensvc_collector_mcp.client import (
+    collector_delete,
+    collector_get,
+    collector_post,
+    collector_put,
+)
 from opensvc_collector_mcp.core.utils import collection_params
 from opensvc_collector_mcp.core.nodes._common import (
     _ensure_node_nodename_available,
@@ -17,6 +22,9 @@ DEFAULT_NODE_DELETE_SNAPSHOT_PROPS = (
     "node_id,nodename,status,asset_env,node_env,app,team_responsible,updated"
 )
 DEFAULT_NODE_SNOOZE_SNAPSHOT_PROPS = "node_id,nodename,status,snooze_till,updated"
+DEFAULT_NODE_ACTION_SNAPSHOT_PROPS = (
+    "node_id,nodename,status,node_frozen,node_frozen_at,updated"
+)
 
 NODE_UPDATE_ALLOWED_PROPERTIES = frozenset(
     {
@@ -316,6 +324,56 @@ async def delete_node(
             "source": "nodes/<node_id>",
             "selector": "node_id" if selector_node_id else "nodename",
             "confirmation": ["confirm_node_id", "confirm_nodename"],
+        },
+    }
+
+
+async def freeze_node(
+    *,
+    node_id: str | None = None,
+    nodename: str | None = None,
+    confirm_node_id: str,
+    confirm_nodename: str,
+) -> dict[str, Any]:
+    selector_node_id = node_id.strip() if node_id else ""
+    selector_nodename = nodename.strip() if nodename else ""
+    confirmation_id = confirm_node_id.strip() if confirm_node_id else ""
+    confirmation_name = confirm_nodename.strip() if confirm_nodename else ""
+
+    if not confirmation_id:
+        raise ValueError("confirm_node_id must not be empty")
+    if not confirmation_name:
+        raise ValueError("confirm_nodename must not be empty")
+    if selector_node_id and confirmation_id != selector_node_id:
+        raise ValueError("confirm_node_id must match node_id")
+
+    node = await resolve_single_node_selector(
+        node_id=selector_node_id or None,
+        nodename=selector_nodename or None,
+        props=DEFAULT_NODE_ACTION_SNAPSHOT_PROPS,
+        operation="freeze node",
+    )
+    resolved_node_id = str(node.get("node_id") or "").strip()
+    resolved_nodename = str(node.get("nodename") or "").strip()
+    if confirmation_id != resolved_node_id:
+        raise ValueError("confirm_node_id must match the resolved node_id")
+    if confirmation_name != resolved_nodename:
+        raise ValueError("confirm_nodename must match the resolved nodename")
+
+    payload = {"node_id": resolved_node_id, "action": "freeze"}
+    response = await collector_put("/actions", data=payload)
+    return {
+        "node_id": resolved_node_id,
+        "nodename": resolved_nodename,
+        "node": node,
+        "action": "freeze",
+        "queued": True,
+        "collector_response": response,
+        "meta": {
+            "source": "actions",
+            "selector": "node_id" if selector_node_id else "nodename",
+            "confirmation": ["confirm_node_id", "confirm_nodename"],
+            "exec_tag": "exec:nodes",
         },
     }
 

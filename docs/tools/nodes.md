@@ -140,6 +140,64 @@ collector_response
 meta
 ```
 
+### `freeze_node`
+
+Enqueues a freeze action for one OpenSVC Collector node through `PUT /actions`
+with `node_id=<node_id>` and `action=freeze`. This is an execution tool and
+requires `exec:nodes`, authorized for Collector `NodeExec` or `Manager` users by
+MCP RBAC. The action is queued for OpenSVC agents by Collector. MCP annotations
+mark it as destructive because it changes operational node behavior.
+
+The request uses the shared `NodeSelector` contract: provide exactly one of
+`node_id` or `nodename`. If `nodename` is provided, MCP resolves it with an
+exact `/nodes` filter, refuses zero matches, refuses duplicate matches, and then
+enqueues the action using the resolved `node_id`. The tool also requires
+`confirm_node_id` and `confirm_nodename` to match the resolved snapshot before
+calling Collector.
+
+Because this changes runtime state, the request requires `confirmation.phrase`.
+The assistant must resolve the selected node, summarize the freeze action, ask
+the user to repeat a concise phrase containing the resolved `node_id` and
+`nodename` verbatim, and set `confirmation.phrase` only after that phrase appears
+in the latest user message.
+
+Required input fields:
+
+```text
+node_id or nodename
+confirm_node_id
+confirm_nodename
+confirmation.phrase
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "node_id": "NODE-ID",
+    "confirm_node_id": "NODE-ID",
+    "confirm_nodename": "lab-node-01",
+    "confirmation": {
+      "phrase": "FREEZE node NODE-ID lab-node-01"
+    }
+  }
+}
+```
+
+Output fields:
+
+```text
+node_id
+nodename
+node
+action
+queued
+collector_response
+meta
+```
+
+
 ### `snooze_node_notifications`
 
 Snoozes notifications on one OpenSVC Collector node through

@@ -118,6 +118,44 @@ async def test_delete_node_tool_accepts_nodename_selector(monkeypatch, mcp_clien
     ]
 
 
+async def test_freeze_node_tool_passes_request_to_core(monkeypatch, mcp_client):
+    recorder = CoreRecorder(
+        {
+            "node_id": "node-a-id",
+            "nodename": "node-a",
+            "node": {"node_id": "node-a-id", "nodename": "node-a"},
+            "action": "freeze",
+            "queued": True,
+            "collector_response": {"info": "action queued"},
+            "meta": {"source": "actions", "exec_tag": "exec:nodes"},
+        }
+    )
+    monkeypatch.setattr(node_tools, "core_freeze_node", recorder)
+
+    result = await mcp_client.call_tool(
+        "freeze_node",
+        {
+            "request": {
+                "node_id": "node-a-id",
+                "confirm_node_id": "node-a-id",
+                "confirm_nodename": "node-a",
+                "confirmation": {"phrase": "FREEZE node node-a-id node-a"},
+            }
+        },
+    )
+
+    assert result.structured_content["queued"] is True
+    assert result.structured_content["action"] == "freeze"
+    assert recorder.calls == [
+        {
+            "node_id": "node-a-id",
+            "nodename": None,
+            "confirm_node_id": "node-a-id",
+            "confirm_nodename": "node-a",
+        }
+    ]
+
+
 async def test_update_node_properties_tool_passes_request_to_core(monkeypatch, mcp_client):
     recorder = CoreRecorder(
         {

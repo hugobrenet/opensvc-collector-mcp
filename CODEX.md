@@ -129,6 +129,7 @@ Current MCP node tool surface:
 
 - `create_node`
 - `delete_node`
+- `freeze_node`
 - `update_node_properties`
 - `list_node_props`
 - `list_nodes`
@@ -322,7 +323,7 @@ State-changing confirmation contract:
   `confirmation` into `core/` or Collector REST payloads; it is a gateway/LLM
   safety guard at the MCP boundary.
 - Current state-changing tools using this contract:
-  `create_tag`, `delete_tag`, `attach_tag_to_node`, `attach_tag_to_service`, `detach_tag_from_node`, `detach_tag_from_service`, `create_node`, `delete_node`, `update_node_properties`, `snooze_node_notifications`, and `unsnooze_node_notifications`.
+  `create_tag`, `delete_tag`, `attach_tag_to_node`, `attach_tag_to_service`, `detach_tag_from_node`, `detach_tag_from_service`, `create_node`, `delete_node`, `freeze_node`, `update_node_properties`, `snooze_node_notifications`, and `unsnooze_node_notifications`.
 - When adding another state-changing tool, update:
   `tests/test_mcp_registration.py`, the domain tool tests, tool docs under
   `docs/tools/`, and the tool description/annotations.
@@ -811,13 +812,14 @@ Node state-changing tool TODO list:
   - Likely RBAC: `write:compliance` or a dedicated compliance relation policy,
     not plain `write:nodes`, but confirm against Collector privilege checks
     before implementation.
-- [ ] `freeze_node`
+- [x] `freeze_node`
   - Collector API: `PUT /actions` with `node_id=<node_id>` and `action=freeze`.
   - Classification: `exec:nodes`; this enqueues `nodemgr freeze --local` through
     the Collector action queue.
   - RBAC: `exec:nodes` (`NodeExec` or `Manager`).
   - Selector/confirmation: resolve node first; call with `node_id`,
     `confirm_node_id`, `confirm_nodename`, and `confirmation.phrase`.
+    MCP uses `collector_put("/actions", data={"node_id": ..., "action": "freeze"})`.
   - No implicit batch. If freezing multiple nodes is needed later, create an
     explicit batch tool with a full target summary.
 - [ ] `thaw_node`

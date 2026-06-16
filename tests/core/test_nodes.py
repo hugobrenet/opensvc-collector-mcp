@@ -15,6 +15,16 @@ class CollectorPostRecorder:
         return self.response
 
 
+class CollectorPutRecorder:
+    def __init__(self, response):
+        self.response = response
+        self.calls = []
+
+    async def __call__(self, path, data=None, params=None):
+        self.calls.append({"path": path, "data": data, "params": params})
+        return self.response
+
+
 class CollectorDeleteRecorder:
     def __init__(self, response):
         self.response = response
@@ -250,6 +260,141 @@ async def test_delete_node_rejects_nodename_passed_as_node_id(
 
     assert collector.calls[0].path == "/nodes/node-a"
     assert delete_recorder.calls == []
+
+
+async def test_freeze_node_resolves_nodename_confirms_and_enqueues_action(
+    monkeypatch,
+    collector_mock_factory,
+):
+    collector = collector_mock_factory(
+        [
+            {
+                "meta": {"total": 1},
+                "data": [
+                    {
+                        "node_id": "node/id",
+                        "nodename": "node-a",
+                        "status": "up",
+                        "node_frozen": None,
+                    }
+                ],
+            }
+        ]
+    )
+    put_recorder = CollectorPutRecorder({"info": "action queued"})
+    monkeypatch.setattr(node_common, "collector_get", collector.get)
+    monkeypatch.setattr(inventory, "collector_put", put_recorder)
+
+    response = await inventory.freeze_node(
+        nodename=" node-a ",
+        confirm_node_id="node/id",
+        confirm_nodename=" node-a ",
+    )
+
+    assert response["queued"] is True
+    assert response["action"] == "freeze"
+    assert response["node_id"] == "node/id"
+    assert response["nodename"] == "node-a"
+    assert response["meta"]["exec_tag"] == "exec:nodes"
+    assert collector.calls[0].path == "/nodes"
+    assert collector.calls[0].single_param("props") == inventory.DEFAULT_NODE_ACTION_SNAPSHOT_PROPS
+    assert collector.calls[0].single_param("limit") == 2
+    assert collector.calls[0].param_values("filters") == ["nodename=node-a"]
+    assert put_recorder.calls == [
+        {
+            "path": "/actions",
+            "data": {"node_id": "node/id", "action": "freeze"},
+            "params": None,
+        }
+    ]
+
+
+async def test_freeze_node_resolves_node_id_confirms_and_enqueues_action(
+    monkeypatch,
+    collector_mock_factory,
+):
+    collector = collector_mock_factory(
+        [
+            {
+                "meta": {},
+                "data": [
+                    {
+                        "node_id": "node/id",
+                        "nodename": "node-a",
+                        "status": "up",
+                    }
+                ],
+            }
+        ]
+    )
+    put_recorder = CollectorPutRecorder({"info": "action queued"})
+    monkeypatch.setattr(node_common, "collector_get", collector.get)
+    monkeypatch.setattr(inventory, "collector_put", put_recorder)
+
+    response = await inventory.freeze_node(
+        node_id=" node/id ",
+        confirm_node_id="node/id",
+        confirm_nodename="node-a",
+    )
+
+    assert response["node_id"] == "node/id"
+    assert response["meta"]["selector"] == "node_id"
+    assert collector.calls[0].path == "/nodes/node%2Fid"
+    assert put_recorder.calls == [
+        {
+            "path": "/actions",
+            "data": {"node_id": "node/id", "action": "freeze"},
+            "params": None,
+        }
+    ]
+
+
+async def test_freeze_node_rejects_confirmation_mismatch_before_enqueue(
+    monkeypatch,
+    collector_mock_factory,
+):
+    collector = collector_mock_factory(
+        [
+            {
+                "meta": {},
+                "data": [{"node_id": "node-a-id", "nodename": "node-a"}],
+            }
+        ]
+    )
+    put_recorder = CollectorPutRecorder({"info": "action queued"})
+    monkeypatch.setattr(node_common, "collector_get", collector.get)
+    monkeypatch.setattr(inventory, "collector_put", put_recorder)
+
+    with pytest.raises(ValueError, match="confirm_nodename must match"):
+        await inventory.freeze_node(
+            node_id="node-a-id",
+            confirm_node_id="node-a-id",
+            confirm_nodename="node-b",
+        )
+
+    assert len(collector.calls) == 1
+    assert put_recorder.calls == []
+
+
+async def test_freeze_node_requires_exactly_one_selector(
+    monkeypatch,
+    collector_mock_factory,
+):
+    collector = collector_mock_factory([])
+    put_recorder = CollectorPutRecorder({"info": "action queued"})
+    monkeypatch.setattr(node_common, "collector_get", collector.get)
+    monkeypatch.setattr(inventory, "collector_put", put_recorder)
+
+    with pytest.raises(ValueError, match="requires exactly one node selector"):
+        await inventory.freeze_node(
+            node_id="node-a-id",
+            nodename="node-a",
+            confirm_node_id="node-a-id",
+            confirm_nodename="node-a",
+        )
+
+    assert collector.calls == []
+    assert put_recorder.calls == []
 
 
 async def test_snooze_node_notifications_resolves_nodename_then_posts_node_id(

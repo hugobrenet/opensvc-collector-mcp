@@ -8,6 +8,7 @@ from .inventory import (
     get_node,
     update_node_properties,
     delete_node,
+    freeze_node,
     snooze_node_notifications,
     unsnooze_node_notifications,
 )
@@ -68,6 +69,7 @@ __all__ = [
     'count_nodes',
     'create_node',
     'delete_node',
+    'freeze_node',
     'get_node',
     'get_node_checks',
     'get_node_cluster',

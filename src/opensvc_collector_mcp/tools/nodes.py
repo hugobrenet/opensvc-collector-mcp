@@ -11,6 +11,8 @@ from opensvc_collector_mcp.models.nodes import (
     CreateNodeResponse,
     DeleteNodeRequest,
     DeleteNodeResponse,
+    FreezeNodeRequest,
+    FreezeNodeResponse,
     InventoryStatsRequest,
     InventoryStatsResponse,
     ListNodesRequest,
@@ -42,6 +44,7 @@ from opensvc_collector_mcp.core.nodes import (
     count_nodes as core_count_nodes,
     create_node as core_create_node,
     delete_node as core_delete_node,
+    freeze_node as core_freeze_node,
     get_node as core_get_node,
     get_node_cluster as core_get_node_cluster,
     get_node_checks as core_get_node_checks,
@@ -135,6 +138,44 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             confirm_nodename=request.confirm_nodename,
         )
         return DeleteNodeResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="freeze_node",
+        description=(
+            "Enqueue a freeze action for one OpenSVC Collector node through "
+            "PUT /actions with action=freeze and the resolved node_id. Accepts "
+            "either exact node_id or exact nodename; MCP resolves nodename to "
+            "one node_id, refuses ambiguous matches, and verifies explicit "
+            "confirm_node_id and confirm_nodename before enqueueing the action. "
+            "Before calling, ask the user to repeat an exact confirmation phrase "
+            "containing the resolved node_id and nodename, and include it in "
+            "request.confirmation.phrase. Requires Collector NodeExec or Manager "
+            "privileges through MCP RBAC."
+        ),
+        tags={"nodes", "freeze", "exec:nodes"},
+        annotations={
+            "title": "Freeze OpenSVC Node",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def freeze_node(
+        request: Annotated[
+            FreezeNodeRequest,
+            Field(description="Node freeze selector and explicit confirmations."),
+        ],
+    ) -> FreezeNodeResponse:
+        """Enqueue a freeze action for one OpenSVC Collector node."""
+        response = await core_freeze_node(
+            node_id=request.node_id,
+            nodename=request.nodename,
+            confirm_node_id=request.confirm_node_id,
+            confirm_nodename=request.confirm_nodename,
+        )
+        return FreezeNodeResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
