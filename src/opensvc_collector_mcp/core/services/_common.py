@@ -2,6 +2,18 @@ from typing import Any
 from urllib.parse import quote
 
 from opensvc_collector_mcp.client import collector_get
+from opensvc_collector_mcp.core.prechecks import (
+    clean_value,
+    require_at_least_one_selector,
+    require_exactly_one_selector,
+    require_identity,
+    require_match,
+    require_single_row,
+)
+from opensvc_collector_mcp.core.utils import collection_params
+
+
+DEFAULT_SERVICE_SELECTOR_PROPS = "svc_id,svcname,svc_status,svc_availstatus,updated"
 
 
 async def get_service_identity(svcname: str) -> dict[str, Any]:
@@ -11,7 +23,7 @@ async def get_service_identity(svcname: str) -> dict[str, Any]:
 
     response = await collector_get(
         f"/services/{quote(svcname, safe='')}",
-        params={"props": "svc_id,svcname,svc_status,svc_availstatus,updated"},
+        params={"props": DEFAULT_SERVICE_SELECTOR_PROPS},
     )
     rows = response.get("data", [])
     service = rows[0] if rows else {"svcname": svcname}
@@ -20,6 +32,146 @@ async def get_service_identity(svcname: str) -> dict[str, Any]:
         "svc_id": service.get("svc_id"),
         "service": service,
     }
+
+
+async def resolve_single_service_selector(
+    *,
+    svc_id: str | None = None,
+    svcname: str | None = None,
+    props: str = DEFAULT_SERVICE_SELECTOR_PROPS,
+    operation: str = "service operation",
+) -> dict[str, Any]:
+    selectors = require_exactly_one_selector(
+        operation,
+        {"svc_id": svc_id, "svcname": svcname},
+        selector_kind="service",
+    )
+    service = await _resolve_service_by_preferred_selector(
+        svc_id=selectors["svc_id"],
+        svcname=selectors["svcname"],
+        props=props,
+        operation=operation,
+    )
+    require_identity(
+        service,
+        operation=operation,
+        target="service",
+        id_field="svc_id",
+        name_field="svcname",
+    )
+    return service
+
+
+async def resolve_service_reference(
+    *,
+    svc_id: str | None = None,
+    svcname: str | None = None,
+    props: str = DEFAULT_SERVICE_SELECTOR_PROPS,
+    operation: str = "service operation",
+    missing_message: str | None = None,
+    correlation_message: str = "svcname must match the resolved svc_id",
+) -> dict[str, Any]:
+    selectors = require_at_least_one_selector(
+        operation,
+        {"svc_id": svc_id, "svcname": svcname},
+        selector_kind="service",
+        message=missing_message,
+    )
+    service = await _resolve_service_by_preferred_selector(
+        svc_id=selectors["svc_id"],
+        svcname=selectors["svcname"],
+        props=props,
+        operation=operation,
+    )
+    _, resolved_svcname = require_identity(
+        service,
+        operation=operation,
+        target="service",
+        id_field="svc_id",
+        name_field="svcname",
+    )
+    require_match(
+        selectors["svcname"],
+        resolved_svcname,
+        message=correlation_message,
+    )
+    return service
+
+
+async def _resolve_service_by_preferred_selector(
+    *,
+    svc_id: str,
+    svcname: str,
+    props: str,
+    operation: str,
+) -> dict[str, Any]:
+    if svc_id:
+        return await _resolve_service_id_selector(
+            svc_id=svc_id,
+            props=props,
+            operation=operation,
+        )
+    return await _resolve_svcname_selector(
+        svcname=svcname,
+        props=props,
+        operation=operation,
+    )
+
+
+async def _resolve_service_id_selector(
+    *,
+    svc_id: str,
+    props: str,
+    operation: str,
+) -> dict[str, Any]:
+    response = await collector_get(
+        f"/services/{quote(svc_id, safe='')}",
+        params={"props": props},
+    )
+    service = require_single_row(
+        response,
+        not_found_message=f"{operation} svc_id not found: {svc_id}",
+        multiple_message=f"{operation} svc_id resolved to multiple services: {svc_id}",
+        invalid_message=f"{operation} resolved service payload is invalid",
+    )
+
+    resolved_svc_id = clean_value(service.get("svc_id"))
+    if resolved_svc_id != svc_id:
+        raise ValueError(
+            f"{operation} svc_id selector did not resolve to the exact svc_id; "
+            "retry with a svc_id from list_services"
+        )
+    return service
+
+
+async def _resolve_svcname_selector(
+    *,
+    svcname: str,
+    props: str,
+    operation: str,
+) -> dict[str, Any]:
+    response = await collector_get(
+        "/services",
+        params=collection_params(
+            filters=[("svcname", svcname)],
+            props=props,
+            orderby=None,
+            search=None,
+            limit=2,
+            offset=0,
+        ),
+    )
+    return require_single_row(
+        response,
+        not_found_message=f"{operation} svcname not found: {svcname}",
+        multiple_message=(
+            f"{operation} svcname is ambiguous: {svcname}; "
+            "retry with svc_id from list_services"
+        ),
+        invalid_message=f"{operation} resolved service payload is invalid",
+        exact_match_field="svcname",
+        exact_match_value=svcname,
+    )
 
 
 def _ensure_props_include(props: str, required_prop: str) -> str:
@@ -61,7 +213,9 @@ def _int_or_none(value: Any) -> int | None:
         return None
 
 
-def _parse_service_filters(raw_filters: dict[str, str] | str | None) -> list[tuple[str, str]]:
+def _parse_service_filters(
+    raw_filters: dict[str, str] | str | None,
+) -> list[tuple[str, str]]:
     if not raw_filters:
         return []
     if isinstance(raw_filters, dict):
