@@ -23,6 +23,8 @@ __all__ = [
     "collector_delete_with_credentials",
     "collector_post",
     "collector_post_with_credentials",
+    "collector_put",
+    "collector_put_with_credentials",
     "get_collector_credentials",
     "get_collector_group_roles",
     "reset_collector_credentials",
@@ -56,6 +58,23 @@ async def collector_post(
         raise RuntimeError("Missing Collector Basic Auth credentials from MCP request")
 
     return await collector_post_with_credentials(
+        path=path,
+        credentials=credentials,
+        data=data,
+        params=params,
+    )
+
+
+async def collector_put(
+    path: str,
+    data: dict[str, Any] | None = None,
+    params: dict[str, Any] | Sequence[tuple[str, Any]] | None = None,
+) -> dict[str, Any]:
+    credentials = get_collector_credentials()
+    if credentials is None:
+        raise RuntimeError("Missing Collector Basic Auth credentials from MCP request")
+
+    return await collector_put_with_credentials(
         path=path,
         credentials=credentials,
         data=data,
@@ -118,6 +137,31 @@ async def collector_post_with_credentials(
         timeout=HTTP_REQUEST_TIMEOUT_SECONDS,
     ) as client:
         response = await client.post(
+            url,
+            params=params,
+            data=data,
+            auth=(credentials.username, credentials.password),
+            headers={"Accept": "application/json"},
+        )
+    response.raise_for_status()
+    return response.json()
+
+
+async def collector_put_with_credentials(
+    path: str,
+    credentials: CollectorCredentials,
+    data: dict[str, Any] | None = None,
+    params: dict[str, Any] | Sequence[tuple[str, Any]] | None = None,
+) -> dict[str, Any]:
+    if not OPENSVC_API_BASE_URL:
+        raise RuntimeError("Missing environment variable: OPENSVC_API_BASE_URL")
+
+    url = f"{OPENSVC_API_BASE_URL.rstrip('/')}/{path.lstrip('/')}"
+    async with httpx.AsyncClient(
+        verify=False,
+        timeout=HTTP_REQUEST_TIMEOUT_SECONDS,
+    ) as client:
+        response = await client.put(
             url,
             params=params,
             data=data,
