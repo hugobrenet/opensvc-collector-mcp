@@ -3,6 +3,7 @@ from opensvc_collector_mcp.server import build_mcp
 EXPECTED_TOOL_NAMES = {
     "am_i_responsible_for_app",
     "attach_tag_to_node",
+    "attach_tag_to_service",
     "count_app_nodes",
     "count_app_services",
     "count_apps",
@@ -138,6 +139,15 @@ async def test_attach_tag_to_node_is_marked_as_non_destructive_write():
     assert tool.annotations.destructiveHint is False
 
 
+async def test_attach_tag_to_service_is_marked_as_non_destructive_write():
+    tools = await build_mcp()._list_tools()
+    tool = next(tool for tool in tools if tool.name == "attach_tag_to_service")
+
+    assert tool.annotations.readOnlyHint is False
+    assert tool.annotations.idempotentHint is False
+    assert tool.annotations.destructiveHint is False
+
+
 async def test_detach_tag_from_node_is_marked_as_destructive_write():
     tools = await build_mcp()._list_tools()
     tool = next(tool for tool in tools if tool.name == "detach_tag_from_node")
@@ -210,6 +220,7 @@ async def test_state_changing_tools_require_confirmation_phrase_in_schema():
 
     for name in {
         "attach_tag_to_node",
+        "attach_tag_to_service",
         "create_tag",
         "delete_tag",
         "detach_tag_from_node",

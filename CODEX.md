@@ -213,6 +213,7 @@ Current MCP tag tool surface:
 - `create_tag`
 - `delete_tag`
 - `attach_tag_to_node`
+- `attach_tag_to_service`
 - `detach_tag_from_node`
 - `list_tag_props`
 - `list_tags`
@@ -320,7 +321,7 @@ State-changing confirmation contract:
   `confirmation` into `core/` or Collector REST payloads; it is a gateway/LLM
   safety guard at the MCP boundary.
 - Current state-changing tools using this contract:
-  `create_tag`, `delete_tag`, `attach_tag_to_node`, `detach_tag_from_node`, `create_node`, `delete_node`, `update_node_properties`, `snooze_node_notifications`, and `unsnooze_node_notifications`.
+  `create_tag`, `delete_tag`, `attach_tag_to_node`, `attach_tag_to_service`, `detach_tag_from_node`, `create_node`, `delete_node`, `update_node_properties`, `snooze_node_notifications`, and `unsnooze_node_notifications`.
 - When adding another state-changing tool, update:
   `tests/test_mcp_registration.py`, the domain tool tests, tool docs under
   `docs/tools/`, and the tool description/annotations.
@@ -748,6 +749,19 @@ Node state-changing tool TODO list:
     resolved `tag_id` and `node_id`, and requires only `confirmation.phrase`.
   - Optional payload: typed `tag_attach_data`, passed to Collector only when
     provided.
+  - No implicit batch attach. Add a separate batch tool later only if it has an
+    explicit batch schema and confirmation summary.
+- [x] `attach_tag_to_service`
+  - Collector API: `POST /tags/<tag_id>/services/<svc_id>`; the tool deliberately
+    avoids bulk `POST /tags/services` for a single explicit relation.
+  - Classification: non-destructive `attach` relation update.
+  - RBAC matches `attach_tag_to_node`: `write:tags` (`TagManager` or `Manager`)
+    because the Collector route lives in the tags API.
+  - Selector/confirmation: accepts `tag_id`, exact `tag_name`, or both for the
+    tag side, and `svc_id`, exact `svcname`, or both for the service side. Core
+    resolves both sides to a single snapshot, refuses missing or ambiguous names,
+    verifies `id + name` correlation when both are provided, executes with
+    resolved `tag_id` and `svc_id`, and requires only `confirmation.phrase`.
   - No implicit batch attach. Add a separate batch tool later only if it has an
     explicit batch schema and confirmation summary.
 - [x] `detach_tag_from_node`

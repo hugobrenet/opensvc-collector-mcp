@@ -9,6 +9,7 @@ from opensvc_collector_mcp.client import (
 )
 from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
 from opensvc_collector_mcp.core.nodes._common import resolve_node_reference
+from opensvc_collector_mcp.core.services._common import resolve_service_reference
 from opensvc_collector_mcp.core.prechecks import clean_value, require_single_row
 from opensvc_collector_mcp.core.tags._common import (
     resolve_single_tag_selector,
@@ -28,6 +29,10 @@ DEFAULT_TAG_SERVICE_PROPS = (
 DEFAULT_TAG_NODE_WRITE_PROPS = (
     "node_id,nodename,status,updated,node_env,asset_env,"
     "team_responsible,loc_city"
+)
+DEFAULT_TAG_SERVICE_WRITE_PROPS = (
+    "svc_id,svcname,svc_app,svc_env,svc_status,"
+    "svc_availstatus,svc_topology,updated"
 )
 
 
@@ -177,6 +182,67 @@ async def attach_tag_to_node(
                 "node_id+nodename"
                 if selector_node_id and selector_nodename
                 else "node_id" if selector_node_id else "nodename"
+            ),
+        },
+    }
+
+
+async def attach_tag_to_service(
+    *,
+    tag_id: str | None = None,
+    tag_name: str | None = None,
+    svc_id: str | None = None,
+    svcname: str | None = None,
+) -> dict[str, Any]:
+    selector_tag_id = clean_value(tag_id)
+    selector_tag_name = clean_value(tag_name)
+    selector_svc_id = clean_value(svc_id)
+    selector_svcname = clean_value(svcname)
+
+    tag = await resolve_tag_reference(
+        tag_id=selector_tag_id or None,
+        tag_name=selector_tag_name or None,
+        operation="attach tag to service",
+        missing_message="attach tag to service requires tag_id or tag_name",
+    )
+    service = await resolve_service_reference(
+        svc_id=selector_svc_id or None,
+        svcname=selector_svcname or None,
+        props=DEFAULT_TAG_SERVICE_WRITE_PROPS,
+        operation="attach tag to service",
+        missing_message="attach tag to service requires svc_id or svcname",
+    )
+
+    resolved_tag_id = clean_value(tag.get("tag_id"))
+    resolved_tag_name = clean_value(tag.get("tag_name"))
+    resolved_svc_id = clean_value(service.get("svc_id"))
+    resolved_svcname = clean_value(service.get("svcname"))
+
+    path = (
+        f"/tags/{quote(resolved_tag_id, safe='')}/services/"
+        f"{quote(resolved_svc_id, safe='')}"
+    )
+    response = await collector_post(path)
+    return {
+        "tag_id": resolved_tag_id,
+        "tag_name": resolved_tag_name,
+        "tag": tag,
+        "svc_id": resolved_svc_id,
+        "svcname": resolved_svcname,
+        "service": service,
+        "attached": True,
+        "collector_response": response,
+        "meta": {
+            "source": "tags/<tag_id>/services/<svc_id>",
+            "tag_selector": (
+                "tag_id+tag_name"
+                if selector_tag_id and selector_tag_name
+                else "tag_id" if selector_tag_id else "tag_name"
+            ),
+            "service_selector": (
+                "svc_id+svcname"
+                if selector_svc_id and selector_svcname
+                else "svc_id" if selector_svc_id else "svcname"
             ),
         },
     }

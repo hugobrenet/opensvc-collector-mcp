@@ -1,6 +1,7 @@
 import pytest
 
 from opensvc_collector_mcp.core.nodes import _common as node_common
+from opensvc_collector_mcp.core.services import _common as service_common
 from opensvc_collector_mcp.core.tags import inventory
 from opensvc_collector_mcp.core.tags import _common as tag_common
 
@@ -491,6 +492,203 @@ async def test_attach_tag_to_node_rejects_ambiguous_nodename_before_post(monkeyp
 
     with pytest.raises(ValueError, match="nodename is ambiguous: lab-node-01"):
         await inventory.attach_tag_to_node(tag_id="tag-1", nodename="lab-node-01")
+
+    assert post_recorder.calls == []
+
+
+async def test_attach_tag_to_service_resolves_names_and_posts_ids(monkeypatch):
+    tag_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/tags": {
+                "data": [
+                    {
+                        "tag_id": "tag-1",
+                        "tag_name": "mcp-test-tag",
+                    }
+                ],
+            },
+        }
+    )
+    service_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/services": {
+                "data": [
+                    {
+                        "svc_id": "svc-1",
+                        "svcname": "svc/app/test",
+                        "svc_status": "up",
+                    }
+                ],
+            },
+        }
+    )
+    post_recorder = CollectorPostRecorder({"info": "tag attached"})
+    monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
+    monkeypatch.setattr(service_common, "collector_get", service_get_recorder)
+    monkeypatch.setattr(inventory, "collector_post", post_recorder)
+
+    response = await inventory.attach_tag_to_service(
+        tag_name=" mcp-test-tag ",
+        svcname=" svc/app/test ",
+    )
+
+    assert response["attached"] is True
+    assert response["tag_id"] == "tag-1"
+    assert response["svc_id"] == "svc-1"
+    assert response["svcname"] == "svc/app/test"
+    tag_params = tag_get_recorder.calls[0]["params"]
+    service_params = service_get_recorder.calls[0]["params"]
+    assert tag_get_recorder.calls[0]["path"] == "/tags"
+    assert ("filters", "tag_name=mcp-test-tag") in tag_params
+    assert ("limit", 2) in tag_params
+    assert service_get_recorder.calls[0]["path"] == "/services"
+    assert ("filters", "svcname=svc/app/test") in service_params
+    assert ("limit", 2) in service_params
+    assert post_recorder.calls == [
+        {"path": "/tags/tag-1/services/svc-1", "data": None, "params": None}
+    ]
+
+
+async def test_attach_tag_to_service_quotes_ids_in_post_path(monkeypatch):
+    tag_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/tags/tag%2F1": {
+                "data": [{"tag_id": "tag/1", "tag_name": "mcp-test-tag"}],
+            },
+        }
+    )
+    service_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/services/svc%2F1": {
+                "data": [{"svc_id": "svc/1", "svcname": "svc/app/test"}],
+            },
+        }
+    )
+    post_recorder = CollectorPostRecorder({"info": "tag attached"})
+    monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
+    monkeypatch.setattr(service_common, "collector_get", service_get_recorder)
+    monkeypatch.setattr(inventory, "collector_post", post_recorder)
+
+    response = await inventory.attach_tag_to_service(
+        tag_id=" tag/1 ",
+        svc_id=" svc/1 ",
+    )
+
+    assert response["tag_id"] == "tag/1"
+    assert response["svc_id"] == "svc/1"
+    assert post_recorder.calls == [
+        {"path": "/tags/tag%2F1/services/svc%2F1", "data": None, "params": None}
+    ]
+
+
+async def test_attach_tag_to_service_accepts_correlated_ids_and_names(monkeypatch):
+    tag_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/tags/tag-1": {
+                "data": [{"tag_id": "tag-1", "tag_name": "mcp-test-tag"}],
+            },
+        }
+    )
+    service_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/services/svc-1": {
+                "data": [{"svc_id": "svc-1", "svcname": "svc/app/test"}],
+            },
+        }
+    )
+    post_recorder = CollectorPostRecorder({"info": "tag attached"})
+    monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
+    monkeypatch.setattr(service_common, "collector_get", service_get_recorder)
+    monkeypatch.setattr(inventory, "collector_post", post_recorder)
+
+    response = await inventory.attach_tag_to_service(
+        tag_id="tag-1",
+        tag_name="mcp-test-tag",
+        svc_id="svc-1",
+        svcname="svc/app/test",
+    )
+
+    assert response["attached"] is True
+    assert response["meta"]["tag_selector"] == "tag_id+tag_name"
+    assert response["meta"]["service_selector"] == "svc_id+svcname"
+    assert tag_get_recorder.calls == [
+        {
+            "path": "/tags/tag-1",
+            "params": {"props": "tag_id,tag_name,tag_exclude,tag_created,tag_data"},
+        }
+    ]
+    assert service_get_recorder.calls == [
+        {
+            "path": "/services/svc-1",
+            "params": {
+                "props": "svc_id,svcname,svc_app,svc_env,svc_status,"
+                "svc_availstatus,svc_topology,updated"
+            },
+        }
+    ]
+    assert post_recorder.calls == [
+        {"path": "/tags/tag-1/services/svc-1", "data": None, "params": None}
+    ]
+
+
+async def test_attach_tag_to_service_rejects_correlated_name_mismatch(monkeypatch):
+    tag_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/tags/tag-1": {
+                "data": [{"tag_id": "tag-1", "tag_name": "mcp-test-tag"}],
+            },
+        }
+    )
+    service_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/services/svc-1": {
+                "data": [{"svc_id": "svc-1", "svcname": "svc/app/test"}],
+            },
+        }
+    )
+    post_recorder = CollectorPostRecorder({"info": "tag attached"})
+    monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
+    monkeypatch.setattr(service_common, "collector_get", service_get_recorder)
+    monkeypatch.setattr(inventory, "collector_post", post_recorder)
+
+    with pytest.raises(ValueError, match="svcname must match the resolved svc_id"):
+        await inventory.attach_tag_to_service(
+            tag_id="tag-1",
+            tag_name="mcp-test-tag",
+            svc_id="svc-1",
+            svcname="svc/app/other",
+        )
+
+    assert post_recorder.calls == []
+
+
+async def test_attach_tag_to_service_rejects_ambiguous_svcname_before_post(
+    monkeypatch,
+):
+    tag_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/tags/tag-1": {
+                "data": [{"tag_id": "tag-1", "tag_name": "mcp-test-tag"}],
+            },
+        }
+    )
+    service_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/services": {
+                "data": [
+                    {"svc_id": "svc-1", "svcname": "svc/app/test"},
+                    {"svc_id": "svc-2", "svcname": "svc/app/test"},
+                ],
+            },
+        }
+    )
+    post_recorder = CollectorPostRecorder({"info": "tag attached"})
+    monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
+    monkeypatch.setattr(service_common, "collector_get", service_get_recorder)
+    monkeypatch.setattr(inventory, "collector_post", post_recorder)
+
+    with pytest.raises(ValueError, match="svcname is ambiguous: svc/app/test"):
+        await inventory.attach_tag_to_service(tag_id="tag-1", svcname="svc/app/test")
 
     assert post_recorder.calls == []
 

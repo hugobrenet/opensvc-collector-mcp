@@ -142,6 +142,55 @@ collector_response
 meta
 ```
 
+### `attach_tag_to_service`
+
+Attaches one OpenSVC Collector tag to one service through
+`POST /tags/<tag_id>/services/<svc_id>`. This is a state-changing,
+non-destructive relation update and requires `write:tags`, authorized for
+Collector `TagManager` or `Manager` users by MCP RBAC.
+
+The request uses exact selectors on both sides. For the tag, provide `tag_id`,
+`tag_name`, or both. For the service, provide `svc_id`, `svcname`, or both. MCP
+resolves names with exact Collector filters, refuses missing or ambiguous
+matches, verifies `id + name` correlation when both are provided, and then calls
+Collector with the resolved stable IDs.
+
+Because this changes Collector state, the request requires
+`confirmation.phrase`: the assistant must summarize the exact tag/service
+attachment, ask the user to repeat a concise phrase verbatim, and set
+`confirmation.phrase` only after that phrase appears in the latest user message.
+
+Example:
+
+```json
+{
+  "request": {
+    "tag_id": "tag-1",
+    "tag_name": "mcp-test-tag",
+    "svc_id": "svc-1",
+    "svcname": "svc/app/test",
+    "confirmation": {
+      "phrase": "ATTACH tag tag-1 mcp-test-tag to service svc-1 svc/app/test"
+    }
+  }
+}
+```
+
+Output fields:
+
+```text
+tag_id
+tag_name
+tag
+svc_id
+svcname
+service
+attached
+collector_response
+meta
+```
+
+
 ### `detach_tag_from_node`
 
 Detaches one OpenSVC Collector tag from one node through

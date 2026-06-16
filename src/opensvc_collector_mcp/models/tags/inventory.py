@@ -399,6 +399,81 @@ class AttachTagToNodeResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
+class AttachTagToServiceRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    tag_id: str | None = Field(
+        default=None,
+        description=(
+            "Exact Collector tag_id. Provide tag_id, tag_name, or both when "
+            "the tag_name is the human-readable correlation for this tag_id."
+        ),
+        examples=["TAG-ID"],
+    )
+    tag_name: str | None = Field(
+        default=None,
+        description=(
+            "Exact Collector tag_name. MCP resolves it to one tag_id and refuses "
+            "ambiguous duplicate tag names. Provide tag_name, tag_id, or both "
+            "when the tag_name is the human-readable correlation for this tag_id."
+        ),
+        examples=["mcp-test-tag"],
+    )
+    svc_id: str | None = Field(
+        default=None,
+        description=(
+            "Exact Collector svc_id. Provide svc_id, svcname, or both when "
+            "the svcname is the human-readable correlation for this svc_id."
+        ),
+        examples=["SERVICE-ID"],
+    )
+    svcname: str | None = Field(
+        default=None,
+        description=(
+            "Exact Collector svcname. MCP resolves it to one svc_id and refuses "
+            "ambiguous duplicate service names. Provide svcname, svc_id, or both "
+            "when the svcname is the human-readable correlation for this svc_id."
+        ),
+        examples=["svc/app/test"],
+    )
+    confirmation: ToolConfirmation = Field(
+        description=(
+            "Required confirmation gate for this state-changing tool. Before "
+            "calling attach_tag_to_service, resolve the target tag and service, "
+            "summarize the exact attachment to create, ask the user to repeat "
+            "a concise confirmation phrase verbatim, and set this field only "
+            "when that exact phrase appears in the latest user message."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def normalize_attach_service_selectors(self) -> "AttachTagToServiceRequest":
+        self.tag_id = self.tag_id.strip() if self.tag_id else None
+        self.tag_name = self.tag_name.strip() if self.tag_name else None
+        if not self.tag_id and not self.tag_name:
+            raise ValueError("provide at least one tag selector: tag_id or tag_name")
+
+        self.svc_id = self.svc_id.strip() if self.svc_id else None
+        self.svcname = self.svcname.strip() if self.svcname else None
+        if not self.svc_id and not self.svcname:
+            raise ValueError("provide at least one service selector: svc_id or svcname")
+        return self
+
+
+class AttachTagToServiceResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    tag_id: str
+    tag_name: str
+    tag: dict[str, Any]
+    svc_id: str
+    svcname: str
+    service: dict[str, Any]
+    attached: bool
+    collector_response: dict[str, Any]
+    meta: dict[str, Any] = Field(default_factory=dict)
+
+
 class DetachTagFromNodeRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

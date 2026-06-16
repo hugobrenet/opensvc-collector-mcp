@@ -6,6 +6,7 @@ from pydantic import Field
 from opensvc_collector_mcp.config import TOOL_TIMEOUT_SECONDS
 from opensvc_collector_mcp.core.tags import (
     attach_tag_to_node as core_attach_tag_to_node,
+    attach_tag_to_service as core_attach_tag_to_service,
     count_tag_nodes as core_count_tag_nodes,
     count_tag_services as core_count_tag_services,
     count_tags as core_count_tags,
@@ -21,6 +22,8 @@ from opensvc_collector_mcp.core.tags import (
 from opensvc_collector_mcp.models.tags import (
     AttachTagToNodeRequest,
     AttachTagToNodeResponse,
+    AttachTagToServiceRequest,
+    AttachTagToServiceResponse,
     CountTagServicesRequest,
     CountTagsRequest,
     CountTagsResponse,
@@ -150,6 +153,45 @@ def register_tags_tools(mcp: FastMCP) -> None:
             tag_attach_data=request.tag_attach_data,
         )
         return AttachTagToNodeResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="attach_tag_to_service",
+        description=(
+            "Attach one OpenSVC Collector tag to one service. Select the tag by "
+            "exact tag_id or exact tag_name, and select the service by exact "
+            "svc_id or exact svcname. MCP resolves names to stable ids and "
+            "refuses missing or ambiguous matches before posting to Collector. "
+            "Before calling, ask the user to repeat an exact confirmation "
+            "phrase containing the resolved tag and service, and include it in "
+            "request.confirmation.phrase. Requires Collector TagManager or "
+            "Manager privileges through MCP RBAC."
+        ),
+        tags={"tags", "services", "attach", "write:tags"},
+        annotations={
+            "title": "Attach OpenSVC Tag To Service",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        },
+    )
+    async def attach_tag_to_service(
+        request: Annotated[
+            AttachTagToServiceRequest,
+            Field(
+                description="Tag and service selectors for the attachment to create."
+            ),
+        ],
+    ) -> AttachTagToServiceResponse:
+        """Attach one OpenSVC Collector tag to one service after confirmation."""
+        response = await core_attach_tag_to_service(
+            tag_id=request.tag_id,
+            tag_name=request.tag_name,
+            svc_id=request.svc_id,
+            svcname=request.svcname,
+        )
+        return AttachTagToServiceResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
