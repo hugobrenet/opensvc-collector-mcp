@@ -242,6 +242,59 @@ collector_response
 meta
 ```
 
+### `detach_tag_from_service`
+
+Detaches one OpenSVC Collector tag from one service through
+`DELETE /tags/<tag_id>/services/<svc_id>`. This is a destructive relation
+update: it removes only the tag-service attachment, not the tag object or the
+service object. It requires `write:tags`, authorized for Collector `TagManager`
+or `Manager` users by MCP RBAC, because the Collector route lives in the tags
+API.
+
+The request uses the same exact selectors as `attach_tag_to_service`. For the
+tag, provide `tag_id`, `tag_name`, or both. For the service, provide `svc_id`,
+`svcname`, or both. MCP resolves names with exact Collector filters, refuses
+missing or ambiguous matches, verifies `id + name` correlation when both are
+provided, confirms the current tag-service relation, and then calls Collector
+with the resolved stable IDs.
+
+Because this changes Collector state, the request requires
+`confirmation.phrase`: the assistant must summarize the exact tag/service
+attachment to remove, ask the user to repeat a concise phrase verbatim, and set
+`confirmation.phrase` only after that phrase appears in the latest user message.
+
+Example:
+
+```json
+{
+  "request": {
+    "tag_id": "tag-1",
+    "tag_name": "mcp-test-tag",
+    "svc_id": "svc-1",
+    "svcname": "svc/app/test",
+    "confirmation": {
+      "phrase": "DETACH tag tag-1 mcp-test-tag from service svc-1 svc/app/test"
+    }
+  }
+}
+```
+
+Output fields:
+
+```text
+tag_id
+tag_name
+tag
+svc_id
+svcname
+service
+relation
+detached
+collector_response
+meta
+```
+
+
 ### `count_tags`
 
 Counts OpenSVC Collector tags matching exact-match tag filters. It reads

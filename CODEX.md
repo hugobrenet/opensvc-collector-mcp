@@ -215,6 +215,7 @@ Current MCP tag tool surface:
 - `attach_tag_to_node`
 - `attach_tag_to_service`
 - `detach_tag_from_node`
+- `detach_tag_from_service`
 - `list_tag_props`
 - `list_tags`
 - `count_tags`
@@ -321,7 +322,7 @@ State-changing confirmation contract:
   `confirmation` into `core/` or Collector REST payloads; it is a gateway/LLM
   safety guard at the MCP boundary.
 - Current state-changing tools using this contract:
-  `create_tag`, `delete_tag`, `attach_tag_to_node`, `attach_tag_to_service`, `detach_tag_from_node`, `create_node`, `delete_node`, `update_node_properties`, `snooze_node_notifications`, and `unsnooze_node_notifications`.
+  `create_tag`, `delete_tag`, `attach_tag_to_node`, `attach_tag_to_service`, `detach_tag_from_node`, `detach_tag_from_service`, `create_node`, `delete_node`, `update_node_properties`, `snooze_node_notifications`, and `unsnooze_node_notifications`.
 - When adding another state-changing tool, update:
   `tests/test_mcp_registration.py`, the domain tool tests, tool docs under
   `docs/tools/`, and the tool description/annotations.
@@ -776,6 +777,19 @@ Node state-changing tool TODO list:
     when both are provided, re-reads the current tag-node relation through
     `GET /tags/<tag_id>/nodes` filtered by `node_id`, refuses missing or
     ambiguous relations, executes DELETE with resolved `tag_id` and `node_id`,
+    and requires only `confirmation.phrase`.
+- [x] `detach_tag_from_service`
+  - Collector API: `DELETE /tags/<tag_id>/services/<svc_id>`.
+  - Classification: destructive relation update, not deletion of the tag or
+    service object.
+  - RBAC matches `attach_tag_to_service`: `write:tags` (`TagManager` or
+    `Manager`) because the Collector route lives in the tags API.
+  - Selector/confirmation: accepts `tag_id`, exact `tag_name`, or both for the
+    tag side, and `svc_id`, exact `svcname`, or both for the service side. Core
+    resolves both sides to a single snapshot, verifies `id + name` correlation
+    when both are provided, re-reads the current tag-service relation through
+    `GET /tags/<tag_id>/services` filtered by `svc_id`, refuses missing or
+    ambiguous relations, executes DELETE with resolved `tag_id` and `svc_id`,
     and requires only `confirmation.phrase`.
 - [x] `create_node`
   - Collector API: `POST /nodes`.

@@ -208,6 +208,50 @@ async def test_attach_tag_to_service_tool_passes_request_to_core(monkeypatch, mc
     ]
 
 
+async def test_detach_tag_from_service_tool_passes_request_to_core(monkeypatch, mcp_client):
+    recorder = CoreRecorder(
+        {
+            "tag_id": "tag-1",
+            "tag_name": "mcp-test-tag",
+            "tag": {"tag_id": "tag-1", "tag_name": "mcp-test-tag"},
+            "svc_id": "svc-1",
+            "svcname": "svc/app/test",
+            "service": {"svc_id": "svc-1", "svcname": "svc/app/test"},
+            "relation": {"svc_id": "svc-1", "svcname": "svc/app/test"},
+            "detached": True,
+            "collector_response": {"info": "tag detached"},
+            "meta": {"source": "tags/<tag_id>/services/<svc_id>"},
+        }
+    )
+    monkeypatch.setattr(tag_tools, "core_detach_tag_from_service", recorder)
+
+    result = await mcp_client.call_tool(
+        "detach_tag_from_service",
+        {
+            "request": {
+                "tag_id": "tag-1",
+                "tag_name": "mcp-test-tag",
+                "svc_id": "svc-1",
+                "svcname": "svc/app/test",
+                "confirmation": {
+                    "phrase": "DETACH tag tag-1 mcp-test-tag from service svc-1 svc/app/test"
+                },
+            }
+        },
+    )
+
+    assert result.structured_content["detached"] is True
+    assert result.structured_content["svc_id"] == "svc-1"
+    assert recorder.calls == [
+        {
+            "tag_id": "tag-1",
+            "tag_name": "mcp-test-tag",
+            "svc_id": "svc-1",
+            "svcname": "svc/app/test",
+        }
+    ]
+
+
 async def test_detach_tag_from_node_tool_passes_request_to_core(monkeypatch, mcp_client):
     recorder = CoreRecorder(
         {

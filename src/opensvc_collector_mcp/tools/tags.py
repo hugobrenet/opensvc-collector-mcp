@@ -13,6 +13,7 @@ from opensvc_collector_mcp.core.tags import (
     create_tag as core_create_tag,
     delete_tag as core_delete_tag,
     detach_tag_from_node as core_detach_tag_from_node,
+    detach_tag_from_service as core_detach_tag_from_service,
     get_tag as core_get_tag,
     get_tag_nodes as core_get_tag_nodes,
     get_tag_services as core_get_tag_services,
@@ -33,6 +34,8 @@ from opensvc_collector_mcp.models.tags import (
     DeleteTagResponse,
     DetachTagFromNodeRequest,
     DetachTagFromNodeResponse,
+    DetachTagFromServiceRequest,
+    DetachTagFromServiceResponse,
     ListTagsRequest,
     TagIdentityRequest,
     TagNodesRequest,
@@ -230,6 +233,46 @@ def register_tags_tools(mcp: FastMCP) -> None:
             nodename=request.nodename,
         )
         return DetachTagFromNodeResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="detach_tag_from_service",
+        description=(
+            "Detach one OpenSVC Collector tag from one service. Select the tag by "
+            "exact tag_id or exact tag_name, and select the service by exact "
+            "svc_id or exact svcname. MCP resolves names to stable ids, "
+            "verifies id/name correlation when both are provided, confirms the "
+            "existing tag-service relation, and then deletes that relation in "
+            "Collector. Before calling, ask the user to repeat an exact "
+            "confirmation phrase containing the resolved tag and service, and "
+            "include it in request.confirmation.phrase. Requires Collector "
+            "TagManager or Manager privileges through MCP RBAC."
+        ),
+        tags={"tags", "services", "detach", "write:tags"},
+        annotations={
+            "title": "Detach OpenSVC Tag From Service",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def detach_tag_from_service(
+        request: Annotated[
+            DetachTagFromServiceRequest,
+            Field(
+                description="Tag and service selectors for the attachment to remove."
+            ),
+        ],
+    ) -> DetachTagFromServiceResponse:
+        """Detach one OpenSVC Collector tag from one service after confirmation."""
+        response = await core_detach_tag_from_service(
+            tag_id=request.tag_id,
+            tag_name=request.tag_name,
+            svc_id=request.svc_id,
+            svcname=request.svcname,
+        )
+        return DetachTagFromServiceResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

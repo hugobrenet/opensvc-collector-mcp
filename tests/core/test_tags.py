@@ -693,6 +693,140 @@ async def test_attach_tag_to_service_rejects_ambiguous_svcname_before_post(
     assert post_recorder.calls == []
 
 
+async def test_detach_tag_from_service_resolves_relation_and_deletes_ids(monkeypatch):
+    tag_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/tags": {
+                "data": [
+                    {
+                        "tag_id": "tag-1",
+                        "tag_name": "mcp-test-tag",
+                    }
+                ],
+            },
+        }
+    )
+    service_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/services": {
+                "data": [
+                    {
+                        "svc_id": "svc-1",
+                        "svcname": "svc/app/test",
+                        "svc_status": "up",
+                    }
+                ],
+            },
+        }
+    )
+    relation_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/tags/tag-1/services": {
+                "data": [
+                    {
+                        "svc_id": "svc-1",
+                        "svcname": "svc/app/test",
+                    }
+                ],
+            },
+        }
+    )
+    delete_recorder = CollectorDeleteRecorder({"info": "tag detached"})
+    monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
+    monkeypatch.setattr(service_common, "collector_get", service_get_recorder)
+    monkeypatch.setattr(inventory, "collector_get", relation_get_recorder)
+    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+
+    response = await inventory.detach_tag_from_service(
+        tag_name=" mcp-test-tag ",
+        svcname=" svc/app/test ",
+    )
+
+    assert response["detached"] is True
+    assert response["tag_id"] == "tag-1"
+    assert response["svc_id"] == "svc-1"
+    assert response["relation"] == {"svc_id": "svc-1", "svcname": "svc/app/test"}
+    relation_params = relation_get_recorder.calls[0]["params"]
+    assert relation_get_recorder.calls[0]["path"] == "/tags/tag-1/services"
+    assert ("filters", "svc_id=svc-1") in relation_params
+    assert ("limit", 2) in relation_params
+    assert delete_recorder.calls == [
+        {"path": "/tags/tag-1/services/svc-1", "data": None, "params": None}
+    ]
+
+
+async def test_detach_tag_from_service_quotes_ids_in_delete_path(monkeypatch):
+    tag_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/tags/tag%2F1": {
+                "data": [{"tag_id": "tag/1", "tag_name": "mcp-test-tag"}],
+            },
+        }
+    )
+    service_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/services/svc%2F1": {
+                "data": [{"svc_id": "svc/1", "svcname": "svc/app/test"}],
+            },
+        }
+    )
+    relation_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/tags/tag%2F1/services": {
+                "data": [{"svc_id": "svc/1", "svcname": "svc/app/test"}],
+            },
+        }
+    )
+    delete_recorder = CollectorDeleteRecorder({"info": "tag detached"})
+    monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
+    monkeypatch.setattr(service_common, "collector_get", service_get_recorder)
+    monkeypatch.setattr(inventory, "collector_get", relation_get_recorder)
+    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+
+    response = await inventory.detach_tag_from_service(
+        tag_id=" tag/1 ",
+        svc_id=" svc/1 ",
+    )
+
+    assert response["tag_id"] == "tag/1"
+    assert response["svc_id"] == "svc/1"
+    assert delete_recorder.calls == [
+        {"path": "/tags/tag%2F1/services/svc%2F1", "data": None, "params": None}
+    ]
+
+
+async def test_detach_tag_from_service_rejects_missing_relation_before_delete(
+    monkeypatch,
+):
+    tag_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/tags/tag-1": {
+                "data": [{"tag_id": "tag-1", "tag_name": "mcp-test-tag"}],
+            },
+        }
+    )
+    service_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/services/svc-1": {
+                "data": [{"svc_id": "svc-1", "svcname": "svc/app/test"}],
+            },
+        }
+    )
+    relation_get_recorder = CollectorGetByPathRecorder(
+        {"/tags/tag-1/services": {"data": []}}
+    )
+    delete_recorder = CollectorDeleteRecorder({"info": "tag detached"})
+    monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
+    monkeypatch.setattr(service_common, "collector_get", service_get_recorder)
+    monkeypatch.setattr(inventory, "collector_get", relation_get_recorder)
+    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+
+    with pytest.raises(ValueError, match="relation not found"):
+        await inventory.detach_tag_from_service(tag_id="tag-1", svc_id="svc-1")
+
+    assert delete_recorder.calls == []
+
+
 async def test_detach_tag_from_node_resolves_relation_and_deletes_ids(monkeypatch):
     tag_get_recorder = CollectorGetByPathRecorder(
         {
