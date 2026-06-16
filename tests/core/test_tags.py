@@ -493,3 +493,132 @@ async def test_attach_tag_to_node_rejects_ambiguous_nodename_before_post(monkeyp
         await inventory.attach_tag_to_node(tag_id="tag-1", nodename="lab-node-01")
 
     assert post_recorder.calls == []
+
+
+async def test_detach_tag_from_node_resolves_relation_and_deletes_ids(monkeypatch):
+    tag_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/tags": {
+                "data": [
+                    {
+                        "tag_id": "tag-1",
+                        "tag_name": "mcp-test-tag",
+                    }
+                ],
+            },
+        }
+    )
+    node_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/nodes": {
+                "data": [
+                    {
+                        "node_id": "node-1",
+                        "nodename": "lab-node-01",
+                        "status": "up",
+                    }
+                ],
+            },
+        }
+    )
+    relation_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/tags/tag-1/nodes": {
+                "data": [
+                    {
+                        "node_id": "node-1",
+                        "nodename": "lab-node-01",
+                    }
+                ],
+            },
+        }
+    )
+    delete_recorder = CollectorDeleteRecorder({"info": "tag detached"})
+    monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
+    monkeypatch.setattr(node_common, "collector_get", node_get_recorder)
+    monkeypatch.setattr(inventory, "collector_get", relation_get_recorder)
+    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+
+    response = await inventory.detach_tag_from_node(
+        tag_name=" mcp-test-tag ",
+        nodename=" lab-node-01 ",
+    )
+
+    assert response["detached"] is True
+    assert response["tag_id"] == "tag-1"
+    assert response["node_id"] == "node-1"
+    assert response["relation"] == {"node_id": "node-1", "nodename": "lab-node-01"}
+    relation_params = relation_get_recorder.calls[0]["params"]
+    assert relation_get_recorder.calls[0]["path"] == "/tags/tag-1/nodes"
+    assert ("filters", "node_id=node-1") in relation_params
+    assert ("limit", 2) in relation_params
+    assert delete_recorder.calls == [
+        {"path": "/tags/tag-1/nodes/node-1", "data": None, "params": None}
+    ]
+
+
+async def test_detach_tag_from_node_quotes_ids_in_delete_path(monkeypatch):
+    tag_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/tags/tag%2F1": {
+                "data": [{"tag_id": "tag/1", "tag_name": "mcp-test-tag"}],
+            },
+        }
+    )
+    node_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/nodes/node%2F1": {
+                "data": [{"node_id": "node/1", "nodename": "lab-node-01"}],
+            },
+        }
+    )
+    relation_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/tags/tag%2F1/nodes": {
+                "data": [{"node_id": "node/1", "nodename": "lab-node-01"}],
+            },
+        }
+    )
+    delete_recorder = CollectorDeleteRecorder({"info": "tag detached"})
+    monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
+    monkeypatch.setattr(node_common, "collector_get", node_get_recorder)
+    monkeypatch.setattr(inventory, "collector_get", relation_get_recorder)
+    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+
+    response = await inventory.detach_tag_from_node(tag_id=" tag/1 ", node_id=" node/1 ")
+
+    assert response["tag_id"] == "tag/1"
+    assert response["node_id"] == "node/1"
+    assert delete_recorder.calls == [
+        {"path": "/tags/tag%2F1/nodes/node%2F1", "data": None, "params": None}
+    ]
+
+
+async def test_detach_tag_from_node_rejects_missing_relation_before_delete(monkeypatch):
+    tag_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/tags/tag-1": {
+                "data": [{"tag_id": "tag-1", "tag_name": "mcp-test-tag"}],
+            },
+        }
+    )
+    node_get_recorder = CollectorGetByPathRecorder(
+        {
+            "/nodes/node-1": {
+                "data": [{"node_id": "node-1", "nodename": "lab-node-01"}],
+            },
+        }
+    )
+    relation_get_recorder = CollectorGetByPathRecorder(
+        {"/tags/tag-1/nodes": {"data": []}}
+    )
+    delete_recorder = CollectorDeleteRecorder({"info": "tag detached"})
+    monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
+    monkeypatch.setattr(node_common, "collector_get", node_get_recorder)
+    monkeypatch.setattr(inventory, "collector_get", relation_get_recorder)
+    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+
+    with pytest.raises(ValueError, match="relation not found"):
+        await inventory.detach_tag_from_node(tag_id="tag-1", node_id="node-1")
+
+    assert delete_recorder.calls == []

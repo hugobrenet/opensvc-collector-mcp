@@ -163,3 +163,45 @@ async def test_attach_tag_to_node_tool_passes_request_to_core(monkeypatch, mcp_c
             "tag_attach_data": "scope=lab",
         }
     ]
+
+
+async def test_detach_tag_from_node_tool_passes_request_to_core(monkeypatch, mcp_client):
+    recorder = CoreRecorder(
+        {
+            "tag_id": "tag-1",
+            "tag_name": "mcp-test-tag",
+            "tag": {"tag_id": "tag-1", "tag_name": "mcp-test-tag"},
+            "node_id": "node-1",
+            "nodename": "lab-node-01",
+            "node": {"node_id": "node-1", "nodename": "lab-node-01"},
+            "relation": {"node_id": "node-1", "nodename": "lab-node-01"},
+            "detached": True,
+            "collector_response": {"info": "tag detached"},
+            "meta": {"source": "tags/<tag_id>/nodes/<node_id>"},
+        }
+    )
+    monkeypatch.setattr(tag_tools, "core_detach_tag_from_node", recorder)
+
+    result = await mcp_client.call_tool(
+        "detach_tag_from_node",
+        {
+            "request": {
+                "tag_id": "tag-1",
+                "tag_name": "mcp-test-tag",
+                "node_id": "node-1",
+                "nodename": "lab-node-01",
+                "confirmation": {"phrase": "DETACH tag tag-1 mcp-test-tag from node node-1 lab-node-01"},
+            }
+        },
+    )
+
+    assert result.structured_content["detached"] is True
+    assert result.structured_content["node_id"] == "node-1"
+    assert recorder.calls == [
+        {
+            "tag_id": "tag-1",
+            "tag_name": "mcp-test-tag",
+            "node_id": "node-1",
+            "nodename": "lab-node-01",
+        }
+    ]

@@ -9,7 +9,7 @@ from opensvc_collector_mcp.client import (
 )
 from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
 from opensvc_collector_mcp.core.nodes._common import resolve_node_reference
-from opensvc_collector_mcp.core.prechecks import clean_value
+from opensvc_collector_mcp.core.prechecks import clean_value, require_single_row
 from opensvc_collector_mcp.core.tags._common import (
     resolve_single_tag_selector,
     resolve_tag_reference,
@@ -24,6 +24,10 @@ DEFAULT_TAG_NODE_PROPS = (
 DEFAULT_TAG_SERVICE_PROPS = (
     "svcname,svc_app,svc_env,svc_status,svc_availstatus,svc_topology,"
     "svc_nodes,svc_drpnodes,svc_frozen,svc_ha,svc_created,updated"
+)
+DEFAULT_TAG_NODE_WRITE_PROPS = (
+    "node_id,nodename,status,updated,node_env,asset_env,"
+    "team_responsible,loc_city"
 )
 
 
@@ -134,10 +138,7 @@ async def attach_tag_to_node(
     node = await resolve_node_reference(
         node_id=selector_node_id or None,
         nodename=selector_nodename or None,
-        props=(
-            "node_id,nodename,status,updated,node_env,asset_env,"
-            "team_responsible,loc_city"
-        ),
+        props=DEFAULT_TAG_NODE_WRITE_PROPS,
         operation="attach tag to node",
         missing_message="attach tag to node requires node_id or nodename",
     )
@@ -179,6 +180,105 @@ async def attach_tag_to_node(
             ),
         },
     }
+
+
+async def detach_tag_from_node(
+    *,
+    tag_id: str | None = None,
+    tag_name: str | None = None,
+    node_id: str | None = None,
+    nodename: str | None = None,
+) -> dict[str, Any]:
+    selector_tag_id = clean_value(tag_id)
+    selector_tag_name = clean_value(tag_name)
+    selector_node_id = clean_value(node_id)
+    selector_nodename = clean_value(nodename)
+
+    tag = await resolve_tag_reference(
+        tag_id=selector_tag_id or None,
+        tag_name=selector_tag_name or None,
+        operation="detach tag from node",
+        missing_message="detach tag from node requires tag_id or tag_name",
+    )
+    node = await resolve_node_reference(
+        node_id=selector_node_id or None,
+        nodename=selector_nodename or None,
+        props=DEFAULT_TAG_NODE_WRITE_PROPS,
+        operation="detach tag from node",
+        missing_message="detach tag from node requires node_id or nodename",
+    )
+
+    resolved_tag_id = clean_value(tag.get("tag_id"))
+    resolved_tag_name = clean_value(tag.get("tag_name"))
+    resolved_node_id = clean_value(node.get("node_id"))
+    resolved_nodename = clean_value(node.get("nodename"))
+    relation = await _ensure_tag_node_relation_exists(
+        tag_id=resolved_tag_id,
+        node_id=resolved_node_id,
+    )
+
+    path = (
+        f"/tags/{quote(resolved_tag_id, safe='')}/nodes/"
+        f"{quote(resolved_node_id, safe='')}"
+    )
+    response = await collector_delete(path)
+    return {
+        "tag_id": resolved_tag_id,
+        "tag_name": resolved_tag_name,
+        "tag": tag,
+        "node_id": resolved_node_id,
+        "nodename": resolved_nodename,
+        "node": node,
+        "relation": relation,
+        "detached": True,
+        "collector_response": response,
+        "meta": {
+            "source": "tags/<tag_id>/nodes/<node_id>",
+            "tag_selector": (
+                "tag_id+tag_name"
+                if selector_tag_id and selector_tag_name
+                else "tag_id" if selector_tag_id else "tag_name"
+            ),
+            "node_selector": (
+                "node_id+nodename"
+                if selector_node_id and selector_nodename
+                else "node_id" if selector_node_id else "nodename"
+            ),
+            "precheck": "tag_node_relation_exists",
+        },
+    }
+
+
+async def _ensure_tag_node_relation_exists(
+    *,
+    tag_id: str,
+    node_id: str,
+) -> dict[str, Any]:
+    response = await collector_get(
+        f"/tags/{quote(tag_id, safe='')}/nodes",
+        params=collection_params(
+            filters=[("node_id", node_id)],
+            props="node_id,nodename",
+            orderby=None,
+            search=None,
+            limit=2,
+            offset=0,
+        ),
+    )
+    return require_single_row(
+        response,
+        not_found_message=(
+            "detach tag from node relation not found: "
+            f"tag_id={tag_id} node_id={node_id}"
+        ),
+        multiple_message=(
+            "detach tag from node relation is ambiguous or missing node_id: "
+            f"tag_id={tag_id} node_id={node_id}"
+        ),
+        invalid_message="detach tag from node resolved relation payload is invalid",
+        exact_match_field="node_id",
+        exact_match_value=node_id,
+    )
 
 
 async def count_tags(

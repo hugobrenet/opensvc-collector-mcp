@@ -212,6 +212,8 @@ Current MCP tag tool surface:
 
 - `create_tag`
 - `delete_tag`
+- `attach_tag_to_node`
+- `detach_tag_from_node`
 - `list_tag_props`
 - `list_tags`
 - `count_tags`
@@ -318,7 +320,7 @@ State-changing confirmation contract:
   `confirmation` into `core/` or Collector REST payloads; it is a gateway/LLM
   safety guard at the MCP boundary.
 - Current state-changing tools using this contract:
-  `create_tag`, `delete_tag`, `create_node`, `delete_node`, `update_node_properties`, `snooze_node_notifications`, and `unsnooze_node_notifications`.
+  `create_tag`, `delete_tag`, `attach_tag_to_node`, `detach_tag_from_node`, `create_node`, `delete_node`, `update_node_properties`, `snooze_node_notifications`, and `unsnooze_node_notifications`.
 - When adding another state-changing tool, update:
   `tests/test_mcp_registration.py`, the domain tool tests, tool docs under
   `docs/tools/`, and the tool description/annotations.
@@ -748,15 +750,19 @@ Node state-changing tool TODO list:
     provided.
   - No implicit batch attach. Add a separate batch tool later only if it has an
     explicit batch schema and confirmation summary.
-- [ ] `detach_tag_from_node`
-  - Collector API: prefer `DELETE /tags/<tag_id>/nodes/<node_id>` over the bulk
-    style `DELETE /tags/nodes`.
+- [x] `detach_tag_from_node`
+  - Collector API: `DELETE /tags/<tag_id>/nodes/<node_id>`.
   - Classification: destructive relation update, not deletion of the tag or
     node object.
-  - RBAC should match `attach_tag_to_node`.
-  - Selector/confirmation: same two-sided resolution and confirmation fields as
-    attach. Re-read the current relation or attached tag/node snapshots before
-    DELETE when practical.
+  - RBAC matches `attach_tag_to_node`: `write:tags` (`TagManager` or `Manager`)
+    because the Collector route lives in the tags API.
+  - Selector/confirmation: accepts `tag_id`, exact `tag_name`, or both for the
+    tag side, and `node_id`, exact `nodename`, or both for the node side. Core
+    resolves both sides to a single snapshot, verifies `id + name` correlation
+    when both are provided, re-reads the current tag-node relation through
+    `GET /tags/<tag_id>/nodes` filtered by `node_id`, refuses missing or
+    ambiguous relations, executes DELETE with resolved `tag_id` and `node_id`,
+    and requires only `confirmation.phrase`.
 - [x] `create_node`
   - Collector API: `POST /nodes`.
   - MCP first checks exact `nodename` absence with `/nodes` before calling

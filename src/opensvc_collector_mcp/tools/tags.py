@@ -11,6 +11,7 @@ from opensvc_collector_mcp.core.tags import (
     count_tags as core_count_tags,
     create_tag as core_create_tag,
     delete_tag as core_delete_tag,
+    detach_tag_from_node as core_detach_tag_from_node,
     get_tag as core_get_tag,
     get_tag_nodes as core_get_tag_nodes,
     get_tag_services as core_get_tag_services,
@@ -27,6 +28,8 @@ from opensvc_collector_mcp.models.tags import (
     CreateTagResponse,
     DeleteTagRequest,
     DeleteTagResponse,
+    DetachTagFromNodeRequest,
+    DetachTagFromNodeResponse,
     ListTagsRequest,
     TagIdentityRequest,
     TagNodesRequest,
@@ -147,6 +150,44 @@ def register_tags_tools(mcp: FastMCP) -> None:
             tag_attach_data=request.tag_attach_data,
         )
         return AttachTagToNodeResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="detach_tag_from_node",
+        description=(
+            "Detach one OpenSVC Collector tag from one node. Select the tag by "
+            "exact tag_id or exact tag_name, and select the node by exact "
+            "node_id or exact nodename. MCP resolves names to stable ids, "
+            "verifies id/name correlation when both are provided, confirms the "
+            "existing tag-node relation, and then deletes that relation in "
+            "Collector. Before calling, ask the user to repeat an exact "
+            "confirmation phrase containing the resolved tag and node, and "
+            "include it in request.confirmation.phrase. Requires Collector "
+            "TagManager or Manager privileges through MCP RBAC."
+        ),
+        tags={"tags", "nodes", "detach", "write:tags"},
+        annotations={
+            "title": "Detach OpenSVC Tag From Node",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def detach_tag_from_node(
+        request: Annotated[
+            DetachTagFromNodeRequest,
+            Field(description="Tag and node selectors for the attachment to remove."),
+        ],
+    ) -> DetachTagFromNodeResponse:
+        """Detach one OpenSVC Collector tag from one node after confirmation."""
+        response = await core_detach_tag_from_node(
+            tag_id=request.tag_id,
+            tag_name=request.tag_name,
+            node_id=request.node_id,
+            nodename=request.nodename,
+        )
+        return DetachTagFromNodeResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
