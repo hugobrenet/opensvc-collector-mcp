@@ -19,6 +19,8 @@ from opensvc_collector_mcp.models.nodes import (
     RunNodeChecksResponse,
     CollectNodeSysreportRequest,
     CollectNodeSysreportResponse,
+    PushNodeAssetRequest,
+    PushNodeAssetResponse,
     InventoryStatsRequest,
     InventoryStatsResponse,
     ListNodesRequest,
@@ -54,6 +56,7 @@ from opensvc_collector_mcp.core.nodes import (
     thaw_node as core_thaw_node,
     run_node_checks as core_run_node_checks,
     collect_node_sysreport as core_collect_node_sysreport,
+    push_node_asset as core_push_node_asset,
     get_node as core_get_node,
     get_node_cluster as core_get_node_cluster,
     get_node_checks as core_get_node_checks,
@@ -299,6 +302,48 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             confirm_nodename=request.confirm_nodename,
         )
         return CollectNodeSysreportResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="push_node_asset",
+        description=(
+            "Enqueue a node asset inventory refresh for one OpenSVC Collector "
+            "node through PUT /actions with action=pushasset and the resolved "
+            "node_id. This corresponds to the Collector UI action 'Update node "
+            "information' and asks the OpenSVC agent to push node inventory data "
+            "such as asset environment, OS, hardware, location, and runtime "
+            "identity fields back to Collector. Accepts either exact node_id or "
+            "exact nodename; MCP resolves nodename to one node_id, refuses "
+            "ambiguous matches, and verifies explicit confirm_node_id and "
+            "confirm_nodename before enqueueing the action. Before calling, ask "
+            "the user to repeat an exact confirmation phrase containing the "
+            "resolved node_id and nodename, and include it in "
+            "request.confirmation.phrase. Requires Collector NodeExec or Manager "
+            "privileges through MCP RBAC."
+        ),
+        tags={"nodes", "asset", "exec:nodes"},
+        annotations={
+            "title": "Push OpenSVC Node Asset Inventory",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        },
+    )
+    async def push_node_asset(
+        request: Annotated[
+            PushNodeAssetRequest,
+            Field(description="Node asset push selector and explicit confirmations."),
+        ],
+    ) -> PushNodeAssetResponse:
+        """Enqueue a pushasset action for one OpenSVC Collector node."""
+        response = await core_push_node_asset(
+            node_id=request.node_id,
+            nodename=request.nodename,
+            confirm_node_id=request.confirm_node_id,
+            confirm_nodename=request.confirm_nodename,
+        )
+        return PushNodeAssetResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

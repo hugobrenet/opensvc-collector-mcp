@@ -12,6 +12,7 @@ from .inventory import (
     thaw_node,
     run_node_checks,
     collect_node_sysreport,
+    push_node_asset,
     snooze_node_notifications,
     unsnooze_node_notifications,
 )
@@ -76,6 +77,7 @@ __all__ = [
     'thaw_node',
     'run_node_checks',
     'collect_node_sysreport',
+    'push_node_asset',
     'get_node',
     'get_node_checks',
     'get_node_cluster',

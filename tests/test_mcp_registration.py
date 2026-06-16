@@ -30,6 +30,7 @@ EXPECTED_TOOL_NAMES = {
     "thaw_node",
     "run_node_checks",
     "collect_node_sysreport",
+    "push_node_asset",
     "get_app",
     "get_app_nodes",
     "get_app_publications",
@@ -191,7 +192,9 @@ async def test_thaw_node_is_marked_as_destructive_exec():
     assert tool.annotations.destructiveHint is True
 
 
-@pytest.mark.parametrize("name", ["run_node_checks", "collect_node_sysreport"])
+@pytest.mark.parametrize(
+    "name", ["run_node_checks", "collect_node_sysreport", "push_node_asset"]
+)
 async def test_low_risk_node_exec_actions_are_marked_as_non_destructive_exec(name):
     tools = await build_mcp()._list_tools()
     tool = next(tool for tool in tools if tool.name == name)

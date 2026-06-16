@@ -206,6 +206,12 @@ async def test_thaw_node_tool_passes_request_to_core(monkeypatch, mcp_client):
             "sysreport",
             "COLLECT sysreport node node-a-id node-a",
         ),
+        (
+            "push_node_asset",
+            "core_push_node_asset",
+            "pushasset",
+            "PUSH asset node node-a-id node-a",
+        ),
     ],
 )
 async def test_node_exec_action_tool_passes_request_to_core(
