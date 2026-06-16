@@ -328,8 +328,10 @@ async def delete_node(
     }
 
 
-async def freeze_node(
+async def _enqueue_confirmed_node_action(
     *,
+    action: str,
+    operation: str,
     node_id: str | None = None,
     nodename: str | None = None,
     confirm_node_id: str,
@@ -351,7 +353,7 @@ async def freeze_node(
         node_id=selector_node_id or None,
         nodename=selector_nodename or None,
         props=DEFAULT_NODE_ACTION_SNAPSHOT_PROPS,
-        operation="freeze node",
+        operation=operation,
     )
     resolved_node_id = str(node.get("node_id") or "").strip()
     resolved_nodename = str(node.get("nodename") or "").strip()
@@ -360,13 +362,13 @@ async def freeze_node(
     if confirmation_name != resolved_nodename:
         raise ValueError("confirm_nodename must match the resolved nodename")
 
-    payload = {"node_id": resolved_node_id, "action": "freeze"}
+    payload = {"node_id": resolved_node_id, "action": action}
     response = await collector_put("/actions", data=payload)
     return {
         "node_id": resolved_node_id,
         "nodename": resolved_nodename,
         "node": node,
-        "action": "freeze",
+        "action": action,
         "queued": True,
         "collector_response": response,
         "meta": {
@@ -376,6 +378,40 @@ async def freeze_node(
             "exec_tag": "exec:nodes",
         },
     }
+
+
+async def freeze_node(
+    *,
+    node_id: str | None = None,
+    nodename: str | None = None,
+    confirm_node_id: str,
+    confirm_nodename: str,
+) -> dict[str, Any]:
+    return await _enqueue_confirmed_node_action(
+        action="freeze",
+        operation="freeze node",
+        node_id=node_id,
+        nodename=nodename,
+        confirm_node_id=confirm_node_id,
+        confirm_nodename=confirm_nodename,
+    )
+
+
+async def thaw_node(
+    *,
+    node_id: str | None = None,
+    nodename: str | None = None,
+    confirm_node_id: str,
+    confirm_nodename: str,
+) -> dict[str, Any]:
+    return await _enqueue_confirmed_node_action(
+        action="thaw",
+        operation="thaw node",
+        node_id=node_id,
+        nodename=nodename,
+        confirm_node_id=confirm_node_id,
+        confirm_nodename=confirm_nodename,
+    )
 
 
 async def snooze_node_notifications(

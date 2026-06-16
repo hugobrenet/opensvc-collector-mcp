@@ -25,6 +25,7 @@ EXPECTED_TOOL_NAMES = {
     "detach_tag_from_node",
     "detach_tag_from_service",
     "freeze_node",
+    "thaw_node",
     "get_app",
     "get_app_nodes",
     "get_app_publications",
@@ -177,6 +178,15 @@ async def test_freeze_node_is_marked_as_destructive_exec():
     assert tool.annotations.destructiveHint is True
 
 
+async def test_thaw_node_is_marked_as_destructive_exec():
+    tools = await build_mcp()._list_tools()
+    tool = next(tool for tool in tools if tool.name == "thaw_node")
+
+    assert tool.annotations.readOnlyHint is False
+    assert tool.annotations.idempotentHint is False
+    assert tool.annotations.destructiveHint is True
+
+
 async def test_create_node_is_marked_as_destructive_write():
     tools = await build_mcp()._list_tools()
     tool = next(tool for tool in tools if tool.name == "create_node")
@@ -246,6 +256,7 @@ async def test_state_changing_tools_require_confirmation_phrase_in_schema():
         "detach_tag_from_node",
         "detach_tag_from_service",
         "freeze_node",
+        "thaw_node",
         "create_node",
         "delete_node",
         "snooze_node_notifications",

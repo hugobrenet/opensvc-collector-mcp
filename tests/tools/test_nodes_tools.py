@@ -156,6 +156,44 @@ async def test_freeze_node_tool_passes_request_to_core(monkeypatch, mcp_client):
     ]
 
 
+async def test_thaw_node_tool_passes_request_to_core(monkeypatch, mcp_client):
+    recorder = CoreRecorder(
+        {
+            "node_id": "node-a-id",
+            "nodename": "node-a",
+            "node": {"node_id": "node-a-id", "nodename": "node-a"},
+            "action": "thaw",
+            "queued": True,
+            "collector_response": {"info": "action queued"},
+            "meta": {"source": "actions", "exec_tag": "exec:nodes"},
+        }
+    )
+    monkeypatch.setattr(node_tools, "core_thaw_node", recorder)
+
+    result = await mcp_client.call_tool(
+        "thaw_node",
+        {
+            "request": {
+                "node_id": "node-a-id",
+                "confirm_node_id": "node-a-id",
+                "confirm_nodename": "node-a",
+                "confirmation": {"phrase": "THAW node node-a-id node-a"},
+            }
+        },
+    )
+
+    assert result.structured_content["queued"] is True
+    assert result.structured_content["action"] == "thaw"
+    assert recorder.calls == [
+        {
+            "node_id": "node-a-id",
+            "nodename": None,
+            "confirm_node_id": "node-a-id",
+            "confirm_nodename": "node-a",
+        }
+    ]
+
+
 async def test_update_node_properties_tool_passes_request_to_core(monkeypatch, mcp_client):
     recorder = CoreRecorder(
         {
