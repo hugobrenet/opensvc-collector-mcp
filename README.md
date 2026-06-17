@@ -8,6 +8,15 @@
 
 `opensvc-collector-mcp` is a FastMCP server that exposes OpenSVC Collector data as MCP tools, so LLM clients can inspect infrastructure inventory, service state, and operational history through a controlled HTTP interface.
 
+## OpenSVC References
+
+This project targets OpenSVC Collector deployments and builds on the Collector
+REST API. For upstream OpenSVC concepts, Collector behavior, and operational
+context, refer to the official resources:
+
+- OpenSVC website: https://www.opensvc.com/
+- OpenSVC documentation: https://docs.opensvc.com/latest/
+
 ## What It Is
 
 - MCP server built with `FastMCP` and served over HTTP with `uvicorn`
