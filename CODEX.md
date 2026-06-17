@@ -340,22 +340,26 @@ Delete tool selector and confirmation standard:
   `TagSelector` (`id` or exact name, exactly one), but core code must resolve the
   name to one snapshot first and refuse zero or multiple matches. Do not expose
   ambiguous `id_or_name` string fields for destructive tools.
+- The final confirmed delete call must use exactly one execution selector. After
+  resolving a name to a stable id, prefer the stable id selector and omit the
+  human-readable name selector. Example final node deletion payload shape:
+  `node_id=<resolved node_id>`, no `nodename`, plus `confirm_node_id`,
+  `confirm_nodename`, and `confirmation.phrase`.
 - Human-readable attributes such as `nodename`, tag name, username, app name, or
   service path are correlation attributes. Use them for resolution, target
-  summaries, and explicit confirmation; never send a destructive DELETE directly
-  with a name when a stable id exists.
-- If the user asks to delete by name, the assistant may call the delete tool with
-  the exact name selector only when that tool implements strict selector
-  resolution. Otherwise it must first call read/search tools. In all cases, if
-  zero or multiple candidates are found, do not delete; ask for clarification or
-  present the candidate ids. If exactly one candidate is found, summarize it and
-  ask for explicit confirmation including both the stable id and the
-  human-readable correlation attribute.
+  summaries, and explicit confirmation. Do not treat a correlation attribute as a
+  second selector just because it appears in the confirmation phrase.
+- If the user asks to delete by name, the assistant should first resolve the name
+  with read/search tools when possible. If zero or multiple candidates are found,
+  do not delete; ask for clarification or present the candidate ids. If exactly
+  one candidate is found, summarize it and ask for explicit confirmation
+  including both the stable id and the human-readable correlation attribute.
 - Delete request models should use explicit selector fields such as `node_id` /
   `nodename` or `tag_id` / `tag_name`, plus explicit confirmation/correlation
   fields such as `confirm_node_id`, `confirm_nodename`, `confirm_tag_id`, or
-  `confirm_tag_name`. Avoid a generic field named only `id` when users may
-  confuse it with a name.
+  `confirm_tag_name`. The selector fields choose the object to operate on; the
+  confirmation fields prove the user confirmed the resolved snapshot. Avoid a
+  generic field named only `id` when users may confuse it with a name.
 - Delete core logic should resolve or re-read the target immediately before the
   DELETE call, execute the DELETE with the stable id, then verify the supplied
   confirmation fields match the resolved snapshot. Reject on mismatch to catch
@@ -366,7 +370,9 @@ Delete tool selector and confirmation standard:
   field matched against the resolved object.
 - The confirmation phrase should include the stable id and correlation attribute
   whenever both exist. Example for node deletion:
-  `DELETE node <node_id> <nodename>`.
+  `DELETE node <node_id> <nodename>`. This full phrase is copied into
+  `confirmation.phrase`; it does not mean both `node_id` and `nodename` selector
+  fields should be filled.
 
 State-changing tool class standards:
 

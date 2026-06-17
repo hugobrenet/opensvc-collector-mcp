@@ -189,18 +189,59 @@ class CreateNodeResponse(BaseModel):
 
 
 class DeleteNodeRequest(NodeSelector):
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [
+                {
+                    "node_id": "NODE-ID",
+                    "confirm_node_id": "NODE-ID",
+                    "confirm_nodename": "lab-node-01",
+                    "confirmation": {
+                        "phrase": "DELETE node NODE-ID lab-node-01",
+                    },
+                }
+            ]
+        },
+    )
+
+    node_id: str | None = Field(
+        default=None,
+        description=(
+            "Execution selector for delete_node. Provide exactly one selector. "
+            "After resolving a nodename to a Collector node_id, prefer this "
+            "field and omit nodename. This selector must match confirm_node_id."
+        ),
+        examples=["NODE-ID"],
+    )
+    nodename: str | None = Field(
+        default=None,
+        description=(
+            "Alternative execution selector for delete_node when no node_id is "
+            "available yet. Provide exactly one selector: either nodename or "
+            "node_id, never both. Do not fill this field just because the "
+            "confirmation phrase contains the nodename; use confirm_nodename for "
+            "that correlation value. MCP resolves nodename to one node_id and "
+            "refuses missing or ambiguous duplicate nodenames."
+        ),
+        examples=["lab-node-01"],
+    )
     confirm_node_id: str = Field(
         description=(
-            "Exact node_id read from the resolved node snapshot. Required before "
-            "deleting the node, even when the selector is nodename."
+            "Correlation confirmation value read from the resolved node snapshot. "
+            "Required before deleting the node. This is not a second selector. "
+            "It must match the resolved node_id and, when node_id is used as the "
+            "execution selector, it must match node_id."
         ),
         min_length=1,
         examples=["NODE-ID"],
     )
     confirm_nodename: str = Field(
         description=(
-            "Exact nodename read from the resolved node snapshot. This is a human "
-            "safety confirmation, not necessarily the deletion selector."
+            "Correlation confirmation value read from the resolved node snapshot. "
+            "Required before deleting the node. This is not a second selector. "
+            "Use this field for the nodename that appears in the human "
+            "confirmation phrase."
         ),
         min_length=1,
         examples=["lab-node-01"],
@@ -210,8 +251,10 @@ class DeleteNodeRequest(NodeSelector):
             "Required confirmation gate for this destructive tool. Before calling "
             "delete_node, resolve the target node, generate a concise phrase "
             "containing the exact node_id and nodename, ask the user to repeat it "
-            "verbatim, and set this field only when that exact phrase appears in "
-            "the latest user message."
+            "verbatim, and set this field to that full phrase only when it appears "
+            "in the latest user message. The confirmation phrase may contain both "
+            "node_id and nodename, but the execution selector must still be exactly "
+            "one of node_id or nodename."
         ),
     )
 

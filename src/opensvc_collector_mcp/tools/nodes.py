@@ -119,13 +119,16 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         timeout=TOOL_TIMEOUT_SECONDS,
         name="delete_node",
         description=(
-            "Delete one OpenSVC Collector node selected by exact node_id or "
-            "exact nodename. MCP resolves nodename to one node_id and refuses "
-            "missing or ambiguous duplicate nodenames. Before calling, ask the "
-            "user to repeat an exact confirmation phrase containing the resolved "
-            "node_id and nodename, and include it in request.confirmation.phrase. "
-            "Requires confirm_node_id, confirm_nodename, and Collector "
-            "NodeManager or Manager privileges through MCP RBAC."
+            "Delete one OpenSVC Collector node. Use exactly one execution "
+            "selector: node_id or nodename, never both. Preferred flow: resolve "
+            "the user's nodename with get_node, then call delete_node with "
+            "node_id only. Still include confirm_node_id and confirm_nodename "
+            "from the resolved node snapshot. The human confirmation phrase must "
+            "contain both the resolved node_id and nodename and must be copied "
+            "verbatim into request.confirmation.phrase, but those confirmation "
+            "values are not extra selectors. MCP refuses missing or ambiguous "
+            "duplicate nodenames. Requires Collector NodeManager or Manager "
+            "privileges through MCP RBAC."
         ),
         tags={"nodes", "delete", "delete:nodes"},
         annotations={

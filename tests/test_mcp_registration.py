@@ -234,6 +234,30 @@ async def test_delete_node_is_marked_as_destructive_write():
     assert tool.annotations.destructiveHint is True
 
 
+async def test_delete_node_schema_distinguishes_selector_from_confirmation():
+    tools = await build_mcp()._list_tools()
+    tool = next(tool for tool in tools if tool.name == "delete_node")
+
+    assert "Use exactly one execution selector" in tool.description
+    assert "node_id only" in tool.description
+    assert "not extra selectors" in tool.description
+
+    request_schema = tool.parameters["$defs"]["DeleteNodeRequest"]
+    node_id_description = request_schema["properties"]["node_id"]["description"]
+    nodename_description = request_schema["properties"]["nodename"]["description"]
+    confirm_nodename_description = request_schema["properties"]["confirm_nodename"]["description"]
+    confirmation_description = request_schema["properties"]["confirmation"]["description"]
+    example = request_schema["examples"][0]
+
+    assert "prefer this field and omit nodename" in node_id_description
+    assert "never both" in nodename_description
+    assert "not a second selector" in confirm_nodename_description
+    assert "confirmation phrase may contain both" in confirmation_description
+    assert example["node_id"] == "NODE-ID"
+    assert "nodename" not in example
+    assert example["confirm_nodename"] == "lab-node-01"
+
+
 async def test_snooze_node_notifications_is_marked_as_non_destructive_write():
     tools = await build_mcp()._list_tools()
     tool = next(tool for tool in tools if tool.name == "snooze_node_notifications")
