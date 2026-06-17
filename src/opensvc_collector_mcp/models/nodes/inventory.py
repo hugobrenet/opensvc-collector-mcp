@@ -188,7 +188,7 @@ class CreateNodeResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class DeleteNodeRequest(NodeSelector):
+class DeleteNodeRequest(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
         json_schema_extra={
@@ -205,26 +205,15 @@ class DeleteNodeRequest(NodeSelector):
         },
     )
 
-    node_id: str | None = Field(
-        default=None,
+    node_id: str = Field(
         description=(
-            "Execution selector for delete_node. Provide exactly one selector. "
-            "After resolving a nodename to a Collector node_id, prefer this "
-            "field and omit nodename. This selector must match confirm_node_id."
+            "Required execution selector for delete_node. Never pass nodename as "
+            "node_id. If the user provided only a nodename, first call get_node to "
+            "resolve exactly one Collector node_id, then call delete_node with "
+            "that resolved node_id. This selector must match confirm_node_id."
         ),
+        min_length=1,
         examples=["NODE-ID"],
-    )
-    nodename: str | None = Field(
-        default=None,
-        description=(
-            "Alternative execution selector for delete_node when no node_id is "
-            "available yet. Provide exactly one selector: either nodename or "
-            "node_id, never both. Do not fill this field just because the "
-            "confirmation phrase contains the nodename; use confirm_nodename for "
-            "that correlation value. MCP resolves nodename to one node_id and "
-            "refuses missing or ambiguous duplicate nodenames."
-        ),
-        examples=["lab-node-01"],
     )
     confirm_node_id: str = Field(
         description=(
@@ -249,24 +238,28 @@ class DeleteNodeRequest(NodeSelector):
     confirmation: ToolConfirmation = Field(
         description=(
             "Required confirmation gate for this destructive tool. Before calling "
-            "delete_node, resolve the target node, generate a concise phrase "
-            "containing the exact node_id and nodename, ask the user to repeat it "
-            "verbatim, and set this field to that full phrase only when it appears "
-            "in the latest user message. The confirmation phrase may contain both "
-            "node_id and nodename, but the execution selector must still be exactly "
-            "one of node_id or nodename."
+            "delete_node, resolve the target node with get_node when the user gave "
+            "a nodename, generate a concise phrase containing the exact resolved "
+            "node_id and nodename, ask the user to repeat it verbatim, and set "
+            "this field to that full phrase only when it appears in the latest "
+            "user message. The phrase must contain both values, but delete_node "
+            "execution uses node_id only."
         ),
     )
 
     @model_validator(mode="after")
     def normalize(self) -> "DeleteNodeRequest":
-        super().normalize_selector()
+        self.node_id = self.node_id.strip()
         self.confirm_node_id = self.confirm_node_id.strip()
         self.confirm_nodename = self.confirm_nodename.strip()
+        if not self.node_id:
+            raise ValueError("node_id must not be empty")
         if not self.confirm_node_id:
             raise ValueError("confirm_node_id must not be empty")
         if not self.confirm_nodename:
             raise ValueError("confirm_nodename must not be empty")
+        if self.confirm_node_id != self.node_id:
+            raise ValueError("confirm_node_id must match node_id")
         return self
 
 

@@ -238,21 +238,24 @@ async def test_delete_node_schema_distinguishes_selector_from_confirmation():
     tools = await build_mcp()._list_tools()
     tool = next(tool for tool in tools if tool.name == "delete_node")
 
-    assert "Use exactly one execution selector" in tool.description
-    assert "node_id only" in tool.description
-    assert "not extra selectors" in tool.description
+    assert "node_id-only" in tool.description
+    assert "first call get_node" in tool.description
+    assert "Do not ask for a delete confirmation before this resolution" in tool.description
+    assert "Do not pass nodename as an execution selector" in tool.description
 
     request_schema = tool.parameters["$defs"]["DeleteNodeRequest"]
-    node_id_description = request_schema["properties"]["node_id"]["description"]
-    nodename_description = request_schema["properties"]["nodename"]["description"]
-    confirm_nodename_description = request_schema["properties"]["confirm_nodename"]["description"]
-    confirmation_description = request_schema["properties"]["confirmation"]["description"]
+    properties = request_schema["properties"]
+    node_id_description = properties["node_id"]["description"]
+    confirm_nodename_description = properties["confirm_nodename"]["description"]
+    confirmation_description = properties["confirmation"]["description"]
     example = request_schema["examples"][0]
 
-    assert "prefer this field and omit nodename" in node_id_description
-    assert "never both" in nodename_description
+    assert "Required execution selector" in node_id_description
+    assert "Never pass nodename as node_id" in node_id_description
+    assert "nodename" not in properties
     assert "not a second selector" in confirm_nodename_description
-    assert "confirmation phrase may contain both" in confirmation_description
+    assert "delete_node execution uses node_id only" in confirmation_description
+    assert "node_id" in request_schema["required"]
     assert example["node_id"] == "NODE-ID"
     assert "nodename" not in example
     assert example["confirm_nodename"] == "lab-node-01"

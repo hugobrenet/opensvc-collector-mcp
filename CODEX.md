@@ -336,15 +336,19 @@ Delete tool selector and confirmation standard:
 
 - Destructive delete tools must execute the Collector DELETE with a stable
   Collector identifier whenever the domain has one, for example `node_id` or
-  `tag_id`. They may expose a reusable selector model such as `NodeSelector` or
-  `TagSelector` (`id` or exact name, exactly one), but core code must resolve the
-  name to one snapshot first and refuse zero or multiple matches. Do not expose
-  ambiguous `id_or_name` string fields for destructive tools.
-- The final confirmed delete call must use exactly one execution selector. After
-  resolving a name to a stable id, prefer the stable id selector and omit the
-  human-readable name selector. Example final node deletion payload shape:
-  `node_id=<resolved node_id>`, no `nodename`, plus `confirm_node_id`,
-  `confirm_nodename`, and `confirmation.phrase`.
+  `tag_id`. If the user gives a human-readable name, the assistant must first
+  resolve it with a read-only tool/helper, refuse zero or multiple matches, and
+  only then ask for confirmation. Do not expose ambiguous `id_or_name` string
+  fields for destructive tools.
+- `delete_node` is intentionally stricter than the generic selector pattern:
+  the final confirmed tool call is `node_id` only. Its schema does not expose
+  `nodename` as an execution selector. If the user asks to delete `node00008`,
+  first call `get_node`, read `node_id` and `nodename`, ask the user to repeat
+  `DELETE node <node_id> <nodename>`, then call `delete_node` with
+  `node_id=<resolved node_id>`, `confirm_node_id=<resolved node_id>`,
+  `confirm_nodename=<resolved nodename>`, and `confirmation.phrase=<verbatim
+  latest user phrase>`. Never call `delete_node` with `nodename`, and never use
+  a nodename value as `node_id`.
 - Human-readable attributes such as `nodename`, tag name, username, app name, or
   service path are correlation attributes. Use them for resolution, target
   summaries, and explicit confirmation. Do not treat a correlation attribute as a
@@ -713,12 +717,12 @@ Node tool design decisions:
 - Do not add wrapper tools like `get_nodes_by_status`,
   `get_nodes_by_env`, `get_nodes_by_location`, or `get_nodes_by_app`
   unless they add domain-specific logic beyond filtering.
-- `delete_node` uses shared `NodeSelector` (`node_id` or exact `nodename`, exactly one), resolves the selector to one node snapshot, refuses missing or ambiguous nodenames, then calls `DELETE /nodes/<resolved node_id>`. It still requires `confirm_node_id` and `confirm_nodename` matching the resolved snapshot before sending DELETE.
+- `delete_node` is `node_id` only at execution time. If the user provides a nodename, the assistant must first resolve it with `get_node`; only after a single node snapshot is resolved should it ask for the exact confirmation phrase containing both resolved `node_id` and `nodename`. The final `delete_node` payload must include `node_id`, matching `confirm_node_id`, `confirm_nodename`, and `confirmation.phrase`; it must not include `nodename`. Core still deletes through `DELETE /nodes/<resolved node_id>` and verifies confirmation fields before sending DELETE.
 - Mark node deletion with MCP `destructiveHint=true` and `delete:nodes`: Collector cascades node deletion to related runtime and inventory rows.
 - `create_node` uses `POST /nodes` with explicit `nodename` and optional `properties`. It requires only `request.confirmation.phrase` as the safety gate, but first checks exact `nodename` absence because Collector otherwise behaves like an upsert. Collector remains the authority for defaults, read-only fields, and payload validation.
 - `update_node_properties` uses `POST /nodes/<nodename>` and accepts the node properties marked `writable=true` by the Collector nodes API definition.
 - Mark node property updates with MCP `destructiveHint=true`: they are write operations on an existing node and can overwrite existing Collector values.
-- Node write tools that operate on an existing node can use the shared `NodeSelector` Pydantic model (`node_id` or `nodename`, exactly one). Core code must resolve `nodename` to a single node snapshot with `resolve_single_node_selector()` and execute Collector calls with the resolved `node_id`; ambiguous duplicate nodenames are refused. Destructive tools must add their own stronger confirmation fields on top of this selector.
+- Node write tools that operate on an existing node can use the shared `NodeSelector` Pydantic model (`node_id` or `nodename`, exactly one) when the operation is non-delete. Core code must resolve `nodename` to a single node snapshot with `resolve_single_node_selector()` and execute Collector calls with the resolved `node_id`; ambiguous duplicate nodenames are refused. Destructive tools must add their own stronger confirmation fields. Node deletion is the exception: its public schema is `node_id` only.
 - `snooze_node_notifications` and `unsnooze_node_notifications` use `POST /nodes/<node_id>/snooze`, require `write:nodes`, require only `confirmation.phrase`, and are marked non-destructive writes.
 - `list_nodes` lists rows and handles exact filters, Collector search, pagination, and bounded `nodename_contains` lookup.
 - `count_nodes` returns one optimized count using Collector `meta.total`.

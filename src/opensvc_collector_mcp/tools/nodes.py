@@ -119,16 +119,17 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         timeout=TOOL_TIMEOUT_SECONDS,
         name="delete_node",
         description=(
-            "Delete one OpenSVC Collector node. Use exactly one execution "
-            "selector: node_id or nodename, never both. Preferred flow: resolve "
-            "the user's nodename with get_node, then call delete_node with "
-            "node_id only. Still include confirm_node_id and confirm_nodename "
-            "from the resolved node snapshot. The human confirmation phrase must "
-            "contain both the resolved node_id and nodename and must be copied "
-            "verbatim into request.confirmation.phrase, but those confirmation "
-            "values are not extra selectors. MCP refuses missing or ambiguous "
-            "duplicate nodenames. Requires Collector NodeManager or Manager "
-            "privileges through MCP RBAC."
+            "Delete one OpenSVC Collector node. Destructive and node_id-only. "
+            "If the user gives a nodename, first call get_node to resolve exactly "
+            "one node and read its node_id and nodename. Do not ask for a delete "
+            "confirmation before this resolution step. Then ask the user to repeat "
+            "an exact phrase containing both resolved values, for example: "
+            "DELETE node <node_id> <nodename>. When the latest user message "
+            "contains that phrase, call delete_node with node_id, confirm_node_id, "
+            "confirm_nodename, and request.confirmation.phrase. Do not pass "
+            "nodename as an execution selector; use confirm_nodename only for "
+            "correlation. Requires Collector NodeManager or Manager privileges "
+            "through MCP RBAC."
         ),
         tags={"nodes", "delete", "delete:nodes"},
         annotations={
@@ -148,7 +149,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         "Delete an OpenSVC Collector node after explicit id and name confirmation."
         response = await core_delete_node(
             node_id=request.node_id,
-            nodename=request.nodename,
+            nodename=None,
             confirm_node_id=request.confirm_node_id,
             confirm_nodename=request.confirm_nodename,
         )

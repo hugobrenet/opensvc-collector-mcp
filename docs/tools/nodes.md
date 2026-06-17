@@ -82,19 +82,24 @@ packages, and patches entries. This is a destructive write tool and requires
 `delete:nodes`, authorized for Collector `NodeManager` or `Manager` users by MCP
 RBAC.
 
-The deletion selector uses the shared `NodeSelector` contract: provide exactly
-one of `node_id` or `nodename`. If `nodename` is provided, MCP resolves it with
-an exact `/nodes` filter, refuses zero matches, refuses duplicate matches, and
-then calls Collector using the resolved `node_id`. Because this is destructive,
-the assistant must first resolve or inspect the target, then generate a concise
-confirmation phrase containing the exact resolved `node_id` and `nodename`, ask
-the user to repeat it verbatim in a new message, and only then call
-`delete_node`.
+`delete_node` is intentionally `node_id` only at execution time. It does not
+accept `nodename` as an execution selector. If the user provides only a nodename,
+the assistant must first call a read-only resolver such as `get_node`, ensure it
+resolves to exactly one Collector node, and read both the resolved `node_id` and
+`nodename`. Only after that resolution step should the assistant ask for the
+confirmation phrase.
+
+Because this is destructive, the confirmation phrase must contain both resolved
+values, for example `DELETE node <node_id> <nodename>`. When the latest user
+message contains that exact phrase, call `delete_node` with the resolved
+`node_id`, matching `confirm_node_id`, matching `confirm_nodename`, and
+`confirmation.phrase`. Never pass a nodename value as `node_id`, and never add a
+`nodename` field to the `delete_node` request.
 
 Required input fields:
 
 ```text
-node_id or nodename
+node_id
 confirm_node_id
 confirm_nodename
 confirmation.phrase
@@ -121,13 +126,13 @@ Example:
 ```
 
 The tool reads a node snapshot before deleting. The DELETE call is not sent if
-`confirm_node_id` differs from the resolved snapshot `node_id`, if
-`confirm_nodename` differs from the resolved snapshot nodename, or if the
-selector is missing, invalid, or ambiguous. When `node_id` is used as selector,
-MCP also verifies the snapshot resolves to that exact `node_id`, which prevents
-accidentally passing a nodename in the `node_id` field. The
-`confirmation.phrase` field is not forwarded to the Collector; it exists to make
-the user confirmation explicit and machine-checkable in the gateway.
+`confirm_node_id` differs from `node_id`, if `confirm_node_id` differs from the
+resolved snapshot `node_id`, if `confirm_nodename` differs from the resolved
+snapshot nodename, or if `node_id` is missing or invalid. MCP verifies the
+snapshot resolves to the exact `node_id`, which prevents accidentally passing a
+nodename in the `node_id` field. The `confirmation.phrase` field is not
+forwarded to the Collector; it exists to make the user confirmation explicit and
+machine-checkable in the gateway.
 
 Output fields:
 

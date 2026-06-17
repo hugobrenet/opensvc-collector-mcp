@@ -1,4 +1,5 @@
 import pytest
+from fastmcp.exceptions import ToolError
 
 from opensvc_collector_mcp.tools import nodes as node_tools
 
@@ -84,40 +85,26 @@ async def test_delete_node_tool_passes_request_to_core(monkeypatch, mcp_client):
     ]
 
 
-async def test_delete_node_tool_accepts_nodename_selector(monkeypatch, mcp_client):
-    recorder = CoreRecorder(
-        {
-            "node_id": "node-a-id",
-            "nodename": "node-a",
-            "node": {"node_id": "node-a-id", "nodename": "node-a"},
-            "deleted": True,
-            "collector_response": {"info": "node deleted"},
-            "meta": {"source": "nodes/<node_id>", "selector": "nodename"},
-        }
-    )
+async def test_delete_node_tool_rejects_nodename_selector(monkeypatch, mcp_client):
+    recorder = CoreRecorder({})
     monkeypatch.setattr(node_tools, "core_delete_node", recorder)
 
-    result = await mcp_client.call_tool(
-        "delete_node",
-        {
-            "request": {
-                "nodename": "node-a",
-                "confirm_node_id": "node-a-id",
-                "confirm_nodename": "node-a",
-                "confirmation": {"phrase": "DELETE node node-a-id node-a"},
-            }
-        },
-    )
+    with pytest.raises(ToolError) as exc_info:
+        await mcp_client.call_tool(
+            "delete_node",
+            {
+                "request": {
+                    "nodename": "node-a",
+                    "confirm_node_id": "node-a-id",
+                    "confirm_nodename": "node-a",
+                    "confirmation": {"phrase": "DELETE node node-a-id node-a"},
+                }
+            },
+        )
 
-    assert result.structured_content["deleted"] is True
-    assert recorder.calls == [
-        {
-            "node_id": None,
-            "nodename": "node-a",
-            "confirm_node_id": "node-a-id",
-            "confirm_nodename": "node-a",
-        }
-    ]
+    assert '"loc": ["request", "node_id"]' in str(exc_info.value)
+    assert '"loc": ["request", "nodename"]' in str(exc_info.value)
+    assert recorder.calls == []
 
 
 async def test_freeze_node_tool_passes_request_to_core(monkeypatch, mcp_client):
