@@ -247,6 +247,12 @@ async def test_thaw_node_tool_passes_request_to_core(monkeypatch, mcp_client):
             "updatepkg",
             "UPDATE opensvc agent node node-a-id node-a",
         ),
+        (
+            "scan_node_scsi",
+            "core_scan_node_scsi",
+            "scanscsi",
+            "SCAN scsi node node-a-id node-a",
+        ),
     ],
 )
 async def test_node_exec_action_tool_passes_request_to_core(
@@ -349,6 +355,11 @@ async def test_node_exec_action_tool_passes_request_to_core(
             "update_node_opensvc_agent",
             "core_update_node_opensvc_agent",
             "UPDATE opensvc agent node node-a-id node-a",
+        ),
+        (
+            "scan_node_scsi",
+            "core_scan_node_scsi",
+            "SCAN scsi node node-a-id node-a",
         ),
     ],
 )

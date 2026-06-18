@@ -21,6 +21,7 @@ from .inventory import (
     push_node_config,
     update_node_compliance_modules,
     update_node_opensvc_agent,
+    scan_node_scsi,
     snooze_node_notifications,
     unsnooze_node_notifications,
 )
@@ -94,6 +95,7 @@ __all__ = [
     'push_node_config',
     'update_node_compliance_modules',
     'update_node_opensvc_agent',
+    'scan_node_scsi',
     'get_node',
     'get_node_checks',
     'get_node_cluster',

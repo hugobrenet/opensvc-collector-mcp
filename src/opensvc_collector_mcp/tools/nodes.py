@@ -37,6 +37,8 @@ from opensvc_collector_mcp.models.nodes import (
     UpdateNodeComplianceModulesResponse,
     UpdateNodeOpensvcAgentRequest,
     UpdateNodeOpensvcAgentResponse,
+    ScanNodeScsiRequest,
+    ScanNodeScsiResponse,
     InventoryStatsRequest,
     InventoryStatsResponse,
     ListNodesRequest,
@@ -81,6 +83,7 @@ from opensvc_collector_mcp.core.nodes import (
     push_node_config as core_push_node_config,
     update_node_compliance_modules as core_update_node_compliance_modules,
     update_node_opensvc_agent as core_update_node_opensvc_agent,
+    scan_node_scsi as core_scan_node_scsi,
     get_node as core_get_node,
     get_node_cluster as core_get_node_cluster,
     get_node_checks as core_get_node_checks,
@@ -746,6 +749,52 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             confirm_nodename=request.confirm_nodename,
         )
         return UpdateNodeOpensvcAgentResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="scan_node_scsi",
+        description=(
+            "Enqueue a SCSI host rescan for one OpenSVC Collector node through "
+            "PUT /actions with action=scanscsi. This corresponds to the Collector "
+            "UI action 'Rescan scsi hosts'. It asks the OpenSVC agent to rescan "
+            "the node operating system SCSI host buses for newly presented LUNs "
+            "or disks; it is not a simple Collector disk inventory refresh. Run "
+            "push_node_disks later if the user wants Collector disk inventory "
+            "refreshed after discovery. This tool is node_id-only. If the user "
+            "gives a nodename, first call get_node to resolve exactly one node "
+            "and read its node_id and nodename. Do not ask for a runtime action "
+            "confirmation before this resolution step. Then ask the user to "
+            "repeat an exact phrase containing both resolved values, for "
+            "example: SCAN scsi node <node_id> <nodename>. When the latest user "
+            "message contains that phrase, call scan_node_scsi with node_id, "
+            "confirm_node_id, confirm_nodename, and request.confirmation.phrase. "
+            "Do not pass nodename as an execution selector; use confirm_nodename "
+            "only for correlation. Requires Collector NodeExec or Manager "
+            "privileges through MCP RBAC."
+        ),
+        tags={"nodes", "scsi", "disks", "exec:nodes"},
+        annotations={
+            "title": "Scan OpenSVC Node SCSI Hosts",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        },
+    )
+    async def scan_node_scsi(
+        request: Annotated[
+            ScanNodeScsiRequest,
+            Field(description="Node SCSI scan selector and explicit confirmations."),
+        ],
+    ) -> ScanNodeScsiResponse:
+        """Enqueue a scanscsi action for one OpenSVC Collector node."""
+        response = await core_scan_node_scsi(
+            node_id=request.node_id,
+            nodename=None,
+            confirm_node_id=request.confirm_node_id,
+            confirm_nodename=request.confirm_nodename,
+        )
+        return ScanNodeScsiResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

@@ -474,6 +474,14 @@ class UpdateNodeOpensvcAgentResponse(PushNodeAssetResponse):
     pass
 
 
+class ScanNodeScsiRequest(ConfirmedNodeIdRequest):
+    pass
+
+
+class ScanNodeScsiResponse(PushNodeAssetResponse):
+    pass
+
+
 class SnoozeNodeNotificationsRequest(ConfirmedNodeIdRequest):
     duration: str = Field(
         description=(

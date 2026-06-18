@@ -39,6 +39,7 @@ EXPECTED_TOOL_NAMES = {
     "push_node_config",
     "update_node_compliance_modules",
     "update_node_opensvc_agent",
+    "scan_node_scsi",
     "get_app",
     "get_app_nodes",
     "get_app_publications",
@@ -214,6 +215,7 @@ async def test_thaw_node_is_marked_as_destructive_exec():
         "push_node_config",
         "update_node_compliance_modules",
         "update_node_opensvc_agent",
+        "scan_node_scsi",
     ],
 )
 async def test_low_risk_node_exec_actions_are_marked_as_non_destructive_exec(name):
@@ -298,6 +300,7 @@ async def test_delete_node_schema_distinguishes_selector_from_confirmation():
         "push_node_config",
         "update_node_compliance_modules",
         "update_node_opensvc_agent",
+        "scan_node_scsi",
         "update_node_properties",
         "snooze_node_notifications",
         "unsnooze_node_notifications",
@@ -404,6 +407,7 @@ async def test_state_changing_tools_require_confirmation_phrase_in_schema():
         "push_node_config",
         "update_node_compliance_modules",
         "update_node_opensvc_agent",
+        "scan_node_scsi",
         "create_node",
         "delete_node",
         "snooze_node_notifications",
