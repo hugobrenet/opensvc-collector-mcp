@@ -15,6 +15,8 @@ from .inventory import (
     push_node_asset,
     push_node_disks,
     push_node_stats,
+    pull_node_config,
+    push_node_config,
     snooze_node_notifications,
     unsnooze_node_notifications,
 )
@@ -82,6 +84,8 @@ __all__ = [
     'push_node_asset',
     'push_node_disks',
     'push_node_stats',
+    'pull_node_config',
+    'push_node_config',
     'get_node',
     'get_node_checks',
     'get_node_cluster',

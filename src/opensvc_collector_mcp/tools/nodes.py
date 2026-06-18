@@ -25,6 +25,10 @@ from opensvc_collector_mcp.models.nodes import (
     PushNodeDisksResponse,
     PushNodeStatsRequest,
     PushNodeStatsResponse,
+    PullNodeConfigRequest,
+    PullNodeConfigResponse,
+    PushNodeConfigRequest,
+    PushNodeConfigResponse,
     InventoryStatsRequest,
     InventoryStatsResponse,
     ListNodesRequest,
@@ -63,6 +67,8 @@ from opensvc_collector_mcp.core.nodes import (
     push_node_asset as core_push_node_asset,
     push_node_disks as core_push_node_disks,
     push_node_stats as core_push_node_stats,
+    pull_node_config as core_pull_node_config,
+    push_node_config as core_push_node_config,
     get_node as core_get_node,
     get_node_cluster as core_get_node_cluster,
     get_node_checks as core_get_node_checks,
@@ -457,6 +463,94 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             confirm_nodename=request.confirm_nodename,
         )
         return PushNodeStatsResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="pull_node_config",
+        description=(
+            "Enqueue a node-only OpenSVC configuration pull action for one "
+            "Collector node through PUT /actions with action=pull. This queues "
+            "the Collector node action handled as nodemgr pull for the resolved "
+            "node_id. It is not the future service-instance Pull tool and does "
+            "not take svc_id. This tool is node_id-only. If the user gives a "
+            "nodename, first call get_node to resolve exactly one node and read "
+            "its node_id and nodename. Do not ask for a runtime action "
+            "confirmation before this resolution step. Then ask the user to "
+            "repeat an exact phrase containing both resolved values, for "
+            "example: PULL config node <node_id> <nodename>. When the latest "
+            "user message contains that phrase, call pull_node_config with "
+            "node_id, confirm_node_id, confirm_nodename, and "
+            "request.confirmation.phrase. Do not pass nodename as an execution "
+            "selector; use confirm_nodename only for correlation. Requires "
+            "Collector NodeExec or Manager privileges through MCP RBAC."
+        ),
+        tags={"nodes", "config", "pull", "exec:nodes"},
+        annotations={
+            "title": "Pull OpenSVC Node Configuration",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        },
+    )
+    async def pull_node_config(
+        request: Annotated[
+            PullNodeConfigRequest,
+            Field(description="Node config pull selector and explicit confirmations."),
+        ],
+    ) -> PullNodeConfigResponse:
+        """Enqueue a pull action for one OpenSVC Collector node."""
+        response = await core_pull_node_config(
+            node_id=request.node_id,
+            nodename=None,
+            confirm_node_id=request.confirm_node_id,
+            confirm_nodename=request.confirm_nodename,
+        )
+        return PullNodeConfigResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="push_node_config",
+        description=(
+            "Enqueue a node-only OpenSVC configuration push action for one "
+            "Collector node through PUT /actions with action=push. This queues "
+            "the Collector node action handled as nodemgr push for the resolved "
+            "node_id. It is not the future service-instance Push tool and does "
+            "not take svc_id. This tool is node_id-only. If the user gives a "
+            "nodename, first call get_node to resolve exactly one node and read "
+            "its node_id and nodename. Do not ask for a runtime action "
+            "confirmation before this resolution step. Then ask the user to "
+            "repeat an exact phrase containing both resolved values, for "
+            "example: PUSH config node <node_id> <nodename>. When the latest "
+            "user message contains that phrase, call push_node_config with "
+            "node_id, confirm_node_id, confirm_nodename, and "
+            "request.confirmation.phrase. Do not pass nodename as an execution "
+            "selector; use confirm_nodename only for correlation. Requires "
+            "Collector NodeExec or Manager privileges through MCP RBAC."
+        ),
+        tags={"nodes", "config", "push", "exec:nodes"},
+        annotations={
+            "title": "Push OpenSVC Node Configuration",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        },
+    )
+    async def push_node_config(
+        request: Annotated[
+            PushNodeConfigRequest,
+            Field(description="Node config push selector and explicit confirmations."),
+        ],
+    ) -> PushNodeConfigResponse:
+        """Enqueue a push action for one OpenSVC Collector node."""
+        response = await core_push_node_config(
+            node_id=request.node_id,
+            nodename=None,
+            confirm_node_id=request.confirm_node_id,
+            confirm_nodename=request.confirm_nodename,
+        )
+        return PushNodeConfigResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

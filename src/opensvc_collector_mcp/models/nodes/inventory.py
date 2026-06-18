@@ -426,6 +426,22 @@ class PushNodeStatsResponse(PushNodeAssetResponse):
     pass
 
 
+class PullNodeConfigRequest(ConfirmedNodeIdRequest):
+    pass
+
+
+class PullNodeConfigResponse(PushNodeAssetResponse):
+    pass
+
+
+class PushNodeConfigRequest(ConfirmedNodeIdRequest):
+    pass
+
+
+class PushNodeConfigResponse(PushNodeAssetResponse):
+    pass
+
+
 class SnoozeNodeNotificationsRequest(ConfirmedNodeIdRequest):
     duration: str = Field(
         description=(

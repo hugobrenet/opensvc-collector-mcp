@@ -211,6 +211,18 @@ async def test_thaw_node_tool_passes_request_to_core(monkeypatch, mcp_client):
             "pushstats",
             "PUSH stats node node-a-id node-a",
         ),
+        (
+            "pull_node_config",
+            "core_pull_node_config",
+            "pull",
+            "PULL config node node-a-id node-a",
+        ),
+        (
+            "push_node_config",
+            "core_push_node_config",
+            "push",
+            "PUSH config node node-a-id node-a",
+        ),
     ],
 )
 async def test_node_exec_action_tool_passes_request_to_core(
@@ -283,6 +295,16 @@ async def test_node_exec_action_tool_passes_request_to_core(
             "push_node_stats",
             "core_push_node_stats",
             "PUSH stats node node-a-id node-a",
+        ),
+        (
+            "pull_node_config",
+            "core_pull_node_config",
+            "PULL config node node-a-id node-a",
+        ),
+        (
+            "push_node_config",
+            "core_push_node_config",
+            "PUSH config node node-a-id node-a",
         ),
     ],
 )

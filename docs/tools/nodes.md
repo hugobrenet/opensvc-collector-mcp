@@ -555,6 +555,122 @@ meta
 ```
 
 
+### `pull_node_config`
+
+Enqueues a node-only OpenSVC configuration pull for one Collector node through
+`PUT /actions` with `node_id=<node_id>` and `action=pull`. Collector formats
+this as a node action equivalent to `nodemgr pull` for the resolved node. This is
+not a service-instance Pull tool and does not take `svc_id`. MCP annotations mark
+it as non-destructive, but it is still a state-changing tool because it enqueues
+work in Collector and can synchronize node configuration.
+
+The request is `node_id` only. If the user provides a `nodename`, first call
+`get_node` to resolve exactly one node and read its `node_id` and `nodename`.
+Do not ask for confirmation before this resolution step. The tool also requires
+`confirm_node_id` and `confirm_nodename` to match the resolved snapshot before
+calling Collector. Do not pass `nodename` as an execution selector.
+
+Because this enqueues runtime work, the request requires `confirmation.phrase`.
+The assistant must resolve the selected node, summarize the node configuration
+pull, ask the user to repeat a concise phrase containing the resolved `node_id`
+and `nodename` verbatim, and set `confirmation.phrase` only after that phrase
+appears in the latest user message.
+
+Required input fields:
+
+```text
+node_id
+confirm_node_id
+confirm_nodename
+confirmation.phrase
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "node_id": "NODE-ID",
+    "confirm_node_id": "NODE-ID",
+    "confirm_nodename": "lab-node-01",
+    "confirmation": {
+      "phrase": "PULL config node NODE-ID lab-node-01"
+    }
+  }
+}
+```
+
+Output fields:
+
+```text
+node_id
+nodename
+node
+action
+queued
+collector_response
+meta
+```
+
+
+### `push_node_config`
+
+Enqueues a node-only OpenSVC configuration push for one Collector node through
+`PUT /actions` with `node_id=<node_id>` and `action=push`. Collector formats
+this as a node action equivalent to `nodemgr push` for the resolved node. This is
+not a service-instance Push tool and does not take `svc_id`. MCP annotations mark
+it as non-destructive, but it is still a state-changing tool because it enqueues
+work in Collector and can synchronize node configuration.
+
+The request is `node_id` only. If the user provides a `nodename`, first call
+`get_node` to resolve exactly one node and read its `node_id` and `nodename`.
+Do not ask for confirmation before this resolution step. The tool also requires
+`confirm_node_id` and `confirm_nodename` to match the resolved snapshot before
+calling Collector. Do not pass `nodename` as an execution selector.
+
+Because this enqueues runtime work, the request requires `confirmation.phrase`.
+The assistant must resolve the selected node, summarize the node configuration
+push, ask the user to repeat a concise phrase containing the resolved `node_id`
+and `nodename` verbatim, and set `confirmation.phrase` only after that phrase
+appears in the latest user message.
+
+Required input fields:
+
+```text
+node_id
+confirm_node_id
+confirm_nodename
+confirmation.phrase
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "node_id": "NODE-ID",
+    "confirm_node_id": "NODE-ID",
+    "confirm_nodename": "lab-node-01",
+    "confirmation": {
+      "phrase": "PUSH config node NODE-ID lab-node-01"
+    }
+  }
+}
+```
+
+Output fields:
+
+```text
+node_id
+nodename
+node
+action
+queued
+collector_response
+meta
+```
+
+
 ### `snooze_node_notifications`
 
 Snoozes notifications on one OpenSVC Collector node through
