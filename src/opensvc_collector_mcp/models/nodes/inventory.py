@@ -482,6 +482,14 @@ class ScanNodeScsiResponse(PushNodeAssetResponse):
     pass
 
 
+class RebootNodeRequest(ConfirmedNodeIdRequest):
+    pass
+
+
+class RebootNodeResponse(PushNodeAssetResponse):
+    pass
+
+
 class ScheduleNodeRebootRequest(ConfirmedNodeIdRequest):
     pass
 

@@ -40,6 +40,7 @@ EXPECTED_TOOL_NAMES = {
     "update_node_compliance_modules",
     "update_node_opensvc_agent",
     "scan_node_scsi",
+    "reboot_node",
     "schedule_node_reboot",
     "unschedule_node_reboot",
     "get_app",
@@ -232,11 +233,12 @@ async def test_low_risk_node_exec_actions_are_marked_as_non_destructive_exec(nam
 @pytest.mark.parametrize(
     ("name", "destructive_hint"),
     [
+        ("reboot_node", True),
         ("schedule_node_reboot", True),
         ("unschedule_node_reboot", False),
     ],
 )
-async def test_node_reboot_schedule_actions_are_marked_as_exec(
+async def test_node_reboot_actions_are_marked_as_exec(
     name,
     destructive_hint,
 ):
@@ -322,6 +324,7 @@ async def test_delete_node_schema_distinguishes_selector_from_confirmation():
         "update_node_compliance_modules",
         "update_node_opensvc_agent",
         "scan_node_scsi",
+        "reboot_node",
         "schedule_node_reboot",
         "unschedule_node_reboot",
         "update_node_properties",
@@ -431,6 +434,7 @@ async def test_state_changing_tools_require_confirmation_phrase_in_schema():
         "update_node_compliance_modules",
         "update_node_opensvc_agent",
         "scan_node_scsi",
+        "reboot_node",
         "schedule_node_reboot",
         "unschedule_node_reboot",
         "create_node",

@@ -39,6 +39,8 @@ from opensvc_collector_mcp.models.nodes import (
     UpdateNodeOpensvcAgentResponse,
     ScanNodeScsiRequest,
     ScanNodeScsiResponse,
+    RebootNodeRequest,
+    RebootNodeResponse,
     ScheduleNodeRebootRequest,
     ScheduleNodeRebootResponse,
     UnscheduleNodeRebootRequest,
@@ -88,6 +90,7 @@ from opensvc_collector_mcp.core.nodes import (
     update_node_compliance_modules as core_update_node_compliance_modules,
     update_node_opensvc_agent as core_update_node_opensvc_agent,
     scan_node_scsi as core_scan_node_scsi,
+    reboot_node as core_reboot_node,
     schedule_node_reboot as core_schedule_node_reboot,
     unschedule_node_reboot as core_unschedule_node_reboot,
     get_node as core_get_node,
@@ -801,6 +804,51 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             confirm_nodename=request.confirm_nodename,
         )
         return ScanNodeScsiResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="reboot_node",
+        description=(
+            "Enqueue an immediate reboot action for one OpenSVC Collector node "
+            "through PUT /actions with action=reboot. This corresponds to the "
+            "Collector UI action 'Reboot'. It asks the OpenSVC agent to reboot "
+            "the target node as soon as the queued action is executed; unlike "
+            "schedule_node_reboot, it does not set a future reboot flag or wait "
+            "for a configured reboot window. This tool is node_id-only. If the "
+            "user gives a nodename, first call get_node to resolve exactly one "
+            "node and read its node_id and nodename. Do not ask for a runtime "
+            "action confirmation before this resolution step. Then ask the user "
+            "to repeat an exact phrase containing both resolved values, for "
+            "example: REBOOT node <node_id> <nodename>. When the latest user "
+            "message contains that phrase, call reboot_node with node_id, "
+            "confirm_node_id, confirm_nodename, and request.confirmation.phrase. "
+            "Do not pass nodename as an execution selector; use confirm_nodename "
+            "only for correlation. Requires Collector NodeExec or Manager "
+            "privileges through MCP RBAC."
+        ),
+        tags={"nodes", "reboot", "exec:nodes"},
+        annotations={
+            "title": "Reboot OpenSVC Node",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def reboot_node(
+        request: Annotated[
+            RebootNodeRequest,
+            Field(description="Node reboot selector and explicit confirmations."),
+        ],
+    ) -> RebootNodeResponse:
+        """Enqueue a reboot action for one OpenSVC Collector node."""
+        response = await core_reboot_node(
+            node_id=request.node_id,
+            nodename=None,
+            confirm_node_id=request.confirm_node_id,
+            confirm_nodename=request.confirm_nodename,
+        )
+        return RebootNodeResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

@@ -143,6 +143,7 @@ Current MCP node tool surface:
 - `update_node_compliance_modules`
 - `update_node_opensvc_agent`
 - `scan_node_scsi`
+- `reboot_node`
 - `schedule_node_reboot`
 - `unschedule_node_reboot`
 - `update_node_properties`
@@ -338,7 +339,7 @@ State-changing confirmation contract:
   `confirmation` into `core/` or Collector REST payloads; it is a gateway/LLM
   safety guard at the MCP boundary.
 - Current state-changing tools using this contract:
-  `create_tag`, `delete_tag`, `attach_tag_to_node`, `attach_tag_to_service`, `detach_tag_from_node`, `detach_tag_from_service`, `create_node`, `delete_node`, `freeze_node`, `thaw_node`, `run_node_checks`, `collect_node_sysreport`, `push_node_asset`, `push_node_disks`, `push_node_packages`, `push_node_patches`, `push_node_stats`, `pull_node_config`, `push_node_config`, `update_node_compliance_modules`, `update_node_opensvc_agent`, `scan_node_scsi`, `schedule_node_reboot`, `unschedule_node_reboot`, `update_node_properties`, `snooze_node_notifications`, and `unsnooze_node_notifications`.
+  `create_tag`, `delete_tag`, `attach_tag_to_node`, `attach_tag_to_service`, `detach_tag_from_node`, `detach_tag_from_service`, `create_node`, `delete_node`, `freeze_node`, `thaw_node`, `run_node_checks`, `collect_node_sysreport`, `push_node_asset`, `push_node_disks`, `push_node_packages`, `push_node_patches`, `push_node_stats`, `pull_node_config`, `push_node_config`, `update_node_compliance_modules`, `update_node_opensvc_agent`, `scan_node_scsi`, `reboot_node`, `schedule_node_reboot`, `unschedule_node_reboot`, `update_node_properties`, `snooze_node_notifications`, and `unsnooze_node_notifications`.
 - When adding another state-changing tool, update:
   `tests/test_mcp_registration.py`, the domain tool tests, tool docs under
   `docs/tools/`, and the tool description/annotations.
@@ -861,8 +862,8 @@ Node state-changing tool TODO list:
     `collect_node_sysreport`, `push_node_asset`, `push_node_disks`,
     `push_node_packages`, `push_node_patches`, `push_node_stats`,
     `pull_node_config`, `push_node_config`, `update_node_compliance_modules`,
-    `update_node_opensvc_agent`, `scan_node_scsi`, `schedule_node_reboot`,
-    `unschedule_node_reboot`.
+    `update_node_opensvc_agent`, `scan_node_scsi`, `reboot_node`,
+    `schedule_node_reboot`, `unschedule_node_reboot`.
   - Use the existing core helper `_enqueue_confirmed_node_action()` for simple
     node-only `exec:nodes` actions unless the action requires extra payload or a
     different RBAC domain.
@@ -898,7 +899,7 @@ Node state-changing tool TODO list:
     shutdown, password rotation, or wake-on-LAN tools.
 
   High-impact actions, deferred until after the checkpoint:
-  - [ ] `reboot_node` -> action `reboot`
+  - [x] `reboot_node` -> action `reboot`
   - [x] `schedule_node_reboot` -> action `schedule_reboot`
   - [x] `unschedule_node_reboot` -> action `unschedule_reboot`
   - [ ] `shutdown_node` -> action `shutdown`

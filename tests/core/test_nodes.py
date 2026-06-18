@@ -480,6 +480,7 @@ async def test_thaw_node_requires_exactly_one_selector(
         ("update_node_compliance_modules", "updatecomp"),
         ("update_node_opensvc_agent", "updatepkg"),
         ("scan_node_scsi", "scanscsi"),
+        ("reboot_node", "reboot"),
         ("schedule_node_reboot", "schedule_reboot"),
         ("unschedule_node_reboot", "unschedule_reboot"),
     ],
