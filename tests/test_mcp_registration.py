@@ -31,6 +31,8 @@ EXPECTED_TOOL_NAMES = {
     "run_node_checks",
     "collect_node_sysreport",
     "push_node_asset",
+    "push_node_disks",
+    "push_node_stats",
     "get_app",
     "get_app_nodes",
     "get_app_publications",
@@ -193,7 +195,14 @@ async def test_thaw_node_is_marked_as_destructive_exec():
 
 
 @pytest.mark.parametrize(
-    "name", ["run_node_checks", "collect_node_sysreport", "push_node_asset"]
+    "name",
+    [
+        "run_node_checks",
+        "collect_node_sysreport",
+        "push_node_asset",
+        "push_node_disks",
+        "push_node_stats",
+    ],
 )
 async def test_low_risk_node_exec_actions_are_marked_as_non_destructive_exec(name):
     tools = await build_mcp()._list_tools()
@@ -269,6 +278,8 @@ async def test_delete_node_schema_distinguishes_selector_from_confirmation():
         "run_node_checks",
         "collect_node_sysreport",
         "push_node_asset",
+        "push_node_disks",
+        "push_node_stats",
         "update_node_properties",
         "snooze_node_notifications",
         "unsnooze_node_notifications",
@@ -366,6 +377,9 @@ async def test_state_changing_tools_require_confirmation_phrase_in_schema():
         "thaw_node",
         "run_node_checks",
         "collect_node_sysreport",
+        "push_node_asset",
+        "push_node_disks",
+        "push_node_stats",
         "create_node",
         "delete_node",
         "snooze_node_notifications",

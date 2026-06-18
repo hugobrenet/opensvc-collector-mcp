@@ -410,6 +410,22 @@ class PushNodeAssetResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
+class PushNodeDisksRequest(ConfirmedNodeIdRequest):
+    pass
+
+
+class PushNodeDisksResponse(PushNodeAssetResponse):
+    pass
+
+
+class PushNodeStatsRequest(ConfirmedNodeIdRequest):
+    pass
+
+
+class PushNodeStatsResponse(PushNodeAssetResponse):
+    pass
+
+
 class SnoozeNodeNotificationsRequest(ConfirmedNodeIdRequest):
     duration: str = Field(
         description=(

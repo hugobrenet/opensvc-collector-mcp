@@ -505,6 +505,40 @@ async def push_node_asset(
     )
 
 
+async def push_node_disks(
+    *,
+    node_id: str | None = None,
+    nodename: str | None = None,
+    confirm_node_id: str,
+    confirm_nodename: str,
+) -> dict[str, Any]:
+    return await _enqueue_confirmed_node_action(
+        action="pushdisks",
+        operation="push node disks",
+        node_id=node_id,
+        nodename=nodename,
+        confirm_node_id=confirm_node_id,
+        confirm_nodename=confirm_nodename,
+    )
+
+
+async def push_node_stats(
+    *,
+    node_id: str | None = None,
+    nodename: str | None = None,
+    confirm_node_id: str,
+    confirm_nodename: str,
+) -> dict[str, Any]:
+    return await _enqueue_confirmed_node_action(
+        action="pushstats",
+        operation="push node stats",
+        node_id=node_id,
+        nodename=nodename,
+        confirm_node_id=confirm_node_id,
+        confirm_nodename=confirm_nodename,
+    )
+
+
 async def snooze_node_notifications(
     *,
     node_id: str | None = None,

@@ -21,6 +21,10 @@ from opensvc_collector_mcp.models.nodes import (
     CollectNodeSysreportResponse,
     PushNodeAssetRequest,
     PushNodeAssetResponse,
+    PushNodeDisksRequest,
+    PushNodeDisksResponse,
+    PushNodeStatsRequest,
+    PushNodeStatsResponse,
     InventoryStatsRequest,
     InventoryStatsResponse,
     ListNodesRequest,
@@ -57,6 +61,8 @@ from opensvc_collector_mcp.core.nodes import (
     run_node_checks as core_run_node_checks,
     collect_node_sysreport as core_collect_node_sysreport,
     push_node_asset as core_push_node_asset,
+    push_node_disks as core_push_node_disks,
+    push_node_stats as core_push_node_stats,
     get_node as core_get_node,
     get_node_cluster as core_get_node_cluster,
     get_node_checks as core_get_node_checks,
@@ -364,6 +370,93 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             confirm_nodename=request.confirm_nodename,
         )
         return PushNodeAssetResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="push_node_disks",
+        description=(
+            "Enqueue a node disk inventory refresh for one OpenSVC Collector "
+            "node through PUT /actions with action=pushdisks. This corresponds "
+            "to the Collector UI action 'Update disks information' and asks the "
+            "OpenSVC agent to push disk/storage inventory data back to Collector. "
+            "This tool is node_id-only. If the user gives a nodename, first call "
+            "get_node to resolve exactly one node and read its node_id and "
+            "nodename. Do not ask for a runtime action confirmation before this "
+            "resolution step. Then ask the user to repeat an exact phrase "
+            "containing both resolved values, for example: PUSH disks node "
+            "<node_id> <nodename>. When the latest user message contains that "
+            "phrase, call push_node_disks with node_id, confirm_node_id, "
+            "confirm_nodename, and request.confirmation.phrase. Do not pass "
+            "nodename as an execution selector; use confirm_nodename only for "
+            "correlation. Requires Collector NodeExec or Manager privileges "
+            "through MCP RBAC."
+        ),
+        tags={"nodes", "disks", "exec:nodes"},
+        annotations={
+            "title": "Push OpenSVC Node Disk Inventory",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        },
+    )
+    async def push_node_disks(
+        request: Annotated[
+            PushNodeDisksRequest,
+            Field(description="Node disk push selector and explicit confirmations."),
+        ],
+    ) -> PushNodeDisksResponse:
+        """Enqueue a pushdisks action for one OpenSVC Collector node."""
+        response = await core_push_node_disks(
+            node_id=request.node_id,
+            nodename=None,
+            confirm_node_id=request.confirm_node_id,
+            confirm_nodename=request.confirm_nodename,
+        )
+        return PushNodeDisksResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="push_node_stats",
+        description=(
+            "Enqueue a node statistics refresh for one OpenSVC Collector node "
+            "through PUT /actions with action=pushstats. This corresponds to "
+            "the Collector UI action 'Update stats' and asks the OpenSVC agent "
+            "to push node statistics back to Collector. This tool is "
+            "node_id-only. If the user gives a nodename, first call get_node to "
+            "resolve exactly one node and read its node_id and nodename. Do not "
+            "ask for a runtime action confirmation before this resolution step. "
+            "Then ask the user to repeat an exact phrase containing both resolved "
+            "values, for example: PUSH stats node <node_id> <nodename>. When the "
+            "latest user message contains that phrase, call push_node_stats with "
+            "node_id, confirm_node_id, confirm_nodename, and "
+            "request.confirmation.phrase. Do not pass nodename as an execution "
+            "selector; use confirm_nodename only for correlation. Requires "
+            "Collector NodeExec or Manager privileges through MCP RBAC."
+        ),
+        tags={"nodes", "stats", "exec:nodes"},
+        annotations={
+            "title": "Push OpenSVC Node Statistics",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        },
+    )
+    async def push_node_stats(
+        request: Annotated[
+            PushNodeStatsRequest,
+            Field(description="Node stats push selector and explicit confirmations."),
+        ],
+    ) -> PushNodeStatsResponse:
+        """Enqueue a pushstats action for one OpenSVC Collector node."""
+        response = await core_push_node_stats(
+            node_id=request.node_id,
+            nodename=None,
+            confirm_node_id=request.confirm_node_id,
+            confirm_nodename=request.confirm_nodename,
+        )
+        return PushNodeStatsResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

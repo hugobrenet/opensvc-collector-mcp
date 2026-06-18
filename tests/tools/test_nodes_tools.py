@@ -199,6 +199,18 @@ async def test_thaw_node_tool_passes_request_to_core(monkeypatch, mcp_client):
             "pushasset",
             "PUSH asset node node-a-id node-a",
         ),
+        (
+            "push_node_disks",
+            "core_push_node_disks",
+            "pushdisks",
+            "PUSH disks node node-a-id node-a",
+        ),
+        (
+            "push_node_stats",
+            "core_push_node_stats",
+            "pushstats",
+            "PUSH stats node node-a-id node-a",
+        ),
     ],
 )
 async def test_node_exec_action_tool_passes_request_to_core(
@@ -261,6 +273,16 @@ async def test_node_exec_action_tool_passes_request_to_core(
             "push_node_asset",
             "core_push_node_asset",
             "PUSH asset node node-a-id node-a",
+        ),
+        (
+            "push_node_disks",
+            "core_push_node_disks",
+            "PUSH disks node node-a-id node-a",
+        ),
+        (
+            "push_node_stats",
+            "core_push_node_stats",
+            "PUSH stats node node-a-id node-a",
         ),
     ],
 )

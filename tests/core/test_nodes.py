@@ -471,6 +471,8 @@ async def test_thaw_node_requires_exactly_one_selector(
         ("run_node_checks", "checks"),
         ("collect_node_sysreport", "sysreport"),
         ("push_node_asset", "pushasset"),
+        ("push_node_disks", "pushdisks"),
+        ("push_node_stats", "pushstats"),
     ],
 )
 async def test_node_exec_action_resolves_nodename_confirms_and_enqueues_action(
