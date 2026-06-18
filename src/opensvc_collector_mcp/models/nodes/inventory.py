@@ -482,6 +482,22 @@ class ScanNodeScsiResponse(PushNodeAssetResponse):
     pass
 
 
+class ScheduleNodeRebootRequest(ConfirmedNodeIdRequest):
+    pass
+
+
+class ScheduleNodeRebootResponse(PushNodeAssetResponse):
+    pass
+
+
+class UnscheduleNodeRebootRequest(ConfirmedNodeIdRequest):
+    pass
+
+
+class UnscheduleNodeRebootResponse(PushNodeAssetResponse):
+    pass
+
+
 class SnoozeNodeNotificationsRequest(ConfirmedNodeIdRequest):
     duration: str = Field(
         description=(

@@ -40,6 +40,8 @@ EXPECTED_TOOL_NAMES = {
     "update_node_compliance_modules",
     "update_node_opensvc_agent",
     "scan_node_scsi",
+    "schedule_node_reboot",
+    "unschedule_node_reboot",
     "get_app",
     "get_app_nodes",
     "get_app_publications",
@@ -227,6 +229,25 @@ async def test_low_risk_node_exec_actions_are_marked_as_non_destructive_exec(nam
     assert tool.annotations.destructiveHint is False
 
 
+@pytest.mark.parametrize(
+    ("name", "destructive_hint"),
+    [
+        ("schedule_node_reboot", True),
+        ("unschedule_node_reboot", False),
+    ],
+)
+async def test_node_reboot_schedule_actions_are_marked_as_exec(
+    name,
+    destructive_hint,
+):
+    tools = await build_mcp()._list_tools()
+    tool = next(tool for tool in tools if tool.name == name)
+
+    assert tool.annotations.readOnlyHint is False
+    assert tool.annotations.idempotentHint is False
+    assert tool.annotations.destructiveHint is destructive_hint
+
+
 async def test_create_node_is_marked_as_destructive_write():
     tools = await build_mcp()._list_tools()
     tool = next(tool for tool in tools if tool.name == "create_node")
@@ -301,6 +322,8 @@ async def test_delete_node_schema_distinguishes_selector_from_confirmation():
         "update_node_compliance_modules",
         "update_node_opensvc_agent",
         "scan_node_scsi",
+        "schedule_node_reboot",
+        "unschedule_node_reboot",
         "update_node_properties",
         "snooze_node_notifications",
         "unsnooze_node_notifications",
@@ -408,6 +431,8 @@ async def test_state_changing_tools_require_confirmation_phrase_in_schema():
         "update_node_compliance_modules",
         "update_node_opensvc_agent",
         "scan_node_scsi",
+        "schedule_node_reboot",
+        "unschedule_node_reboot",
         "create_node",
         "delete_node",
         "snooze_node_notifications",

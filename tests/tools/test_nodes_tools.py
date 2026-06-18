@@ -253,6 +253,18 @@ async def test_thaw_node_tool_passes_request_to_core(monkeypatch, mcp_client):
             "scanscsi",
             "SCAN scsi node node-a-id node-a",
         ),
+        (
+            "schedule_node_reboot",
+            "core_schedule_node_reboot",
+            "schedule_reboot",
+            "SCHEDULE reboot node node-a-id node-a",
+        ),
+        (
+            "unschedule_node_reboot",
+            "core_unschedule_node_reboot",
+            "unschedule_reboot",
+            "UNSCHEDULE reboot node node-a-id node-a",
+        ),
     ],
 )
 async def test_node_exec_action_tool_passes_request_to_core(
@@ -360,6 +372,16 @@ async def test_node_exec_action_tool_passes_request_to_core(
             "scan_node_scsi",
             "core_scan_node_scsi",
             "SCAN scsi node node-a-id node-a",
+        ),
+        (
+            "schedule_node_reboot",
+            "core_schedule_node_reboot",
+            "SCHEDULE reboot node node-a-id node-a",
+        ),
+        (
+            "unschedule_node_reboot",
+            "core_unschedule_node_reboot",
+            "UNSCHEDULE reboot node node-a-id node-a",
         ),
     ],
 )

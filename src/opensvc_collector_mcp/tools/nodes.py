@@ -39,6 +39,10 @@ from opensvc_collector_mcp.models.nodes import (
     UpdateNodeOpensvcAgentResponse,
     ScanNodeScsiRequest,
     ScanNodeScsiResponse,
+    ScheduleNodeRebootRequest,
+    ScheduleNodeRebootResponse,
+    UnscheduleNodeRebootRequest,
+    UnscheduleNodeRebootResponse,
     InventoryStatsRequest,
     InventoryStatsResponse,
     ListNodesRequest,
@@ -84,6 +88,8 @@ from opensvc_collector_mcp.core.nodes import (
     update_node_compliance_modules as core_update_node_compliance_modules,
     update_node_opensvc_agent as core_update_node_opensvc_agent,
     scan_node_scsi as core_scan_node_scsi,
+    schedule_node_reboot as core_schedule_node_reboot,
+    unschedule_node_reboot as core_unschedule_node_reboot,
     get_node as core_get_node,
     get_node_cluster as core_get_node_cluster,
     get_node_checks as core_get_node_checks,
@@ -795,6 +801,98 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             confirm_nodename=request.confirm_nodename,
         )
         return ScanNodeScsiResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="schedule_node_reboot",
+        description=(
+            "Enqueue a scheduled reboot flag action for one OpenSVC Collector "
+            "node through PUT /actions with action=schedule_reboot. This "
+            "corresponds to the Collector UI action 'Reboot schedule'. It asks "
+            "the OpenSVC agent to mark the node for reboot at the next allowed "
+            "reboot window configured on the node, usually by the [reboot] "
+            "section in node.conf. This tool does not accept a date, time, or "
+            "delay; it only sets the local OpenSVC reboot flag. This tool is "
+            "node_id-only. If the user gives a nodename, first call get_node to "
+            "resolve exactly one node and read its node_id and nodename. Do not "
+            "ask for a runtime action confirmation before this resolution step. "
+            "Then ask the user to repeat an exact phrase containing both "
+            "resolved values, for example: SCHEDULE reboot node <node_id> "
+            "<nodename>. When the latest user message contains that phrase, "
+            "call schedule_node_reboot with node_id, confirm_node_id, "
+            "confirm_nodename, and request.confirmation.phrase. Do not pass "
+            "nodename as an execution selector; use confirm_nodename only for "
+            "correlation. Requires Collector NodeExec or Manager privileges "
+            "through MCP RBAC."
+        ),
+        tags={"nodes", "reboot", "exec:nodes"},
+        annotations={
+            "title": "Schedule OpenSVC Node Reboot",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def schedule_node_reboot(
+        request: Annotated[
+            ScheduleNodeRebootRequest,
+            Field(description="Node reboot scheduling selector and confirmations."),
+        ],
+    ) -> ScheduleNodeRebootResponse:
+        """Enqueue a schedule_reboot action for one OpenSVC Collector node."""
+        response = await core_schedule_node_reboot(
+            node_id=request.node_id,
+            nodename=None,
+            confirm_node_id=request.confirm_node_id,
+            confirm_nodename=request.confirm_nodename,
+        )
+        return ScheduleNodeRebootResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="unschedule_node_reboot",
+        description=(
+            "Enqueue a scheduled reboot cancellation action for one OpenSVC "
+            "Collector node through PUT /actions with action=unschedule_reboot. "
+            "This corresponds to the Collector UI action 'Reboot unschedule'. "
+            "It asks the OpenSVC agent to remove the local scheduled reboot "
+            "flag from the node; it does not reboot or shut down the node. This "
+            "tool is node_id-only. If the user gives a nodename, first call "
+            "get_node to resolve exactly one node and read its node_id and "
+            "nodename. Do not ask for a runtime action confirmation before this "
+            "resolution step. Then ask the user to repeat an exact phrase "
+            "containing both resolved values, for example: UNSCHEDULE reboot "
+            "node <node_id> <nodename>. When the latest user message contains "
+            "that phrase, call unschedule_node_reboot with node_id, "
+            "confirm_node_id, confirm_nodename, and request.confirmation.phrase. "
+            "Do not pass nodename as an execution selector; use "
+            "confirm_nodename only for correlation. Requires Collector NodeExec "
+            "or Manager privileges through MCP RBAC."
+        ),
+        tags={"nodes", "reboot", "exec:nodes"},
+        annotations={
+            "title": "Unschedule OpenSVC Node Reboot",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        },
+    )
+    async def unschedule_node_reboot(
+        request: Annotated[
+            UnscheduleNodeRebootRequest,
+            Field(description="Node reboot unscheduling selector and confirmations."),
+        ],
+    ) -> UnscheduleNodeRebootResponse:
+        """Enqueue an unschedule_reboot action for one OpenSVC Collector node."""
+        response = await core_unschedule_node_reboot(
+            node_id=request.node_id,
+            nodename=None,
+            confirm_node_id=request.confirm_node_id,
+            confirm_nodename=request.confirm_nodename,
+        )
+        return UnscheduleNodeRebootResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

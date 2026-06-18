@@ -968,6 +968,128 @@ meta
 ```
 
 
+### `schedule_node_reboot`
+
+Enqueues a scheduled reboot flag action for one OpenSVC Collector node through
+`PUT /actions` with `node_id=<node_id>` and `action=schedule_reboot`. This
+corresponds to the Collector UI action `Reboot schedule`. It asks the OpenSVC
+agent to create the local OpenSVC reboot flag on the node. The node is then
+eligible for reboot by the local OpenSVC daemon scheduler at the next allowed
+reboot window configured on the node, usually by the `[reboot]` section in
+`node.conf`.
+
+This tool does not accept a date, time, or delay. Requests like "in 10 minutes",
+"at 16:30", or "on a specific date" are not supported by this Collector action;
+the timing comes from the node OpenSVC configuration. MCP annotations mark it as
+destructive because the flag can lead to a future node reboot.
+
+The request is `node_id` only. If the user provides a `nodename`, first call
+`get_node` to resolve exactly one node and read its `node_id` and `nodename`.
+Do not ask for confirmation before this resolution step. The tool also requires
+`confirm_node_id` and `confirm_nodename` to match the resolved snapshot before
+calling Collector. Do not pass `nodename` as an execution selector.
+
+Because this can cause a later reboot, the request requires
+`confirmation.phrase`. The assistant must resolve the selected node, summarize
+that the node will be marked for reboot at its next configured reboot window,
+ask the user to repeat a concise phrase containing the resolved `node_id` and
+`nodename` verbatim, and set `confirmation.phrase` only after that phrase appears
+in the latest user message.
+
+Required input fields:
+
+```text
+node_id
+confirm_node_id
+confirm_nodename
+confirmation.phrase
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "node_id": "NODE-ID",
+    "confirm_node_id": "NODE-ID",
+    "confirm_nodename": "lab-node-01",
+    "confirmation": {
+      "phrase": "SCHEDULE reboot node NODE-ID lab-node-01"
+    }
+  }
+}
+```
+
+Output fields:
+
+```text
+node_id
+nodename
+node
+action
+queued
+collector_response
+meta
+```
+
+
+### `unschedule_node_reboot`
+
+Enqueues a scheduled reboot cancellation action for one OpenSVC Collector node
+through `PUT /actions` with `node_id=<node_id>` and
+`action=unschedule_reboot`. This corresponds to the Collector UI action
+`Reboot unschedule`. It asks the OpenSVC agent to remove the local scheduled
+reboot flag from the node. It does not reboot or shut down the node.
+
+The request is `node_id` only. If the user provides a `nodename`, first call
+`get_node` to resolve exactly one node and read its `node_id` and `nodename`.
+Do not ask for confirmation before this resolution step. The tool also requires
+`confirm_node_id` and `confirm_nodename` to match the resolved snapshot before
+calling Collector. Do not pass `nodename` as an execution selector.
+
+Because this enqueues runtime work, the request requires `confirmation.phrase`.
+The assistant must resolve the selected node, summarize that the scheduled
+reboot flag will be removed, ask the user to repeat a concise phrase containing
+the resolved `node_id` and `nodename` verbatim, and set `confirmation.phrase`
+only after that phrase appears in the latest user message.
+
+Required input fields:
+
+```text
+node_id
+confirm_node_id
+confirm_nodename
+confirmation.phrase
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "node_id": "NODE-ID",
+    "confirm_node_id": "NODE-ID",
+    "confirm_nodename": "lab-node-01",
+    "confirmation": {
+      "phrase": "UNSCHEDULE reboot node NODE-ID lab-node-01"
+    }
+  }
+}
+```
+
+Output fields:
+
+```text
+node_id
+nodename
+node
+action
+queued
+collector_response
+meta
+```
+
+
 ### `snooze_node_notifications`
 
 Snoozes notifications on one OpenSVC Collector node through
