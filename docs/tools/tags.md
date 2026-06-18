@@ -45,32 +45,32 @@ info
 
 ### `delete_tag`
 
-Deletes one OpenSVC Collector tag through `DELETE /tags/<id>`. This is a
+Deletes one OpenSVC Collector tag through `DELETE /tags/<tag_id>`. This is a
 destructive tool and requires `delete:tags`, authorized for Collector
 `TagManager` or `Manager` users by MCP RBAC. The MCP `delete` tag is descriptive
 for discovery only. Collector also removes the tag attachments to nodes and
 services.
 
-The deletion selector uses the shared `TagSelector` contract: provide exactly
-one of `tag_id` or `tag_name`. If `tag_name` is provided, MCP resolves it with
-an exact `/tags` filter, refuses zero matches, refuses duplicate matches, and
-then calls Collector using the resolved `tag_id`. The tool always reads a tag
-snapshot before deletion and requires `confirm_tag_id` to match the resolved
-`tag_id` and `confirm_tag_name` to match the resolved `tag_name`; the DELETE
-call is not sent if either confirmation does not match. Because this is
-destructive, the assistant must generate a concise confirmation phrase
-containing the exact resolved `tag_id` and `tag_name`, ask the user to repeat it
-verbatim in a new message, and set `confirmation.phrase` only after that exact
-phrase appears in the latest user message. The gateway blocks the proxied
-`call_tool` before MCP execution if the phrase is missing from that latest
-message.
+The deletion selector is `tag_id` only. Never pass `tag_name` as the execution
+selector. If the user provides only a human-readable tag name, first call
+`get_tag` with that exact `tag_name`; MCP resolves it with an exact `/tags`
+filter and refuses zero or duplicate matches. Read the resolved `tag_id` and
+`tag_name` from that snapshot before asking for confirmation. The `delete_tag`
+request requires `confirm_tag_id` to match `tag_id` and `confirm_tag_name` to
+match the resolved `tag_name`; the DELETE call is not sent if either
+confirmation does not match. Because this is destructive, the assistant must
+generate a concise confirmation phrase containing the exact resolved `tag_id`
+and `tag_name`, ask the user to repeat it verbatim in a new message, and set
+`confirmation.phrase` only after that exact phrase appears in the latest user
+message. The gateway blocks the proxied `call_tool` before MCP execution if the
+phrase is missing from that latest message.
 
 Example:
 
 ```json
 {
   "request": {
-    "tag_name": "mcp-test-tag",
+    "tag_id": "tag-1",
     "confirm_tag_id": "tag-1",
     "confirm_tag_name": "mcp-test-tag",
     "confirmation": {

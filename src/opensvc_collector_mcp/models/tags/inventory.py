@@ -269,19 +269,49 @@ class CreateTagResponse(TagRowsResponse):
     )
 
 
-class DeleteTagRequest(TagSelector):
+class DeleteTagRequest(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [
+                {
+                    "tag_id": "TAG-ID",
+                    "confirm_tag_id": "TAG-ID",
+                    "confirm_tag_name": "mcp-test-tag",
+                    "confirmation": {
+                        "phrase": "DELETE tag TAG-ID mcp-test-tag",
+                    },
+                }
+            ]
+        },
+    )
+
+    tag_id: str = Field(
+        description=(
+            "Required execution selector for delete_tag. Never pass tag_name as "
+            "tag_id. If the user provided only a tag_name, first call get_tag to "
+            "resolve exactly one Collector tag_id, then call delete_tag with "
+            "that resolved tag_id. This selector must match confirm_tag_id."
+        ),
+        min_length=1,
+        examples=["TAG-ID"],
+    )
     confirm_tag_id: str = Field(
         description=(
-            "Exact tag_id read from the resolved tag snapshot. Required before "
-            "deleting the tag, even when the selector is tag_name."
+            "Correlation confirmation value read from the resolved tag snapshot. "
+            "Required before deleting the tag. This is not a second selector. "
+            "It must match the resolved tag_id and, when tag_id is used as the "
+            "execution selector, it must match tag_id."
         ),
         min_length=1,
         examples=["TAG-ID"],
     )
     confirm_tag_name: str = Field(
         description=(
-            "Exact tag_name read from the resolved tag snapshot. This is a human "
-            "safety confirmation, not necessarily the deletion selector."
+            "Correlation confirmation value read from the resolved tag snapshot. "
+            "Required before deleting the tag. This is not a second selector. "
+            "Use this field for the tag_name that appears in the human "
+            "confirmation phrase."
         ),
         min_length=1,
         examples=["mcp-test-tag"],
@@ -289,22 +319,28 @@ class DeleteTagRequest(TagSelector):
     confirmation: ToolConfirmation = Field(
         description=(
             "Required confirmation gate for this destructive tool. Before calling "
-            "delete_tag, resolve the target tag, generate a concise phrase "
-            "containing the exact tag_id and tag_name, ask the user to repeat it "
-            "verbatim, and set this field only when that exact phrase appears in "
-            "the latest user message."
+            "delete_tag, resolve the target tag with get_tag when the user gave "
+            "a tag_name, generate a concise phrase containing the exact resolved "
+            "tag_id and tag_name, ask the user to repeat it verbatim, and set "
+            "this field to that full phrase only when it appears in the latest "
+            "user message. The phrase must contain both values, but delete_tag "
+            "execution uses tag_id only."
         ),
     )
 
     @model_validator(mode="after")
     def normalize_confirmation(self) -> "DeleteTagRequest":
-        super().normalize_selector()
+        self.tag_id = self.tag_id.strip()
         self.confirm_tag_id = self.confirm_tag_id.strip()
         self.confirm_tag_name = self.confirm_tag_name.strip()
+        if not self.tag_id:
+            raise ValueError("tag_id must not be empty")
         if not self.confirm_tag_id:
             raise ValueError("confirm_tag_id must not be empty")
         if not self.confirm_tag_name:
             raise ValueError("confirm_tag_name must not be empty")
+        if self.confirm_tag_id != self.tag_id:
+            raise ValueError("confirm_tag_id must match tag_id")
         return self
 
 

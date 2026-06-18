@@ -1,3 +1,6 @@
+import pytest
+from fastmcp.exceptions import ToolError
+
 from opensvc_collector_mcp.tools import tags as tag_tools
 
 
@@ -48,40 +51,26 @@ async def test_delete_tag_tool_passes_request_to_core(monkeypatch, mcp_client):
     ]
 
 
-async def test_delete_tag_tool_accepts_tag_name_selector(monkeypatch, mcp_client):
-    recorder = CoreRecorder(
-        {
-            "tag_id": "tag-1",
-            "tag_name": "mcp-test-tag",
-            "tag": {"tag_id": "tag-1", "tag_name": "mcp-test-tag"},
-            "deleted": True,
-            "collector_response": {"meta": {"count": 1}, "data": []},
-            "meta": {"source": "tags/<tag_id>", "selector": "tag_name"},
-        }
-    )
+async def test_delete_tag_tool_rejects_tag_name_selector(monkeypatch, mcp_client):
+    recorder = CoreRecorder({})
     monkeypatch.setattr(tag_tools, "core_delete_tag", recorder)
 
-    result = await mcp_client.call_tool(
-        "delete_tag",
-        {
-            "request": {
-                "tag_name": "mcp-test-tag",
-                "confirm_tag_id": "tag-1",
-                "confirm_tag_name": "mcp-test-tag",
-                "confirmation": {"phrase": "DELETE tag tag-1 mcp-test-tag"},
+    with pytest.raises(ToolError) as exc_info:
+        await mcp_client.call_tool(
+            "delete_tag",
+            {
+                "request": {
+                    "tag_name": "mcp-test-tag",
+                    "confirm_tag_id": "tag-1",
+                    "confirm_tag_name": "mcp-test-tag",
+                    "confirmation": {"phrase": "DELETE tag tag-1 mcp-test-tag"},
+                }
             }
-        },
-    )
+        )
 
-    assert result.structured_content["deleted"] is True
-    assert recorder.calls == [
-        {
-            "tag_id": None,
-            "tag_name": "mcp-test-tag",
-            "confirm_tag_id": "tag-1",
-            "confirm_tag_name": "mcp-test-tag",
-        }
-    ]
+    assert '"loc": ["request", "tag_id"]' in str(exc_info.value)
+    assert '"loc": ["request", "tag_name"]' in str(exc_info.value)
+    assert recorder.calls == []
 
 
 async def test_create_tag_tool_passes_request_to_core(monkeypatch, mcp_client):

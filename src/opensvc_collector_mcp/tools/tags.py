@@ -86,14 +86,18 @@ def register_tags_tools(mcp: FastMCP) -> None:
         timeout=TOOL_TIMEOUT_SECONDS,
         name="delete_tag",
         description=(
-            "Delete one OpenSVC Collector tag selected by exact tag_id or exact "
-            "tag_name. MCP resolves tag_name to one tag_id and refuses missing "
-            "or ambiguous duplicate tag names. This also deletes Collector "
-            "attachments to nodes and services. Before calling, ask the user to "
-            "repeat an exact confirmation phrase containing the resolved tag_id "
-            "and tag_name, and include it in request.confirmation.phrase. "
-            "Requires confirm_tag_id, confirm_tag_name, and Collector TagManager "
-            "or Manager privileges through MCP RBAC."
+            "Delete one OpenSVC Collector tag. Destructive and tag_id-only. "
+            "If the user gives a tag_name, first call get_tag to resolve exactly "
+            "one tag and read its tag_id and tag_name. Do not ask for a delete "
+            "confirmation before this resolution step. This also deletes "
+            "Collector attachments to nodes and services. Then ask the user to "
+            "repeat an exact phrase containing both resolved values, for example: "
+            "DELETE tag <tag_id> <tag_name>. When the latest user message "
+            "contains that phrase, call delete_tag with tag_id, confirm_tag_id, "
+            "confirm_tag_name, and request.confirmation.phrase. Do not pass "
+            "tag_name as an execution selector; use confirm_tag_name only for "
+            "correlation. Requires Collector TagManager or Manager privileges "
+            "through MCP RBAC."
         ),
         tags={"tags", "delete", "delete:tags"},
         annotations={
@@ -110,10 +114,10 @@ def register_tags_tools(mcp: FastMCP) -> None:
             Field(description="Tag deletion selector and explicit confirmation."),
         ],
     ) -> DeleteTagResponse:
-        """Delete an OpenSVC Collector tag after explicit name confirmation."""
+        """Delete an OpenSVC Collector tag after explicit id and name confirmation."""
         response = await core_delete_tag(
             tag_id=request.tag_id,
-            tag_name=request.tag_name,
+            tag_name=None,
             confirm_tag_id=request.confirm_tag_id,
             confirm_tag_name=request.confirm_tag_name,
         )
