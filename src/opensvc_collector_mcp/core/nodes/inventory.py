@@ -607,6 +607,40 @@ async def push_node_config(
     )
 
 
+async def update_node_compliance_modules(
+    *,
+    node_id: str | None = None,
+    nodename: str | None = None,
+    confirm_node_id: str,
+    confirm_nodename: str,
+) -> dict[str, Any]:
+    return await _enqueue_confirmed_node_action(
+        action="updatecomp",
+        operation="update node compliance modules",
+        node_id=node_id,
+        nodename=nodename,
+        confirm_node_id=confirm_node_id,
+        confirm_nodename=confirm_nodename,
+    )
+
+
+async def update_node_opensvc_agent(
+    *,
+    node_id: str | None = None,
+    nodename: str | None = None,
+    confirm_node_id: str,
+    confirm_nodename: str,
+) -> dict[str, Any]:
+    return await _enqueue_confirmed_node_action(
+        action="updatepkg",
+        operation="update node opensvc agent",
+        node_id=node_id,
+        nodename=nodename,
+        confirm_node_id=confirm_node_id,
+        confirm_nodename=confirm_nodename,
+    )
+
+
 async def snooze_node_notifications(
     *,
     node_id: str | None = None,

@@ -33,6 +33,10 @@ from opensvc_collector_mcp.models.nodes import (
     PullNodeConfigResponse,
     PushNodeConfigRequest,
     PushNodeConfigResponse,
+    UpdateNodeComplianceModulesRequest,
+    UpdateNodeComplianceModulesResponse,
+    UpdateNodeOpensvcAgentRequest,
+    UpdateNodeOpensvcAgentResponse,
     InventoryStatsRequest,
     InventoryStatsResponse,
     ListNodesRequest,
@@ -75,6 +79,8 @@ from opensvc_collector_mcp.core.nodes import (
     push_node_stats as core_push_node_stats,
     pull_node_config as core_pull_node_config,
     push_node_config as core_push_node_config,
+    update_node_compliance_modules as core_update_node_compliance_modules,
+    update_node_opensvc_agent as core_update_node_opensvc_agent,
     get_node as core_get_node,
     get_node_cluster as core_get_node_cluster,
     get_node_checks as core_get_node_checks,
@@ -645,6 +651,101 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             confirm_nodename=request.confirm_nodename,
         )
         return PushNodeConfigResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="update_node_compliance_modules",
+        description=(
+            "Enqueue a node compliance modules update for one OpenSVC Collector "
+            "node through PUT /actions with action=updatecomp. This corresponds "
+            "to the Collector UI action 'Update compliance modules' and asks the "
+            "OpenSVC agent to download and install compliance module tarballs "
+            "from node.repocomp or node.repo/compliance. This tool is "
+            "node_id-only. If the user gives a nodename, first call get_node to "
+            "resolve exactly one node and read its node_id and nodename. Do not "
+            "ask for a runtime action confirmation before this resolution step. "
+            "Then ask the user to repeat an exact phrase containing both resolved "
+            "values, for example: UPDATE compliance modules node <node_id> "
+            "<nodename>. When the latest user message contains that phrase, call "
+            "update_node_compliance_modules with node_id, confirm_node_id, "
+            "confirm_nodename, and request.confirmation.phrase. Do not pass "
+            "nodename as an execution selector; use confirm_nodename only for "
+            "correlation. Requires Collector NodeExec or Manager privileges "
+            "through MCP RBAC."
+        ),
+        tags={"nodes", "compliance", "exec:nodes"},
+        annotations={
+            "title": "Update OpenSVC Node Compliance Modules",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        },
+    )
+    async def update_node_compliance_modules(
+        request: Annotated[
+            UpdateNodeComplianceModulesRequest,
+            Field(
+                description=(
+                    "Node compliance module update selector and explicit confirmations."
+                )
+            ),
+        ],
+    ) -> UpdateNodeComplianceModulesResponse:
+        """Enqueue an updatecomp action for one OpenSVC Collector node."""
+        response = await core_update_node_compliance_modules(
+            node_id=request.node_id,
+            nodename=None,
+            confirm_node_id=request.confirm_node_id,
+            confirm_nodename=request.confirm_nodename,
+        )
+        return UpdateNodeComplianceModulesResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="update_node_opensvc_agent",
+        description=(
+            "Enqueue an OpenSVC agent package update for one Collector node "
+            "through PUT /actions with action=updatepkg. This corresponds to the "
+            "Collector UI action 'Update opensvc agent'. It upgrades only the "
+            "OpenSVC agent package from node.repopkg or node.repo/packages using "
+            "the node operating system package backend; it is not a general OS "
+            "package update. This tool is node_id-only. If the user gives a "
+            "nodename, first call get_node to resolve exactly one node and read "
+            "its node_id and nodename. Do not ask for a runtime action "
+            "confirmation before this resolution step. Then ask the user to "
+            "repeat an exact phrase containing both resolved values, for "
+            "example: UPDATE opensvc agent node <node_id> <nodename>. When the "
+            "latest user message contains that phrase, call "
+            "update_node_opensvc_agent with node_id, confirm_node_id, "
+            "confirm_nodename, and request.confirmation.phrase. Do not pass "
+            "nodename as an execution selector; use confirm_nodename only for "
+            "correlation. Requires Collector NodeExec or Manager privileges "
+            "through MCP RBAC."
+        ),
+        tags={"nodes", "agent", "exec:nodes"},
+        annotations={
+            "title": "Update OpenSVC Node Agent",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        },
+    )
+    async def update_node_opensvc_agent(
+        request: Annotated[
+            UpdateNodeOpensvcAgentRequest,
+            Field(description="Node OpenSVC agent update selector and confirmations."),
+        ],
+    ) -> UpdateNodeOpensvcAgentResponse:
+        """Enqueue an updatepkg action for one OpenSVC Collector node."""
+        response = await core_update_node_opensvc_agent(
+            node_id=request.node_id,
+            nodename=None,
+            confirm_node_id=request.confirm_node_id,
+            confirm_nodename=request.confirm_nodename,
+        )
+        return UpdateNodeOpensvcAgentResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

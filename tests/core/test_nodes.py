@@ -477,6 +477,8 @@ async def test_thaw_node_requires_exactly_one_selector(
         ("push_node_stats", "pushstats"),
         ("pull_node_config", "pull"),
         ("push_node_config", "push"),
+        ("update_node_compliance_modules", "updatecomp"),
+        ("update_node_opensvc_agent", "updatepkg"),
     ],
 )
 async def test_node_exec_action_resolves_nodename_confirms_and_enqueues_action(

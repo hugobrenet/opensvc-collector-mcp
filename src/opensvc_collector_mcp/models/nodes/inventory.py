@@ -458,6 +458,22 @@ class PushNodeConfigResponse(PushNodeAssetResponse):
     pass
 
 
+class UpdateNodeComplianceModulesRequest(ConfirmedNodeIdRequest):
+    pass
+
+
+class UpdateNodeComplianceModulesResponse(PushNodeAssetResponse):
+    pass
+
+
+class UpdateNodeOpensvcAgentRequest(ConfirmedNodeIdRequest):
+    pass
+
+
+class UpdateNodeOpensvcAgentResponse(PushNodeAssetResponse):
+    pass
+
+
 class SnoozeNodeNotificationsRequest(ConfirmedNodeIdRequest):
     duration: str = Field(
         description=(

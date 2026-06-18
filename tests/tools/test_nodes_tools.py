@@ -235,6 +235,18 @@ async def test_thaw_node_tool_passes_request_to_core(monkeypatch, mcp_client):
             "push",
             "PUSH config node node-a-id node-a",
         ),
+        (
+            "update_node_compliance_modules",
+            "core_update_node_compliance_modules",
+            "updatecomp",
+            "UPDATE compliance modules node node-a-id node-a",
+        ),
+        (
+            "update_node_opensvc_agent",
+            "core_update_node_opensvc_agent",
+            "updatepkg",
+            "UPDATE opensvc agent node node-a-id node-a",
+        ),
     ],
 )
 async def test_node_exec_action_tool_passes_request_to_core(
@@ -327,6 +339,16 @@ async def test_node_exec_action_tool_passes_request_to_core(
             "push_node_config",
             "core_push_node_config",
             "PUSH config node node-a-id node-a",
+        ),
+        (
+            "update_node_compliance_modules",
+            "core_update_node_compliance_modules",
+            "UPDATE compliance modules node node-a-id node-a",
+        ),
+        (
+            "update_node_opensvc_agent",
+            "core_update_node_opensvc_agent",
+            "UPDATE opensvc agent node node-a-id node-a",
         ),
     ],
 )
