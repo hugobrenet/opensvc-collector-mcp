@@ -153,12 +153,11 @@ requires `exec:nodes`, authorized for Collector `NodeExec` or `Manager` users by
 MCP RBAC. The action is queued for OpenSVC agents by Collector. MCP annotations
 mark it as destructive because it changes operational node behavior.
 
-The request uses the shared `NodeSelector` contract: provide exactly one of
-`node_id` or `nodename`. If `nodename` is provided, MCP resolves it with an
-exact `/nodes` filter, refuses zero matches, refuses duplicate matches, and then
-enqueues the action using the resolved `node_id`. The tool also requires
+The request is `node_id` only. If the user provides a `nodename`, first call
+`get_node` to resolve exactly one node and read its `node_id` and `nodename`.
+Do not ask for confirmation before this resolution step. The tool also requires
 `confirm_node_id` and `confirm_nodename` to match the resolved snapshot before
-calling Collector.
+calling Collector. Do not pass `nodename` as an execution selector.
 
 Because this changes runtime state, the request requires `confirmation.phrase`.
 The assistant must resolve the selected node, summarize the freeze action, ask
@@ -169,7 +168,7 @@ in the latest user message.
 Required input fields:
 
 ```text
-node_id or nodename
+node_id
 confirm_node_id
 confirm_nodename
 confirmation.phrase
@@ -212,12 +211,11 @@ or `Manager` users by MCP RBAC. The action is queued for OpenSVC agents by
 Collector. MCP annotations mark it as destructive because it changes
 operational node behavior.
 
-The request uses the shared `NodeSelector` contract: provide exactly one of
-`node_id` or `nodename`. If `nodename` is provided, MCP resolves it with an
-exact `/nodes` filter, refuses zero matches, refuses duplicate matches, and
-then enqueues the action using the resolved `node_id`. The tool also requires
+The request is `node_id` only. If the user provides a `nodename`, first call
+`get_node` to resolve exactly one node and read its `node_id` and `nodename`.
+Do not ask for confirmation before this resolution step. The tool also requires
 `confirm_node_id` and `confirm_nodename` to match the resolved snapshot before
-calling Collector.
+calling Collector. Do not pass `nodename` as an execution selector.
 
 Because this changes runtime state, the request requires `confirmation.phrase`.
 The assistant must resolve the selected node, summarize the thaw action, ask
@@ -228,7 +226,7 @@ appears in the latest user message.
 Required input fields:
 
 ```text
-node_id or nodename
+node_id
 confirm_node_id
 confirm_nodename
 confirmation.phrase
@@ -272,12 +270,11 @@ mark it as non-destructive because it runs checks rather than changing runtime
 service or node state, but it is still a state-changing tool because it enqueues
 work in Collector.
 
-The request uses the shared `NodeSelector` contract: provide exactly one of
-`node_id` or `nodename`. If `nodename` is provided, MCP resolves it with an
-exact `/nodes` filter, refuses zero matches, refuses duplicate matches, and then
-enqueues the action using the resolved `node_id`. The tool also requires
+The request is `node_id` only. If the user provides a `nodename`, first call
+`get_node` to resolve exactly one node and read its `node_id` and `nodename`.
+Do not ask for confirmation before this resolution step. The tool also requires
 `confirm_node_id` and `confirm_nodename` to match the resolved snapshot before
-calling Collector.
+calling Collector. Do not pass `nodename` as an execution selector.
 
 Because this enqueues runtime work, the request requires `confirmation.phrase`.
 The assistant must resolve the selected node, summarize the checks action, ask
@@ -288,7 +285,7 @@ in the latest user message.
 Required input fields:
 
 ```text
-node_id or nodename
+node_id
 confirm_node_id
 confirm_nodename
 confirmation.phrase
@@ -332,12 +329,11 @@ Collector. MCP annotations mark it as non-destructive because it collects a
 sysreport rather than changing runtime service or node state, but it is still a
 state-changing tool because it enqueues work in Collector.
 
-The request uses the shared `NodeSelector` contract: provide exactly one of
-`node_id` or `nodename`. If `nodename` is provided, MCP resolves it with an
-exact `/nodes` filter, refuses zero matches, refuses duplicate matches, and then
-enqueues the action using the resolved `node_id`. The tool also requires
+The request is `node_id` only. If the user provides a `nodename`, first call
+`get_node` to resolve exactly one node and read its `node_id` and `nodename`.
+Do not ask for confirmation before this resolution step. The tool also requires
 `confirm_node_id` and `confirm_nodename` to match the resolved snapshot before
-calling Collector.
+calling Collector. Do not pass `nodename` as an execution selector.
 
 Because this enqueues runtime work, the request requires `confirmation.phrase`.
 The assistant must resolve the selected node, summarize the sysreport action,
@@ -348,7 +344,7 @@ in the latest user message.
 Required input fields:
 
 ```text
-node_id or nodename
+node_id
 confirm_node_id
 confirm_nodename
 confirmation.phrase
@@ -393,12 +389,11 @@ mark it as non-destructive because it refreshes inventory rather than changing
 runtime service or node state, but it is still a state-changing tool because it
 enqueues work in Collector.
 
-The request uses the shared `NodeSelector` contract: provide exactly one of
-`node_id` or `nodename`. If `nodename` is provided, MCP resolves it with an
-exact `/nodes` filter, refuses zero matches, refuses duplicate matches, and then
-enqueues the action using the resolved `node_id`. The tool also requires
+The request is `node_id` only. If the user provides a `nodename`, first call
+`get_node` to resolve exactly one node and read its `node_id` and `nodename`.
+Do not ask for confirmation before this resolution step. The tool also requires
 `confirm_node_id` and `confirm_nodename` to match the resolved snapshot before
-calling Collector.
+calling Collector. Do not pass `nodename` as an execution selector.
 
 Because this enqueues runtime work, the request requires `confirmation.phrase`.
 The assistant must resolve the selected node, summarize the asset inventory
@@ -409,7 +404,7 @@ phrase appears in the latest user message.
 Required input fields:
 
 ```text
-node_id or nodename
+node_id
 confirm_node_id
 confirm_nodename
 confirmation.phrase
@@ -451,22 +446,26 @@ state-changing write tool and requires `write:nodes`, authorized for Collector
 `NodeManager` or `Manager` users by MCP RBAC. MCP annotations mark it as
 non-destructive.
 
-The request uses the shared `NodeSelector` contract: provide exactly one of
-`node_id` or `nodename`. If `nodename` is provided, MCP resolves it with an
-exact `/nodes` filter, refuses zero matches, refuses duplicate matches, and then
-calls Collector using the resolved `node_id`.
+The request is `node_id` only. If the user provides a `nodename`, first call
+`get_node` to resolve exactly one node and read its `node_id` and `nodename`.
+Do not ask for confirmation before this resolution step. The request also
+requires `confirm_node_id` and `confirm_nodename` to match the resolved
+snapshot. Do not pass `nodename` as an execution selector.
 
 Because this changes Collector alerting state, the request requires
 `confirmation.phrase`. The assistant must summarize the selected node and
-duration, ask the user to repeat a concise phrase verbatim, and set
-`confirmation.phrase` only after that phrase appears in the latest user message.
+duration, ask the user to repeat a concise phrase containing the resolved
+`node_id`, `nodename`, and duration verbatim, and set `confirmation.phrase` only
+after that phrase appears in the latest user message.
 
 Required input fields:
 
 ```text
 duration
+node_id
+confirm_node_id
+confirm_nodename
 confirmation.phrase
-node_id or nodename
 ```
 
 Example:
@@ -474,10 +473,12 @@ Example:
 ```json
 {
   "request": {
-    "nodename": "lab-node-01",
+    "node_id": "NODE-ID",
+    "confirm_node_id": "NODE-ID",
+    "confirm_nodename": "lab-node-01",
     "duration": "1h",
     "confirmation": {
-      "phrase": "SNOOZE node lab-node-01 for 1h"
+      "phrase": "SNOOZE node NODE-ID lab-node-01 for 1h"
     }
   }
 }
@@ -504,15 +505,19 @@ silently invert the operation. This is a reversible state-changing write tool an
 requires `write:nodes`, authorized for Collector `NodeManager` or `Manager` users
 by MCP RBAC. MCP annotations mark it as non-destructive.
 
-The request uses the same shared `NodeSelector` contract: provide exactly one of
-`node_id` or `nodename`; nodenames are resolved to a single node_id before the
-Collector POST is sent. The request also requires `confirmation.phrase`.
+The request is `node_id` only. If the user provides a `nodename`, first call
+`get_node` to resolve exactly one node and read its `node_id` and `nodename`.
+Do not ask for confirmation before this resolution step. The request also
+requires `confirm_node_id`, `confirm_nodename`, and `confirmation.phrase`.
+Do not pass `nodename` as an execution selector.
 
 Required input fields:
 
 ```text
+node_id
+confirm_node_id
+confirm_nodename
 confirmation.phrase
-node_id or nodename
 ```
 
 Example:
@@ -521,8 +526,10 @@ Example:
 {
   "request": {
     "node_id": "NODE-ID",
+    "confirm_node_id": "NODE-ID",
+    "confirm_nodename": "lab-node-01",
     "confirmation": {
-      "phrase": "UNSNOOZE node NODE-ID"
+      "phrase": "UNSNOOZE node NODE-ID lab-node-01"
     }
   }
 }
@@ -548,13 +555,24 @@ RBAC. The MCP `update` tag is descriptive for discovery only. MCP annotations
 mark the tool as a destructive write because it updates an existing Collector
 node and can overwrite previous property values.
 
-The tool does not expose node creation or deletion. It accepts the fields marked
-`writable=true` by the Collector nodes API definition, and rejects fields marked
-`writable=false` such as `node_env`. Because it changes Collector state, the
-request requires `confirmation.phrase`: the assistant must summarize the exact
-node and property changes, ask the user to repeat a concise phrase verbatim, and
-set `confirmation.phrase` only after that phrase appears in the latest user
-message.
+The request is `node_id` only. If the user provides a `nodename`, first call
+`get_node` to resolve exactly one node and read its `node_id` and `nodename`.
+Do not ask for confirmation before this resolution step. The tool then resolves
+that `node_id` back to the current `nodename` immediately before calling
+Collector, because Collector applies node property updates through
+`POST /nodes/<nodename>`.
+
+The tool does not expose node creation or deletion. It accepts most fields
+marked `writable=true` by the Collector nodes API definition, rejects fields
+marked `writable=false` such as `node_env`, and rejects `node_id` and `nodename`
+inside `properties` at the MCP boundary. Those two reserved fields are not safe
+generic property updates here: `node_id` can collide with an existing node, and
+renames should be handled by a dedicated sensitive rename flow. Because this
+changes Collector state, the request requires `confirmation.phrase`: the
+assistant must summarize the exact resolved node and property changes, ask the
+user to repeat a concise phrase containing the resolved `node_id` and `nodename`
+verbatim, and set `confirmation.phrase` only after that phrase appears in the
+latest user message.
 
 Accepted properties:
 
@@ -588,8 +606,6 @@ maintenance_end
 manufacturer
 node_frozen
 node_frozen_at
-node_id
-nodename
 notifications
 os_obs_alert_date
 os_obs_warn_date
@@ -619,25 +635,14 @@ Example:
 ```json
 {
   "request": {
-    "nodename": "lab-node-01",
-    "properties": {
-      "asset_env": "PPR"
-    }
-  }
-}
-```
-
-Example:
-
-```json
-{
-  "request": {
-    "nodename": "lab-node-01",
+    "node_id": "NODE-ID",
+    "confirm_node_id": "NODE-ID",
+    "confirm_nodename": "lab-node-01",
     "properties": {
       "asset_env": "PPR"
     },
     "confirmation": {
-      "phrase": "UPDATE node lab-node-01 asset_env PPR"
+      "phrase": "UPDATE node NODE-ID lab-node-01 asset_env PPR"
     }
   }
 }

@@ -3,7 +3,10 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from opensvc_collector_mcp.models.common import ToolConfirmation
-from opensvc_collector_mcp.models.tags._common import TagSelector
+from opensvc_collector_mcp.models.tags._common import (
+    ConfirmedTagIdRequest,
+    TagSelector,
+)
 
 
 def _is_none(value: object) -> bool:
@@ -269,53 +272,7 @@ class CreateTagResponse(TagRowsResponse):
     )
 
 
-class DeleteTagRequest(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid",
-        json_schema_extra={
-            "examples": [
-                {
-                    "tag_id": "TAG-ID",
-                    "confirm_tag_id": "TAG-ID",
-                    "confirm_tag_name": "mcp-test-tag",
-                    "confirmation": {
-                        "phrase": "DELETE tag TAG-ID mcp-test-tag",
-                    },
-                }
-            ]
-        },
-    )
-
-    tag_id: str = Field(
-        description=(
-            "Required execution selector for delete_tag. Never pass tag_name as "
-            "tag_id. If the user provided only a tag_name, first call get_tag to "
-            "resolve exactly one Collector tag_id, then call delete_tag with "
-            "that resolved tag_id. This selector must match confirm_tag_id."
-        ),
-        min_length=1,
-        examples=["TAG-ID"],
-    )
-    confirm_tag_id: str = Field(
-        description=(
-            "Correlation confirmation value read from the resolved tag snapshot. "
-            "Required before deleting the tag. This is not a second selector. "
-            "It must match the resolved tag_id and, when tag_id is used as the "
-            "execution selector, it must match tag_id."
-        ),
-        min_length=1,
-        examples=["TAG-ID"],
-    )
-    confirm_tag_name: str = Field(
-        description=(
-            "Correlation confirmation value read from the resolved tag snapshot. "
-            "Required before deleting the tag. This is not a second selector. "
-            "Use this field for the tag_name that appears in the human "
-            "confirmation phrase."
-        ),
-        min_length=1,
-        examples=["mcp-test-tag"],
-    )
+class DeleteTagRequest(ConfirmedTagIdRequest):
     confirmation: ToolConfirmation = Field(
         description=(
             "Required confirmation gate for this destructive tool. Before calling "
@@ -327,21 +284,6 @@ class DeleteTagRequest(BaseModel):
             "execution uses tag_id only."
         ),
     )
-
-    @model_validator(mode="after")
-    def normalize_confirmation(self) -> "DeleteTagRequest":
-        self.tag_id = self.tag_id.strip()
-        self.confirm_tag_id = self.confirm_tag_id.strip()
-        self.confirm_tag_name = self.confirm_tag_name.strip()
-        if not self.tag_id:
-            raise ValueError("tag_id must not be empty")
-        if not self.confirm_tag_id:
-            raise ValueError("confirm_tag_id must not be empty")
-        if not self.confirm_tag_name:
-            raise ValueError("confirm_tag_name must not be empty")
-        if self.confirm_tag_id != self.tag_id:
-            raise ValueError("confirm_tag_id must match tag_id")
-        return self
 
 
 class DeleteTagResponse(BaseModel):
@@ -355,26 +297,7 @@ class DeleteTagResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class AttachTagToNodeRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    tag_id: str | None = Field(
-        default=None,
-        description=(
-            "Exact Collector tag_id. Provide tag_id, tag_name, or both when "
-            "the tag_name is the human-readable correlation for this tag_id."
-        ),
-        examples=["TAG-ID"],
-    )
-    tag_name: str | None = Field(
-        default=None,
-        description=(
-            "Exact Collector tag_name. MCP resolves it to one tag_id and refuses "
-            "ambiguous duplicate tag names. Provide tag_name, tag_id, or both "
-            "when the tag_name is the human-readable correlation for this tag_id."
-        ),
-        examples=["mcp-test-tag"],
-    )
+class AttachTagToNodeRequest(ConfirmedTagIdRequest):
     node_id: str | None = Field(
         default=None,
         description=(
@@ -399,20 +322,17 @@ class AttachTagToNodeRequest(BaseModel):
     confirmation: ToolConfirmation = Field(
         description=(
             "Required confirmation gate for this state-changing tool. Before "
-            "calling attach_tag_to_node, resolve the target tag and node, "
-            "summarize the exact attachment to create, ask the user to repeat "
-            "a concise confirmation phrase verbatim, and set this field only "
-            "when that exact phrase appears in the latest user message."
+            "calling attach_tag_to_node, resolve the target tag with get_tag "
+            "when the user gave a tag_name, resolve the target node, summarize "
+            "the exact attachment to create, ask the user to repeat a concise "
+            "confirmation phrase containing the resolved tag_id and tag_name "
+            "verbatim, and set this field only when that exact phrase appears "
+            "in the latest user message. Tag execution uses tag_id only."
         ),
     )
 
     @model_validator(mode="after")
     def normalize_attach_selectors(self) -> "AttachTagToNodeRequest":
-        self.tag_id = self.tag_id.strip() if self.tag_id else None
-        self.tag_name = self.tag_name.strip() if self.tag_name else None
-        if not self.tag_id and not self.tag_name:
-            raise ValueError("provide at least one tag selector: tag_id or tag_name")
-
         self.node_id = self.node_id.strip() if self.node_id else None
         self.nodename = self.nodename.strip() if self.nodename else None
         if not self.node_id and not self.nodename:
@@ -435,26 +355,7 @@ class AttachTagToNodeResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class AttachTagToServiceRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    tag_id: str | None = Field(
-        default=None,
-        description=(
-            "Exact Collector tag_id. Provide tag_id, tag_name, or both when "
-            "the tag_name is the human-readable correlation for this tag_id."
-        ),
-        examples=["TAG-ID"],
-    )
-    tag_name: str | None = Field(
-        default=None,
-        description=(
-            "Exact Collector tag_name. MCP resolves it to one tag_id and refuses "
-            "ambiguous duplicate tag names. Provide tag_name, tag_id, or both "
-            "when the tag_name is the human-readable correlation for this tag_id."
-        ),
-        examples=["mcp-test-tag"],
-    )
+class AttachTagToServiceRequest(ConfirmedTagIdRequest):
     svc_id: str | None = Field(
         default=None,
         description=(
@@ -475,20 +376,17 @@ class AttachTagToServiceRequest(BaseModel):
     confirmation: ToolConfirmation = Field(
         description=(
             "Required confirmation gate for this state-changing tool. Before "
-            "calling attach_tag_to_service, resolve the target tag and service, "
+            "calling attach_tag_to_service, resolve the target tag with get_tag "
+            "when the user gave a tag_name, resolve the target service, "
             "summarize the exact attachment to create, ask the user to repeat "
-            "a concise confirmation phrase verbatim, and set this field only "
-            "when that exact phrase appears in the latest user message."
+            "a concise confirmation phrase containing the resolved tag_id and "
+            "tag_name verbatim, and set this field only when that exact phrase "
+            "appears in the latest user message. Tag execution uses tag_id only."
         ),
     )
 
     @model_validator(mode="after")
     def normalize_attach_service_selectors(self) -> "AttachTagToServiceRequest":
-        self.tag_id = self.tag_id.strip() if self.tag_id else None
-        self.tag_name = self.tag_name.strip() if self.tag_name else None
-        if not self.tag_id and not self.tag_name:
-            raise ValueError("provide at least one tag selector: tag_id or tag_name")
-
         self.svc_id = self.svc_id.strip() if self.svc_id else None
         self.svcname = self.svcname.strip() if self.svcname else None
         if not self.svc_id and not self.svcname:
@@ -510,26 +408,7 @@ class AttachTagToServiceResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class DetachTagFromServiceRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    tag_id: str | None = Field(
-        default=None,
-        description=(
-            "Exact Collector tag_id. Provide tag_id, tag_name, or both when "
-            "the tag_name is the human-readable correlation for this tag_id."
-        ),
-        examples=["TAG-ID"],
-    )
-    tag_name: str | None = Field(
-        default=None,
-        description=(
-            "Exact Collector tag_name. MCP resolves it to one tag_id and refuses "
-            "ambiguous duplicate tag names. Provide tag_name, tag_id, or both "
-            "when the tag_name is the human-readable correlation for this tag_id."
-        ),
-        examples=["mcp-test-tag"],
-    )
+class DetachTagFromServiceRequest(ConfirmedTagIdRequest):
     svc_id: str | None = Field(
         default=None,
         description=(
@@ -550,20 +429,17 @@ class DetachTagFromServiceRequest(BaseModel):
     confirmation: ToolConfirmation = Field(
         description=(
             "Required confirmation gate for this destructive relation tool. Before "
-            "calling detach_tag_from_service, resolve the target tag and service, "
+            "calling detach_tag_from_service, resolve the target tag with get_tag "
+            "when the user gave a tag_name, resolve the target service, "
             "summarize the exact attachment to remove, ask the user to repeat "
-            "a concise confirmation phrase verbatim, and set this field only "
-            "when that exact phrase appears in the latest user message."
+            "a concise confirmation phrase containing the resolved tag_id and "
+            "tag_name verbatim, and set this field only when that exact phrase "
+            "appears in the latest user message. Tag execution uses tag_id only."
         ),
     )
 
     @model_validator(mode="after")
     def normalize_detach_service_selectors(self) -> "DetachTagFromServiceRequest":
-        self.tag_id = self.tag_id.strip() if self.tag_id else None
-        self.tag_name = self.tag_name.strip() if self.tag_name else None
-        if not self.tag_id and not self.tag_name:
-            raise ValueError("provide at least one tag selector: tag_id or tag_name")
-
         self.svc_id = self.svc_id.strip() if self.svc_id else None
         self.svcname = self.svcname.strip() if self.svcname else None
         if not self.svc_id and not self.svcname:
@@ -586,26 +462,7 @@ class DetachTagFromServiceResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class DetachTagFromNodeRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    tag_id: str | None = Field(
-        default=None,
-        description=(
-            "Exact Collector tag_id. Provide tag_id, tag_name, or both when "
-            "the tag_name is the human-readable correlation for this tag_id."
-        ),
-        examples=["TAG-ID"],
-    )
-    tag_name: str | None = Field(
-        default=None,
-        description=(
-            "Exact Collector tag_name. MCP resolves it to one tag_id and refuses "
-            "ambiguous duplicate tag names. Provide tag_name, tag_id, or both "
-            "when the tag_name is the human-readable correlation for this tag_id."
-        ),
-        examples=["mcp-test-tag"],
-    )
+class DetachTagFromNodeRequest(ConfirmedTagIdRequest):
     node_id: str | None = Field(
         default=None,
         description=(
@@ -626,20 +483,17 @@ class DetachTagFromNodeRequest(BaseModel):
     confirmation: ToolConfirmation = Field(
         description=(
             "Required confirmation gate for this destructive relation tool. Before "
-            "calling detach_tag_from_node, resolve the target tag and node, "
-            "summarize the exact attachment to remove, ask the user to repeat "
-            "a concise confirmation phrase verbatim, and set this field only "
-            "when that exact phrase appears in the latest user message."
+            "calling detach_tag_from_node, resolve the target tag with get_tag "
+            "when the user gave a tag_name, resolve the target node, summarize "
+            "the exact attachment to remove, ask the user to repeat a concise "
+            "confirmation phrase containing the resolved tag_id and tag_name "
+            "verbatim, and set this field only when that exact phrase appears "
+            "in the latest user message. Tag execution uses tag_id only."
         ),
     )
 
     @model_validator(mode="after")
     def normalize_detach_selectors(self) -> "DetachTagFromNodeRequest":
-        self.tag_id = self.tag_id.strip() if self.tag_id else None
-        self.tag_name = self.tag_name.strip() if self.tag_name else None
-        if not self.tag_id and not self.tag_name:
-            raise ValueError("provide at least one tag selector: tag_id or tag_name")
-
         self.node_id = self.node_id.strip() if self.node_id else None
         self.nodename = self.nodename.strip() if self.nodename else None
         if not self.node_id and not self.nodename:

@@ -1,6 +1,7 @@
 """Pydantic contracts for node tools."""
 
 from ._common import (
+    ConfirmedNodeIdRequest,
     NodeNameRequest,
     NodeRelationRequest,
     NodeSelector,
@@ -106,6 +107,7 @@ from .stats import (
 )
 
 __all__ = [
+    'ConfirmedNodeIdRequest',
     'CountNodesRequest',
     'CountNodesResponse',
     'CreateNodeRequest',

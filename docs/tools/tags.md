@@ -98,11 +98,14 @@ Attaches one OpenSVC Collector tag to one node through
 non-destructive relation update and requires `write:tags`, authorized for
 Collector `TagManager` or `Manager` users by MCP RBAC.
 
-The request uses exact selectors on both sides. For the tag, provide `tag_id`,
-`tag_name`, or both. For the node, provide `node_id`, `nodename`, or both. MCP
-resolves names with exact Collector filters, refuses missing or ambiguous
-matches, verifies `id + name` correlation when both are provided, and then calls
-Collector with the resolved stable IDs.
+The tag selector is `tag_id` only. If the user provides a `tag_name`, first call
+`get_tag` to resolve exactly one tag and read its `tag_id` and `tag_name`. Do
+not ask for confirmation before this tag resolution step. The request requires
+`confirm_tag_id` and `confirm_tag_name` to match the resolved tag snapshot. For
+the node, provide `node_id`, `nodename`, or both. MCP resolves node names with
+exact Collector filters, refuses missing or ambiguous matches, verifies
+`id + name` correlation when both are provided, and then calls Collector with
+the resolved stable IDs. Do not pass `tag_name` as an execution selector.
 
 Because this changes Collector state, the request requires
 `confirmation.phrase`: the assistant must summarize the exact tag/node
@@ -116,7 +119,8 @@ Example:
 {
   "request": {
     "tag_id": "tag-1",
-    "tag_name": "mcp-test-tag",
+    "confirm_tag_id": "tag-1",
+    "confirm_tag_name": "mcp-test-tag",
     "node_id": "node-1",
     "nodename": "lab-node-01",
     "tag_attach_data": "scope=lab",
@@ -149,11 +153,14 @@ Attaches one OpenSVC Collector tag to one service through
 non-destructive relation update and requires `write:tags`, authorized for
 Collector `TagManager` or `Manager` users by MCP RBAC.
 
-The request uses exact selectors on both sides. For the tag, provide `tag_id`,
-`tag_name`, or both. For the service, provide `svc_id`, `svcname`, or both. MCP
-resolves names with exact Collector filters, refuses missing or ambiguous
-matches, verifies `id + name` correlation when both are provided, and then calls
-Collector with the resolved stable IDs.
+The tag selector is `tag_id` only. If the user provides a `tag_name`, first call
+`get_tag` to resolve exactly one tag and read its `tag_id` and `tag_name`. Do
+not ask for confirmation before this tag resolution step. The request requires
+`confirm_tag_id` and `confirm_tag_name` to match the resolved tag snapshot. For
+the service, provide `svc_id`, `svcname`, or both. MCP resolves service names
+with exact Collector filters, refuses missing or ambiguous matches, verifies
+`id + name` correlation when both are provided, and then calls Collector with
+the resolved stable IDs. Do not pass `tag_name` as an execution selector.
 
 Because this changes Collector state, the request requires
 `confirmation.phrase`: the assistant must summarize the exact tag/service
@@ -166,7 +173,8 @@ Example:
 {
   "request": {
     "tag_id": "tag-1",
-    "tag_name": "mcp-test-tag",
+    "confirm_tag_id": "tag-1",
+    "confirm_tag_name": "mcp-test-tag",
     "svc_id": "svc-1",
     "svcname": "svc/app/test",
     "confirmation": {
@@ -199,12 +207,15 @@ it removes only the tag-node attachment, not the tag object or the node object.
 It requires `write:tags`, authorized for Collector `TagManager` or `Manager`
 users by MCP RBAC, because the Collector route lives in the tags API.
 
-The request uses the same exact selectors as `attach_tag_to_node`. For the tag,
-provide `tag_id`, `tag_name`, or both. For the node, provide `node_id`,
-`nodename`, or both. MCP resolves names with exact Collector filters, refuses
-missing or ambiguous matches, verifies `id + name` correlation when both are
-provided, confirms the current tag-node relation, and then calls Collector with
-the resolved stable IDs.
+The tag selector is `tag_id` only. If the user provides a `tag_name`, first call
+`get_tag` to resolve exactly one tag and read its `tag_id` and `tag_name`. Do
+not ask for confirmation before this tag resolution step. The request requires
+`confirm_tag_id` and `confirm_tag_name` to match the resolved tag snapshot. For
+the node, provide `node_id`, `nodename`, or both. MCP resolves node names with
+exact Collector filters, refuses missing or ambiguous matches, verifies
+`id + name` correlation when both are provided, confirms the current tag-node
+relation, and then calls Collector with the resolved stable IDs. Do not pass
+`tag_name` as an execution selector.
 
 Because this changes Collector state, the request requires
 `confirmation.phrase`: the assistant must summarize the exact tag/node
@@ -217,7 +228,8 @@ Example:
 {
   "request": {
     "tag_id": "tag-1",
-    "tag_name": "mcp-test-tag",
+    "confirm_tag_id": "tag-1",
+    "confirm_tag_name": "mcp-test-tag",
     "node_id": "node-1",
     "nodename": "lab-node-01",
     "confirmation": {
@@ -251,12 +263,15 @@ service object. It requires `write:tags`, authorized for Collector `TagManager`
 or `Manager` users by MCP RBAC, because the Collector route lives in the tags
 API.
 
-The request uses the same exact selectors as `attach_tag_to_service`. For the
-tag, provide `tag_id`, `tag_name`, or both. For the service, provide `svc_id`,
-`svcname`, or both. MCP resolves names with exact Collector filters, refuses
-missing or ambiguous matches, verifies `id + name` correlation when both are
-provided, confirms the current tag-service relation, and then calls Collector
-with the resolved stable IDs.
+The tag selector is `tag_id` only. If the user provides a `tag_name`, first call
+`get_tag` to resolve exactly one tag and read its `tag_id` and `tag_name`. Do
+not ask for confirmation before this tag resolution step. The request requires
+`confirm_tag_id` and `confirm_tag_name` to match the resolved tag snapshot. For
+the service, provide `svc_id`, `svcname`, or both. MCP resolves service names
+with exact Collector filters, refuses missing or ambiguous matches, verifies
+`id + name` correlation when both are provided, confirms the current tag-service
+relation, and then calls Collector with the resolved stable IDs. Do not pass
+`tag_name` as an execution selector.
 
 Because this changes Collector state, the request requires
 `confirmation.phrase`: the assistant must summarize the exact tag/service
@@ -269,7 +284,8 @@ Example:
 {
   "request": {
     "tag_id": "tag-1",
-    "tag_name": "mcp-test-tag",
+    "confirm_tag_id": "tag-1",
+    "confirm_tag_name": "mcp-test-tag",
     "svc_id": "svc-1",
     "svcname": "svc/app/test",
     "confirmation": {

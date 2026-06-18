@@ -813,6 +813,73 @@ async def test_update_node_properties_posts_allowlisted_fields(monkeypatch):
     ]
 
 
+async def test_update_node_properties_resolves_node_id_then_posts_to_nodename(
+    monkeypatch,
+    collector_mock_factory,
+):
+    collector = collector_mock_factory(
+        [
+            {
+                "meta": {},
+                "data": [
+                    {
+                        "node_id": "node/id",
+                        "nodename": "node-a",
+                        "status": "up",
+                    }
+                ],
+            }
+        ]
+    )
+    recorder = CollectorPostRecorder({"info": "node updated"})
+    monkeypatch.setattr(node_common, "collector_get", collector.get)
+    monkeypatch.setattr(inventory, "collector_post", recorder)
+
+    response = await inventory.update_node_properties(
+        node_id=" node/id ",
+        confirm_node_id="node/id",
+        confirm_nodename=" node-a ",
+        properties={" loc_city ": "Lab City"},
+    )
+
+    assert response["nodename"] == "node-a"
+    assert response["updated_properties"] == {"loc_city": "Lab City"}
+    assert response["meta"]["selector"] == "node_id"
+    assert response["meta"]["resolved_node_id"] == "node/id"
+    assert (
+        collector.calls[0].single_param("props")
+        == inventory.DEFAULT_NODE_UPDATE_SNAPSHOT_PROPS
+    )
+    assert recorder.calls == [
+        {
+            "path": "/nodes/node-a",
+            "data": {"loc_city": "Lab City"},
+            "params": None,
+        }
+    ]
+
+
+async def test_update_node_properties_rejects_confirmation_id_mismatch_before_lookup(
+    monkeypatch,
+    collector_mock_factory,
+):
+    collector = collector_mock_factory([])
+    recorder = CollectorPostRecorder({"info": "node updated"})
+    monkeypatch.setattr(node_common, "collector_get", collector.get)
+    monkeypatch.setattr(inventory, "collector_post", recorder)
+
+    with pytest.raises(ValueError, match="confirm_node_id must match node_id"):
+        await inventory.update_node_properties(
+            node_id="node-a-id",
+            confirm_node_id="other-node-id",
+            confirm_nodename="node-a",
+            properties={"loc_city": "Lab City"},
+        )
+
+    assert collector.calls == []
+    assert recorder.calls == []
+
+
 async def test_update_node_properties_rejects_empty_payload(monkeypatch):
     recorder = CollectorPostRecorder({"info": "node updated"})
     monkeypatch.setattr(inventory, "collector_post", recorder)

@@ -246,6 +246,52 @@ async def test_node_exec_action_tool_passes_request_to_core(
     ]
 
 
+@pytest.mark.parametrize(
+    ("tool_name", "core_attr", "phrase"),
+    [
+        ("freeze_node", "core_freeze_node", "FREEZE node node-a-id node-a"),
+        ("thaw_node", "core_thaw_node", "THAW node node-a-id node-a"),
+        ("run_node_checks", "core_run_node_checks", "RUN checks node node-a-id node-a"),
+        (
+            "collect_node_sysreport",
+            "core_collect_node_sysreport",
+            "COLLECT sysreport node node-a-id node-a",
+        ),
+        (
+            "push_node_asset",
+            "core_push_node_asset",
+            "PUSH asset node node-a-id node-a",
+        ),
+    ],
+)
+async def test_node_exec_action_tools_reject_nodename_selector(
+    monkeypatch,
+    mcp_client,
+    tool_name,
+    core_attr,
+    phrase,
+):
+    recorder = CoreRecorder({})
+    monkeypatch.setattr(node_tools, core_attr, recorder)
+
+    with pytest.raises(ToolError) as exc_info:
+        await mcp_client.call_tool(
+            tool_name,
+            {
+                "request": {
+                    "nodename": "node-a",
+                    "confirm_node_id": "node-a-id",
+                    "confirm_nodename": "node-a",
+                    "confirmation": {"phrase": phrase},
+                }
+            },
+        )
+
+    assert '"loc": ["request", "node_id"]' in str(exc_info.value)
+    assert '"loc": ["request", "nodename"]' in str(exc_info.value)
+    assert recorder.calls == []
+
+
 async def test_update_node_properties_tool_passes_request_to_core(monkeypatch, mcp_client):
     recorder = CoreRecorder(
         {
@@ -261,9 +307,13 @@ async def test_update_node_properties_tool_passes_request_to_core(monkeypatch, m
         "update_node_properties",
         {
             "request": {
-                "nodename": "node-a",
+                "node_id": "node-a-id",
+                "confirm_node_id": "node-a-id",
+                "confirm_nodename": "node-a",
                 "properties": {"loc_city": "Lab City"},
-                "confirmation": {"phrase": "UPDATE node node-a loc_city Lab City"},
+                "confirmation": {
+                    "phrase": "UPDATE node node-a-id node-a loc_city Lab City"
+                },
             }
         },
     )
@@ -271,10 +321,41 @@ async def test_update_node_properties_tool_passes_request_to_core(monkeypatch, m
     assert result.structured_content["updated_properties"] == {"loc_city": "Lab City"}
     assert recorder.calls == [
         {
-            "nodename": "node-a",
+            "node_id": "node-a-id",
+            "nodename": None,
+            "confirm_node_id": "node-a-id",
+            "confirm_nodename": "node-a",
             "properties": {"loc_city": "Lab City"},
         }
     ]
+
+
+async def test_update_node_properties_tool_rejects_nodename_selector(
+    monkeypatch,
+    mcp_client,
+):
+    recorder = CoreRecorder({})
+    monkeypatch.setattr(node_tools, "core_update_node_properties", recorder)
+
+    with pytest.raises(ToolError) as exc_info:
+        await mcp_client.call_tool(
+            "update_node_properties",
+            {
+                "request": {
+                    "nodename": "node-a",
+                    "confirm_node_id": "node-a-id",
+                    "confirm_nodename": "node-a",
+                    "properties": {"loc_city": "Lab City"},
+                    "confirmation": {
+                        "phrase": "UPDATE node node-a-id node-a loc_city Lab City"
+                    },
+                }
+            },
+        )
+
+    assert '"loc": ["request", "node_id"]' in str(exc_info.value)
+    assert '"loc": ["request", "nodename"]' in str(exc_info.value)
+    assert recorder.calls == []
 
 
 async def test_snooze_node_notifications_tool_passes_request_to_core(
@@ -298,9 +379,11 @@ async def test_snooze_node_notifications_tool_passes_request_to_core(
         "snooze_node_notifications",
         {
             "request": {
-                "nodename": "node-a",
+                "node_id": "node-a-id",
+                "confirm_node_id": "node-a-id",
+                "confirm_nodename": "node-a",
                 "duration": "1h",
-                "confirmation": {"phrase": "SNOOZE node node-a for 1h"},
+                "confirmation": {"phrase": "SNOOZE node node-a-id node-a for 1h"},
             }
         },
     )
@@ -308,7 +391,7 @@ async def test_snooze_node_notifications_tool_passes_request_to_core(
     assert result.structured_content["snoozed"] is True
     assert result.structured_content["duration"] == "1h"
     assert recorder.calls == [
-        {"node_id": None, "nodename": "node-a", "duration": "1h"}
+        {"node_id": "node-a-id", "nodename": None, "duration": "1h"}
     ]
 
 
@@ -333,13 +416,62 @@ async def test_unsnooze_node_notifications_tool_passes_request_to_core(
         {
             "request": {
                 "node_id": "node-a-id",
-                "confirmation": {"phrase": "UNSNOOZE node node-a-id"},
+                "confirm_node_id": "node-a-id",
+                "confirm_nodename": "node-a",
+                "confirmation": {"phrase": "UNSNOOZE node node-a-id node-a"},
             }
         },
     )
 
     assert result.structured_content["unsnoozed"] is True
     assert recorder.calls == [{"node_id": "node-a-id", "nodename": None}]
+
+
+@pytest.mark.parametrize(
+    ("tool_name", "core_attr", "extra_fields", "phrase"),
+    [
+        (
+            "snooze_node_notifications",
+            "core_snooze_node_notifications",
+            {"duration": "1h"},
+            "SNOOZE node node-a-id node-a for 1h",
+        ),
+        (
+            "unsnooze_node_notifications",
+            "core_unsnooze_node_notifications",
+            {},
+            "UNSNOOZE node node-a-id node-a",
+        ),
+    ],
+)
+async def test_node_notification_tools_reject_nodename_selector(
+    monkeypatch,
+    mcp_client,
+    tool_name,
+    core_attr,
+    extra_fields,
+    phrase,
+):
+    recorder = CoreRecorder({})
+    monkeypatch.setattr(node_tools, core_attr, recorder)
+
+    with pytest.raises(ToolError) as exc_info:
+        await mcp_client.call_tool(
+            tool_name,
+            {
+                "request": {
+                    "nodename": "node-a",
+                    "confirm_node_id": "node-a-id",
+                    "confirm_nodename": "node-a",
+                    "confirmation": {"phrase": phrase},
+                    **extra_fields,
+                }
+            },
+        )
+
+    assert '"loc": ["request", "node_id"]' in str(exc_info.value)
+    assert '"loc": ["request", "nodename"]' in str(exc_info.value)
+    assert recorder.calls == []
 
 
 async def test_list_nodes_tool_passes_request_to_core(monkeypatch, mcp_client):

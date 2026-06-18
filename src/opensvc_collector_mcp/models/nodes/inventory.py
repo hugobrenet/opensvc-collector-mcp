@@ -3,7 +3,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from opensvc_collector_mcp.models.common import ToolConfirmation
-from opensvc_collector_mcp.models.nodes._common import NodeSelector
+from opensvc_collector_mcp.models.nodes._common import ConfirmedNodeIdRequest
 
 
 class NodeFilterRequest(BaseModel):
@@ -274,36 +274,37 @@ class DeleteNodeResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class UpdateNodePropertiesRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    nodename: str = Field(
-        description="Exact OpenSVC Collector nodename to update.",
-        min_length=1,
-        examples=["lab-node-01"],
-    )
+class UpdateNodePropertiesRequest(ConfirmedNodeIdRequest):
     properties: dict[str, Any] = Field(
         description=(
             "Node properties to update. The core layer accepts the properties "
-            "advertised as writable by the Collector nodes API definition."
+            "advertised as writable by the Collector nodes API definition. Do "
+            "not include node_id or nodename here."
         ),
-        examples=[{"asset_env": "PPR", "nodename": "lab-node-02"}],
+        json_schema_extra={
+            "propertyNames": {
+                "not": {
+                    "enum": ["node_id", "nodename"],
+                },
+            },
+        },
+        examples=[{"asset_env": "PPR", "loc_city": "Lab City"}],
     )
     confirmation: ToolConfirmation = Field(
         description=(
             "Required confirmation gate for this state-changing tool. Before "
-            "calling update_node_properties, summarize the exact node and property "
-            "changes, ask the user to repeat a concise confirmation phrase "
-            "verbatim, and set this field only when that exact phrase appears in "
-            "the latest user message."
+            "calling update_node_properties, resolve the target node with "
+            "get_node when the user gave a nodename, summarize the exact "
+            "resolved node_id, nodename, and property changes, ask the user to "
+            "repeat a concise confirmation phrase verbatim, and set this field "
+            "only when that exact phrase appears in the latest user message. "
+            "The phrase must contain both node values, but execution uses "
+            "node_id only."
         ),
     )
 
     @model_validator(mode="after")
     def normalize(self) -> "UpdateNodePropertiesRequest":
-        self.nodename = self.nodename.strip()
-        if not self.nodename:
-            raise ValueError("nodename must not be empty")
         self.properties = {
             key.strip(): value
             for key, value in self.properties.items()
@@ -311,6 +312,12 @@ class UpdateNodePropertiesRequest(BaseModel):
         }
         if not self.properties:
             raise ValueError("properties must not be empty")
+        forbidden = sorted(set(self.properties) & {"node_id", "nodename"})
+        if forbidden:
+            rejected = ", ".join(forbidden)
+            raise ValueError(
+                f"update_node_properties properties must not include reserved fields: {rejected}"
+            )
         return self
 
 
@@ -323,43 +330,8 @@ class UpdateNodePropertiesResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class FreezeNodeRequest(NodeSelector):
-    confirm_node_id: str = Field(
-        description=(
-            "Exact node_id read from the resolved node snapshot. Required before "
-            "enqueuing the freeze action, even when the selector is nodename."
-        ),
-        min_length=1,
-        examples=["NODE-ID"],
-    )
-    confirm_nodename: str = Field(
-        description=(
-            "Exact nodename read from the resolved node snapshot. This confirms "
-            "the intended target before enqueuing the freeze action."
-        ),
-        min_length=1,
-        examples=["lab-node-01"],
-    )
-    confirmation: ToolConfirmation = Field(
-        description=(
-            "Required confirmation gate for this node execution tool. Before "
-            "calling freeze_node, resolve the target node, generate a concise "
-            "phrase containing the exact node_id and nodename, ask the user to "
-            "repeat it verbatim, and set this field only when that exact phrase "
-            "appears in the latest user message."
-        ),
-    )
-
-    @model_validator(mode="after")
-    def normalize(self) -> "FreezeNodeRequest":
-        super().normalize_selector()
-        self.confirm_node_id = self.confirm_node_id.strip()
-        self.confirm_nodename = self.confirm_nodename.strip()
-        if not self.confirm_node_id:
-            raise ValueError("confirm_node_id must not be empty")
-        if not self.confirm_nodename:
-            raise ValueError("confirm_nodename must not be empty")
-        return self
+class FreezeNodeRequest(ConfirmedNodeIdRequest):
+    pass
 
 
 class FreezeNodeResponse(BaseModel):
@@ -374,43 +346,8 @@ class FreezeNodeResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class ThawNodeRequest(NodeSelector):
-    confirm_node_id: str = Field(
-        description=(
-            "Exact node_id read from the resolved node snapshot. Required before "
-            "enqueuing the thaw action, even when the selector is nodename."
-        ),
-        min_length=1,
-        examples=["NODE-ID"],
-    )
-    confirm_nodename: str = Field(
-        description=(
-            "Exact nodename read from the resolved node snapshot. This confirms "
-            "the intended target before enqueuing the thaw action."
-        ),
-        min_length=1,
-        examples=["lab-node-01"],
-    )
-    confirmation: ToolConfirmation = Field(
-        description=(
-            "Required confirmation gate for this node execution tool. Before "
-            "calling thaw_node, resolve the target node, generate a concise "
-            "phrase containing the exact node_id and nodename, ask the user to "
-            "repeat it verbatim, and set this field only when that exact phrase "
-            "appears in the latest user message."
-        ),
-    )
-
-    @model_validator(mode="after")
-    def normalize(self) -> "ThawNodeRequest":
-        super().normalize_selector()
-        self.confirm_node_id = self.confirm_node_id.strip()
-        self.confirm_nodename = self.confirm_nodename.strip()
-        if not self.confirm_node_id:
-            raise ValueError("confirm_node_id must not be empty")
-        if not self.confirm_nodename:
-            raise ValueError("confirm_nodename must not be empty")
-        return self
+class ThawNodeRequest(ConfirmedNodeIdRequest):
+    pass
 
 
 class ThawNodeResponse(BaseModel):
@@ -425,43 +362,8 @@ class ThawNodeResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class RunNodeChecksRequest(NodeSelector):
-    confirm_node_id: str = Field(
-        description=(
-            "Exact node_id read from the resolved node snapshot. Required before "
-            "enqueuing the node checks action, even when the selector is nodename."
-        ),
-        min_length=1,
-        examples=["NODE-ID"],
-    )
-    confirm_nodename: str = Field(
-        description=(
-            "Exact nodename read from the resolved node snapshot. This confirms "
-            "the intended target before enqueuing the node checks action."
-        ),
-        min_length=1,
-        examples=["lab-node-01"],
-    )
-    confirmation: ToolConfirmation = Field(
-        description=(
-            "Required confirmation gate for this node execution tool. Before "
-            "calling run_node_checks, resolve the target node, generate a concise "
-            "phrase containing the exact node_id and nodename, ask the user to "
-            "repeat it verbatim, and set this field only when that exact phrase "
-            "appears in the latest user message."
-        ),
-    )
-
-    @model_validator(mode="after")
-    def normalize(self) -> "RunNodeChecksRequest":
-        super().normalize_selector()
-        self.confirm_node_id = self.confirm_node_id.strip()
-        self.confirm_nodename = self.confirm_nodename.strip()
-        if not self.confirm_node_id:
-            raise ValueError("confirm_node_id must not be empty")
-        if not self.confirm_nodename:
-            raise ValueError("confirm_nodename must not be empty")
-        return self
+class RunNodeChecksRequest(ConfirmedNodeIdRequest):
+    pass
 
 
 class RunNodeChecksResponse(BaseModel):
@@ -476,43 +378,8 @@ class RunNodeChecksResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class CollectNodeSysreportRequest(NodeSelector):
-    confirm_node_id: str = Field(
-        description=(
-            "Exact node_id read from the resolved node snapshot. Required before "
-            "enqueuing the sysreport action, even when the selector is nodename."
-        ),
-        min_length=1,
-        examples=["NODE-ID"],
-    )
-    confirm_nodename: str = Field(
-        description=(
-            "Exact nodename read from the resolved node snapshot. This confirms "
-            "the intended target before enqueuing the sysreport action."
-        ),
-        min_length=1,
-        examples=["lab-node-01"],
-    )
-    confirmation: ToolConfirmation = Field(
-        description=(
-            "Required confirmation gate for this node execution tool. Before "
-            "calling collect_node_sysreport, resolve the target node, generate "
-            "a concise phrase containing the exact node_id and nodename, ask "
-            "the user to repeat it verbatim, and set this field only when that "
-            "exact phrase appears in the latest user message."
-        ),
-    )
-
-    @model_validator(mode="after")
-    def normalize(self) -> "CollectNodeSysreportRequest":
-        super().normalize_selector()
-        self.confirm_node_id = self.confirm_node_id.strip()
-        self.confirm_nodename = self.confirm_nodename.strip()
-        if not self.confirm_node_id:
-            raise ValueError("confirm_node_id must not be empty")
-        if not self.confirm_nodename:
-            raise ValueError("confirm_nodename must not be empty")
-        return self
+class CollectNodeSysreportRequest(ConfirmedNodeIdRequest):
+    pass
 
 
 class CollectNodeSysreportResponse(BaseModel):
@@ -527,43 +394,8 @@ class CollectNodeSysreportResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class PushNodeAssetRequest(NodeSelector):
-    confirm_node_id: str = Field(
-        description=(
-            "Exact node_id read from the resolved node snapshot. Required before "
-            "enqueuing the node asset push action, even when the selector is nodename."
-        ),
-        min_length=1,
-        examples=["NODE-ID"],
-    )
-    confirm_nodename: str = Field(
-        description=(
-            "Exact nodename read from the resolved node snapshot. This confirms "
-            "the intended target before enqueuing the node asset push action."
-        ),
-        min_length=1,
-        examples=["lab-node-01"],
-    )
-    confirmation: ToolConfirmation = Field(
-        description=(
-            "Required confirmation gate for this node execution tool. Before "
-            "calling push_node_asset, resolve the target node, generate a concise "
-            "phrase containing the exact node_id and nodename, ask the user to "
-            "repeat it verbatim, and set this field only when that exact phrase "
-            "appears in the latest user message."
-        ),
-    )
-
-    @model_validator(mode="after")
-    def normalize(self) -> "PushNodeAssetRequest":
-        super().normalize_selector()
-        self.confirm_node_id = self.confirm_node_id.strip()
-        self.confirm_nodename = self.confirm_nodename.strip()
-        if not self.confirm_node_id:
-            raise ValueError("confirm_node_id must not be empty")
-        if not self.confirm_nodename:
-            raise ValueError("confirm_nodename must not be empty")
-        return self
+class PushNodeAssetRequest(ConfirmedNodeIdRequest):
+    pass
 
 
 class PushNodeAssetResponse(BaseModel):
@@ -578,7 +410,7 @@ class PushNodeAssetResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class SnoozeNodeNotificationsRequest(NodeSelector):
+class SnoozeNodeNotificationsRequest(ConfirmedNodeIdRequest):
     duration: str = Field(
         description=(
             "Collector duration string to snooze node notifications, for example "
@@ -590,16 +422,17 @@ class SnoozeNodeNotificationsRequest(NodeSelector):
     confirmation: ToolConfirmation = Field(
         description=(
             "Required confirmation gate for this state-changing tool. Before "
-            "calling snooze_node_notifications, summarize the exact node selector "
-            "and duration, ask the user to repeat a concise confirmation phrase "
-            "verbatim, and set this field only when that exact phrase appears in "
-            "the latest user message."
+            "calling snooze_node_notifications, resolve the target node with "
+            "get_node when the user gave a nodename, generate a concise phrase "
+            "containing the exact resolved node_id, nodename, and duration, ask "
+            "the user to repeat it verbatim, and set this field to that full "
+            "phrase only when it appears in the latest user message. The phrase "
+            "must contain both node values, but execution uses node_id only."
         ),
     )
 
     @model_validator(mode="after")
     def normalize(self) -> "SnoozeNodeNotificationsRequest":
-        super().normalize_selector()
         self.duration = self.duration.strip()
         if not self.duration:
             raise ValueError("duration must not be empty")
@@ -618,14 +451,16 @@ class SnoozeNodeNotificationsResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class UnsnoozeNodeNotificationsRequest(NodeSelector):
+class UnsnoozeNodeNotificationsRequest(ConfirmedNodeIdRequest):
     confirmation: ToolConfirmation = Field(
         description=(
             "Required confirmation gate for this state-changing tool. Before "
-            "calling unsnooze_node_notifications, summarize the exact node "
-            "selector, ask the user to repeat a concise confirmation phrase "
-            "verbatim, and set this field only when that exact phrase appears in "
-            "the latest user message."
+            "calling unsnooze_node_notifications, resolve the target node with "
+            "get_node when the user gave a nodename, generate a concise phrase "
+            "containing the exact resolved node_id and nodename, ask the user to "
+            "repeat it verbatim, and set this field to that full phrase only "
+            "when it appears in the latest user message. The phrase must contain "
+            "both values, but execution uses node_id only."
         ),
     )
 

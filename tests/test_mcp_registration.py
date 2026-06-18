@@ -261,6 +261,69 @@ async def test_delete_node_schema_distinguishes_selector_from_confirmation():
     assert example["confirm_nodename"] == "lab-node-01"
 
 
+@pytest.mark.parametrize(
+    "name",
+    [
+        "freeze_node",
+        "thaw_node",
+        "run_node_checks",
+        "collect_node_sysreport",
+        "push_node_asset",
+        "update_node_properties",
+        "snooze_node_notifications",
+        "unsnooze_node_notifications",
+    ],
+)
+async def test_existing_node_state_changing_tools_are_node_id_only(name):
+    tools = await build_mcp()._list_tools()
+    tool = next(tool for tool in tools if tool.name == name)
+
+    assert "node_id-only" in tool.description
+    assert "first call get_node" in tool.description
+    assert "Do not pass nodename as an execution selector" in tool.description
+
+    request_ref = tool.parameters["properties"]["request"]["$ref"]
+    request_name = request_ref.removeprefix("#/$defs/")
+    request_schema = tool.parameters["$defs"][request_name]
+    properties = request_schema["properties"]
+
+    assert "node_id" in request_schema["required"]
+    assert "node_id" in properties
+    assert "nodename" not in properties
+    assert "confirm_node_id" in properties
+    assert "confirm_nodename" in properties
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "delete_tag",
+        "attach_tag_to_node",
+        "attach_tag_to_service",
+        "detach_tag_from_node",
+        "detach_tag_from_service",
+    ],
+)
+async def test_existing_tag_state_changing_tools_are_tag_id_only(name):
+    tools = await build_mcp()._list_tools()
+    tool = next(tool for tool in tools if tool.name == name)
+
+    assert "tag_id-only" in tool.description
+    assert "first call get_tag" in tool.description
+    assert "Do not pass tag_name as an execution selector" in tool.description
+
+    request_ref = tool.parameters["properties"]["request"]["$ref"]
+    request_name = request_ref.removeprefix("#/$defs/")
+    request_schema = tool.parameters["$defs"][request_name]
+    properties = request_schema["properties"]
+
+    assert "tag_id" in request_schema["required"]
+    assert "tag_id" in properties
+    assert "tag_name" not in properties
+    assert "confirm_tag_id" in properties
+    assert "confirm_tag_name" in properties
+
+
 async def test_snooze_node_notifications_is_marked_as_non_destructive_write():
     tools = await build_mcp()._list_tools()
     tool = next(tool for tool in tools if tool.name == "snooze_node_notifications")

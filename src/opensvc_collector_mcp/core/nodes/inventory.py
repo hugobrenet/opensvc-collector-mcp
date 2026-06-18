@@ -25,6 +25,9 @@ DEFAULT_NODE_SNOOZE_SNAPSHOT_PROPS = "node_id,nodename,status,snooze_till,update
 DEFAULT_NODE_ACTION_SNAPSHOT_PROPS = (
     "node_id,nodename,status,node_frozen,node_frozen_at,updated"
 )
+DEFAULT_NODE_UPDATE_SNAPSHOT_PROPS = (
+    "node_id,nodename,status,asset_env,node_env,app,team_responsible,updated"
+)
 
 NODE_UPDATE_ALLOWED_PROPERTIES = frozenset(
     {
@@ -261,21 +264,58 @@ async def create_node(
 
 
 async def update_node_properties(
-    nodename: str,
-    properties: dict[str, Any],
+    nodename: str | None = None,
+    properties: dict[str, Any] | None = None,
+    *,
+    node_id: str | None = None,
+    confirm_node_id: str | None = None,
+    confirm_nodename: str | None = None,
 ) -> dict[str, Any]:
-    nodename = nodename.strip()
-    if not nodename:
-        raise ValueError("nodename must not be empty")
+    selector_node_id = node_id.strip() if node_id else ""
+    selector_nodename = nodename.strip() if nodename else ""
+    confirmation_id = confirm_node_id.strip() if confirm_node_id else ""
+    confirmation_name = confirm_nodename.strip() if confirm_nodename else ""
 
-    payload = _normalized_node_write_payload(properties)
-    response = await collector_post(f"/nodes/{quote(nodename, safe='')}", data=payload)
+    if selector_node_id:
+        if not confirmation_id:
+            raise ValueError("confirm_node_id must not be empty")
+        if not confirmation_name:
+            raise ValueError("confirm_nodename must not be empty")
+        if confirmation_id != selector_node_id:
+            raise ValueError("confirm_node_id must match node_id")
+        node = await resolve_single_node_selector(
+            node_id=selector_node_id,
+            nodename=None,
+            props=DEFAULT_NODE_UPDATE_SNAPSHOT_PROPS,
+            operation="update node properties",
+        )
+        resolved_node_id = str(node.get("node_id") or "").strip()
+        resolved_nodename = str(node.get("nodename") or "").strip()
+        if confirmation_id != resolved_node_id:
+            raise ValueError("confirm_node_id must match the resolved node_id")
+        if confirmation_name != resolved_nodename:
+            raise ValueError("confirm_nodename must match the resolved nodename")
+    else:
+        if not selector_nodename:
+            raise ValueError("nodename must not be empty")
+        resolved_node_id = None
+        resolved_nodename = selector_nodename
+        node = None
+
+    payload = _normalized_node_write_payload(properties or {})
+    response = await collector_post(
+        f"/nodes/{quote(resolved_nodename, safe='')}",
+        data=payload,
+    )
     return {
-        "nodename": nodename,
+        "nodename": resolved_nodename,
         "updated_properties": payload,
         "collector_response": response,
         "meta": {
             "source": "nodes/<nodename>",
+            "selector": "node_id" if selector_node_id else "nodename",
+            "resolved_node_id": resolved_node_id,
+            "node": node,
             "allowed_properties": sorted(NODE_UPDATE_ALLOWED_PROPERTIES),
         },
     }

@@ -635,10 +635,10 @@ Safety rules for the first write/action wave:
   Manager override, unknown tag, and Collector endpoint rejection.
 - Destructive tools must require explicit destructive tags such as
   `delete:<domain>` and should add dry-run or confirmation conventions before
-  live execution. The tag delete tool uses `delete:tags`, accepts `TagSelector`
-  (`tag_id` or exact `tag_name`, exactly one), resolves to one tag snapshot,
-  requires `confirm_tag_id` plus `confirm_tag_name`, and matches both against
-  the resolved Collector tag before calling `DELETE /tags/<tag_id>`.
+  live execution. The tag delete tool uses `delete:tags`, exposes `tag_id` only
+  at execution time, requires prior `get_tag` resolution when the user gives a
+  tag name, requires `confirm_tag_id` plus `confirm_tag_name`, and matches both
+  against the resolved Collector tag before calling `DELETE /tags/<tag_id>`.
 - Audit is mandatory for write/delete/exec attempts, including allowed, denied,
   Collector-rejected, and execution-error cases. Include request id, user,
   client tool, target tool, target object identifiers, required privileges,
@@ -719,11 +719,18 @@ Node tool design decisions:
   unless they add domain-specific logic beyond filtering.
 - `delete_node` is `node_id` only at execution time. If the user provides a nodename, the assistant must first resolve it with `get_node`; only after a single node snapshot is resolved should it ask for the exact confirmation phrase containing both resolved `node_id` and `nodename`. The final `delete_node` payload must include `node_id`, matching `confirm_node_id`, `confirm_nodename`, and `confirmation.phrase`; it must not include `nodename`. Core still deletes through `DELETE /nodes/<resolved node_id>` and verifies confirmation fields before sending DELETE.
 - Mark node deletion with MCP `destructiveHint=true` and `delete:nodes`: Collector cascades node deletion to related runtime and inventory rows.
-- `create_node` uses `POST /nodes` with explicit `nodename` and optional `properties`. It requires only `request.confirmation.phrase` as the safety gate, but first checks exact `nodename` absence because Collector otherwise behaves like an upsert. Collector remains the authority for defaults, read-only fields, and payload validation.
-- `update_node_properties` uses `POST /nodes/<nodename>` and accepts the node properties marked `writable=true` by the Collector nodes API definition.
+- `create_node` uses `POST /nodes` with explicit `nodename` and optional `properties`. It requires only `request.confirmation.phrase` as the safety gate, but first checks exact `nodename` absence because Collector otherwise behaves like an upsert. Its request schema must reject `node_id` and `nodename` inside `properties`; Collector can otherwise treat submitted ids/names as updates to existing nodes. Collector remains the authority for defaults, read-only fields, and payload validation.
+- `update_node_properties` is `node_id` only at the MCP boundary. If the user provides a nodename, first resolve it with `get_node`; the final payload includes `node_id`, matching `confirm_node_id`, `confirm_nodename`, `properties`, and `confirmation.phrase`. The core resolves the node_id to the current nodename immediately before calling Collector because the Collector endpoint remains `POST /nodes/<nodename>`. The MCP request rejects `node_id` and `nodename` inside `properties`; use a dedicated rename flow later if renaming is needed.
 - Mark node property updates with MCP `destructiveHint=true`: they are write operations on an existing node and can overwrite existing Collector values.
-- Node write tools that operate on an existing node can use the shared `NodeSelector` Pydantic model (`node_id` or `nodename`, exactly one) when the operation is non-delete. Core code must resolve `nodename` to a single node snapshot with `resolve_single_node_selector()` and execute Collector calls with the resolved `node_id`; ambiguous duplicate nodenames are refused. Destructive tools must add their own stronger confirmation fields. Node deletion is the exception: its public schema is `node_id` only.
-- `snooze_node_notifications` and `unsnooze_node_notifications` use `POST /nodes/<node_id>/snooze`, require `write:nodes`, require only `confirmation.phrase`, and are marked non-destructive writes.
+- Node write/exec tools that operate on an existing node should expose
+  `node_id` only at the MCP boundary when the Collector operation can execute
+  with `node_id`. If the user provides a nodename, the assistant must first
+  resolve it with `get_node`, read `node_id` and `nodename`, ask for a phrase
+  containing both values, then call the tool with `node_id`, matching
+  `confirm_node_id`, `confirm_nodename`, and `confirmation.phrase`. Core helpers
+  may stay compatible with `nodename` for internal reuse, but MCP wrappers should
+  pass `nodename=None` for migrated tools.
+- `snooze_node_notifications` and `unsnooze_node_notifications` use `POST /nodes/<node_id>/snooze`, require `write:nodes`, require `node_id`, `confirm_node_id`, `confirm_nodename`, and `confirmation.phrase`, and are marked non-destructive writes.
 - `list_nodes` lists rows and handles exact filters, Collector search, pagination, and bounded `nodename_contains` lookup.
 - `count_nodes` returns one optimized count using Collector `meta.total`.
 - `get_nodes_inventory_stats` returns distributions and possible values.
@@ -744,7 +751,9 @@ Node state-changing tool TODO list:
   - Collector API: `POST /nodes/<id>/snooze` with `duration`.
   - Classification: `POST update` on node metadata, not runtime exec.
   - RBAC: `write:nodes` (`NodeManager` or `Manager`).
-  - Selector/confirmation: uses shared `NodeSelector` (`node_id` or exact `nodename`, exactly one), resolves to a single `node_id`, refuses ambiguous nodenames, and requires only `confirmation.phrase`.
+  - Selector/confirmation: MCP schema is `node_id` only. If the user gives a
+    nodename, first resolve it with `get_node`; then call with `node_id`,
+    matching `confirm_node_id`, `confirm_nodename`, and `confirmation.phrase`.
   - Request shape: explicit duration string; Collector validates duration through `convert_duration()`.
   - Response: includes the resolved node snapshot, returned Collector response, duration, and selector metadata.
 - [x] `unsnooze_node_notifications`
@@ -758,11 +767,13 @@ Node state-changing tool TODO list:
   - RBAC: `write:tags` (`TagManager` or `Manager`) because the Collector route
     lives in the tags API. Do not mix `write:tags` and `write:nodes` on one tool
     because RBAC denies mixed auth tags.
-  - Selector/confirmation: accepts `tag_id`, exact `tag_name`, or both for the
-    tag side, and `node_id`, exact `nodename`, or both for the node side. Core
-    resolves both sides to a single snapshot, refuses missing or ambiguous names,
-    verifies `id + name` correlation when both are provided, executes with
-    resolved `tag_id` and `node_id`, and requires only `confirmation.phrase`.
+  - Selector/confirmation: public MCP schema is `tag_id` only on the tag side.
+    If the user gives a `tag_name`, first resolve it with `get_tag`; then call
+    with `tag_id`, matching `confirm_tag_id`, `confirm_tag_name`, and
+    `confirmation.phrase`. Do not pass `tag_name` as an execution selector. The
+    node side still accepts `node_id`, exact `nodename`, or both; core resolves
+    both sides to stable ids, refuses missing or ambiguous names, and verifies
+    confirmation/id correlation before posting.
   - Optional payload: typed `tag_attach_data`, passed to Collector only when
     provided.
   - No implicit batch attach. Add a separate batch tool later only if it has an
@@ -773,11 +784,13 @@ Node state-changing tool TODO list:
   - Classification: non-destructive `attach` relation update.
   - RBAC matches `attach_tag_to_node`: `write:tags` (`TagManager` or `Manager`)
     because the Collector route lives in the tags API.
-  - Selector/confirmation: accepts `tag_id`, exact `tag_name`, or both for the
-    tag side, and `svc_id`, exact `svcname`, or both for the service side. Core
-    resolves both sides to a single snapshot, refuses missing or ambiguous names,
-    verifies `id + name` correlation when both are provided, executes with
-    resolved `tag_id` and `svc_id`, and requires only `confirmation.phrase`.
+  - Selector/confirmation: public MCP schema is `tag_id` only on the tag side.
+    If the user gives a `tag_name`, first resolve it with `get_tag`; then call
+    with `tag_id`, matching `confirm_tag_id`, `confirm_tag_name`, and
+    `confirmation.phrase`. Do not pass `tag_name` as an execution selector. The
+    service side still accepts `svc_id`, exact `svcname`, or both; core resolves
+    both sides to stable ids, refuses missing or ambiguous names, and verifies
+    confirmation/id correlation before posting.
   - No implicit batch attach. Add a separate batch tool later only if it has an
     explicit batch schema and confirmation summary.
 - [x] `detach_tag_from_node`
@@ -786,26 +799,30 @@ Node state-changing tool TODO list:
     node object.
   - RBAC matches `attach_tag_to_node`: `write:tags` (`TagManager` or `Manager`)
     because the Collector route lives in the tags API.
-  - Selector/confirmation: accepts `tag_id`, exact `tag_name`, or both for the
-    tag side, and `node_id`, exact `nodename`, or both for the node side. Core
-    resolves both sides to a single snapshot, verifies `id + name` correlation
-    when both are provided, re-reads the current tag-node relation through
-    `GET /tags/<tag_id>/nodes` filtered by `node_id`, refuses missing or
-    ambiguous relations, executes DELETE with resolved `tag_id` and `node_id`,
-    and requires only `confirmation.phrase`.
+  - Selector/confirmation: public MCP schema is `tag_id` only on the tag side.
+    If the user gives a `tag_name`, first resolve it with `get_tag`; then call
+    with `tag_id`, matching `confirm_tag_id`, `confirm_tag_name`, and
+    `confirmation.phrase`. Do not pass `tag_name` as an execution selector. The
+    node side still accepts `node_id`, exact `nodename`, or both; core resolves
+    both sides to stable ids, verifies confirmation/id correlation, re-reads the
+    current tag-node relation through `GET /tags/<tag_id>/nodes` filtered by
+    `node_id`, refuses missing or ambiguous relations, and executes DELETE with
+    resolved `tag_id` and `node_id`.
 - [x] `detach_tag_from_service`
   - Collector API: `DELETE /tags/<tag_id>/services/<svc_id>`.
   - Classification: destructive relation update, not deletion of the tag or
     service object.
   - RBAC matches `attach_tag_to_service`: `write:tags` (`TagManager` or
     `Manager`) because the Collector route lives in the tags API.
-  - Selector/confirmation: accepts `tag_id`, exact `tag_name`, or both for the
-    tag side, and `svc_id`, exact `svcname`, or both for the service side. Core
-    resolves both sides to a single snapshot, verifies `id + name` correlation
-    when both are provided, re-reads the current tag-service relation through
-    `GET /tags/<tag_id>/services` filtered by `svc_id`, refuses missing or
-    ambiguous relations, executes DELETE with resolved `tag_id` and `svc_id`,
-    and requires only `confirmation.phrase`.
+  - Selector/confirmation: public MCP schema is `tag_id` only on the tag side.
+    If the user gives a `tag_name`, first resolve it with `get_tag`; then call
+    with `tag_id`, matching `confirm_tag_id`, `confirm_tag_name`, and
+    `confirmation.phrase`. Do not pass `tag_name` as an execution selector. The
+    service side still accepts `svc_id`, exact `svcname`, or both; core resolves
+    both sides to stable ids, verifies confirmation/id correlation, re-reads the
+    current tag-service relation through `GET /tags/<tag_id>/services` filtered
+    by `svc_id`, refuses missing or ambiguous relations, and executes DELETE
+    with resolved `tag_id` and `svc_id`.
 - [x] `create_node`
   - Collector API: `POST /nodes`.
   - MCP first checks exact `nodename` absence with `/nodes` before calling
@@ -835,9 +852,10 @@ Node state-changing tool TODO list:
     node-only `exec:nodes` actions unless the action requires extra payload or a
     different RBAC domain.
   - Shared rule: each tool must be narrow and named after one Collector action,
-    resolve exactly one node through `resolve_single_node_selector()`, require
-    `confirm_node_id`, `confirm_nodename`, and `confirmation.phrase`, and enqueue
-    with the resolved `node_id` only.
+    expose `node_id` only in the public MCP schema, require `confirm_node_id`,
+    `confirm_nodename`, and `confirmation.phrase`, and enqueue with the resolved
+    `node_id` only. If the user gives a nodename, first resolve it with
+    `get_node`; do not expose `nodename` as a tool execution selector.
   - Do not mix service-instance actions here. Actions requiring `svc_id` belong
     to service-domain tools even when they also take `node_id`.
 

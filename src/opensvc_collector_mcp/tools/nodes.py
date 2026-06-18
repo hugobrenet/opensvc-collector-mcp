@@ -160,13 +160,16 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         name="freeze_node",
         description=(
             "Enqueue a freeze action for one OpenSVC Collector node through "
-            "PUT /actions with action=freeze and the resolved node_id. Accepts "
-            "either exact node_id or exact nodename; MCP resolves nodename to "
-            "one node_id, refuses ambiguous matches, and verifies explicit "
-            "confirm_node_id and confirm_nodename before enqueueing the action. "
-            "Before calling, ask the user to repeat an exact confirmation phrase "
-            "containing the resolved node_id and nodename, and include it in "
-            "request.confirmation.phrase. Requires Collector NodeExec or Manager "
+            "PUT /actions with action=freeze. Destructive and node_id-only. "
+            "If the user gives a nodename, first call get_node to resolve exactly "
+            "one node and read its node_id and nodename. Do not ask for a runtime "
+            "action confirmation before this resolution step. Then ask the user "
+            "to repeat an exact phrase containing both resolved values, for "
+            "example: FREEZE node <node_id> <nodename>. When the latest user "
+            "message contains that phrase, call freeze_node with node_id, "
+            "confirm_node_id, confirm_nodename, and request.confirmation.phrase. "
+            "Do not pass nodename as an execution selector; use confirm_nodename "
+            "only for correlation. Requires Collector NodeExec or Manager "
             "privileges through MCP RBAC."
         ),
         tags={"nodes", "freeze", "exec:nodes"},
@@ -187,7 +190,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         """Enqueue a freeze action for one OpenSVC Collector node."""
         response = await core_freeze_node(
             node_id=request.node_id,
-            nodename=request.nodename,
+            nodename=None,
             confirm_node_id=request.confirm_node_id,
             confirm_nodename=request.confirm_nodename,
         )
@@ -198,14 +201,17 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         name="thaw_node",
         description=(
             "Enqueue a thaw/unfreeze action for one OpenSVC Collector node "
-            "through PUT /actions with action=thaw and the resolved node_id. "
-            "Accepts either exact node_id or exact nodename; MCP resolves "
-            "nodename to one node_id, refuses ambiguous matches, and verifies "
-            "explicit confirm_node_id and confirm_nodename before enqueueing "
-            "the action. Before calling, ask the user to repeat an exact "
-            "confirmation phrase containing the resolved node_id and nodename, "
-            "and include it in request.confirmation.phrase. Requires Collector "
-            "NodeExec or Manager privileges through MCP RBAC."
+            "through PUT /actions with action=thaw. Destructive and node_id-only. "
+            "If the user gives a nodename, first call get_node to resolve exactly "
+            "one node and read its node_id and nodename. Do not ask for a runtime "
+            "action confirmation before this resolution step. Then ask the user "
+            "to repeat an exact phrase containing both resolved values, for "
+            "example: THAW node <node_id> <nodename>. When the latest user "
+            "message contains that phrase, call thaw_node with node_id, "
+            "confirm_node_id, confirm_nodename, and request.confirmation.phrase. "
+            "Do not pass nodename as an execution selector; use confirm_nodename "
+            "only for correlation. Requires Collector NodeExec or Manager "
+            "privileges through MCP RBAC."
         ),
         tags={"nodes", "thaw", "exec:nodes"},
         annotations={
@@ -225,7 +231,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         """Enqueue a thaw action for one OpenSVC Collector node."""
         response = await core_thaw_node(
             node_id=request.node_id,
-            nodename=request.nodename,
+            nodename=None,
             confirm_node_id=request.confirm_node_id,
             confirm_nodename=request.confirm_nodename,
         )
@@ -236,13 +242,16 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         name="run_node_checks",
         description=(
             "Enqueue an OpenSVC checks action for one Collector node through "
-            "PUT /actions with action=checks and the resolved node_id. Accepts "
-            "either exact node_id or exact nodename; MCP resolves nodename to "
-            "one node_id, refuses ambiguous matches, and verifies explicit "
-            "confirm_node_id and confirm_nodename before enqueueing the action. "
-            "Before calling, ask the user to repeat an exact confirmation phrase "
-            "containing the resolved node_id and nodename, and include it in "
-            "request.confirmation.phrase. Requires Collector NodeExec or Manager "
+            "PUT /actions with action=checks. This tool is node_id-only. If the "
+            "user gives a nodename, first call get_node to resolve exactly one "
+            "node and read its node_id and nodename. Do not ask for a runtime "
+            "action confirmation before this resolution step. Then ask the user "
+            "to repeat an exact phrase containing both resolved values, for "
+            "example: RUN checks node <node_id> <nodename>. When the latest user "
+            "message contains that phrase, call run_node_checks with node_id, "
+            "confirm_node_id, confirm_nodename, and request.confirmation.phrase. "
+            "Do not pass nodename as an execution selector; use confirm_nodename "
+            "only for correlation. Requires Collector NodeExec or Manager "
             "privileges through MCP RBAC."
         ),
         tags={"nodes", "checks", "exec:nodes"},
@@ -263,7 +272,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         """Enqueue a checks action for one OpenSVC Collector node."""
         response = await core_run_node_checks(
             node_id=request.node_id,
-            nodename=request.nodename,
+            nodename=None,
             confirm_node_id=request.confirm_node_id,
             confirm_nodename=request.confirm_nodename,
         )
@@ -274,14 +283,18 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         name="collect_node_sysreport",
         description=(
             "Enqueue a sysreport collection action for one OpenSVC Collector "
-            "node through PUT /actions with action=sysreport and the resolved "
-            "node_id. Accepts either exact node_id or exact nodename; MCP "
-            "resolves nodename to one node_id, refuses ambiguous matches, and "
-            "verifies explicit confirm_node_id and confirm_nodename before "
-            "enqueueing the action. Before calling, ask the user to repeat an "
-            "exact confirmation phrase containing the resolved node_id and "
-            "nodename, and include it in request.confirmation.phrase. Requires "
-            "Collector NodeExec or Manager privileges through MCP RBAC."
+            "node through PUT /actions with action=sysreport. This tool is "
+            "node_id-only. If the user gives a nodename, first call get_node to "
+            "resolve exactly one node and read its node_id and nodename. Do not "
+            "ask for a runtime action confirmation before this resolution step. "
+            "Then ask the user to repeat an exact phrase containing both resolved "
+            "values, for example: COLLECT sysreport node <node_id> <nodename>. "
+            "When the latest user message contains that phrase, call "
+            "collect_node_sysreport with node_id, confirm_node_id, "
+            "confirm_nodename, and request.confirmation.phrase. Do not pass "
+            "nodename as an execution selector; use confirm_nodename only for "
+            "correlation. Requires Collector NodeExec or Manager privileges "
+            "through MCP RBAC."
         ),
         tags={"nodes", "sysreport", "exec:nodes"},
         annotations={
@@ -301,7 +314,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         """Enqueue a sysreport action for one OpenSVC Collector node."""
         response = await core_collect_node_sysreport(
             node_id=request.node_id,
-            nodename=request.nodename,
+            nodename=None,
             confirm_node_id=request.confirm_node_id,
             confirm_nodename=request.confirm_nodename,
         )
@@ -312,17 +325,20 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         name="push_node_asset",
         description=(
             "Enqueue a node asset inventory refresh for one OpenSVC Collector "
-            "node through PUT /actions with action=pushasset and the resolved "
-            "node_id. This corresponds to the Collector UI action 'Update node "
+            "node through PUT /actions with action=pushasset. This corresponds "
+            "to the Collector UI action 'Update node "
             "information' and asks the OpenSVC agent to push node inventory data "
             "such as asset environment, OS, hardware, location, and runtime "
-            "identity fields back to Collector. Accepts either exact node_id or "
-            "exact nodename; MCP resolves nodename to one node_id, refuses "
-            "ambiguous matches, and verifies explicit confirm_node_id and "
-            "confirm_nodename before enqueueing the action. Before calling, ask "
-            "the user to repeat an exact confirmation phrase containing the "
-            "resolved node_id and nodename, and include it in "
-            "request.confirmation.phrase. Requires Collector NodeExec or Manager "
+            "identity fields back to Collector. This tool is node_id-only. If "
+            "the user gives a nodename, first call get_node to resolve exactly "
+            "one node and read its node_id and nodename. Do not ask for a runtime "
+            "action confirmation before this resolution step. Then ask the user "
+            "to repeat an exact phrase containing both resolved values, for "
+            "example: PUSH asset node <node_id> <nodename>. When the latest user "
+            "message contains that phrase, call push_node_asset with node_id, "
+            "confirm_node_id, confirm_nodename, and request.confirmation.phrase. "
+            "Do not pass nodename as an execution selector; use confirm_nodename "
+            "only for correlation. Requires Collector NodeExec or Manager "
             "privileges through MCP RBAC."
         ),
         tags={"nodes", "asset", "exec:nodes"},
@@ -343,7 +359,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         """Enqueue a pushasset action for one OpenSVC Collector node."""
         response = await core_push_node_asset(
             node_id=request.node_id,
-            nodename=request.nodename,
+            nodename=None,
             confirm_node_id=request.confirm_node_id,
             confirm_nodename=request.confirm_nodename,
         )
@@ -354,9 +370,17 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         name="update_node_properties",
         description=(
             "Update Collector-writable properties on one existing OpenSVC "
-            "Collector node selected by exact nodename. Before calling, ask "
-            "the user to repeat an exact confirmation phrase and include it in "
-            "request.confirmation.phrase. Requires Collector NodeManager or "
+            "Collector node. Destructive and node_id-only at the MCP boundary. "
+            "If the user gives a nodename, first call get_node to resolve exactly "
+            "one node and read its node_id and nodename. Do not ask for update "
+            "confirmation before this resolution step. Then ask the user to "
+            "repeat an exact phrase containing both resolved values and the "
+            "property changes. When the latest user message contains that phrase, "
+            "call update_node_properties with node_id, confirm_node_id, "
+            "confirm_nodename, properties, and request.confirmation.phrase. Do "
+            "not pass nodename as an execution selector; use confirm_nodename "
+            "only for correlation. Collector still applies the update through "
+            "POST /nodes/<resolved nodename>. Requires Collector NodeManager or "
             "Manager privileges through MCP RBAC."
         ),
         tags={"nodes", "update", "write:nodes"},
@@ -376,7 +400,10 @@ def register_nodes_tools(mcp: FastMCP) -> None:
     ) -> UpdateNodePropertiesResponse:
         """Update Collector-writable node properties."""
         response = await core_update_node_properties(
-            nodename=request.nodename,
+            node_id=request.node_id,
+            nodename=None,
+            confirm_node_id=request.confirm_node_id,
+            confirm_nodename=request.confirm_nodename,
             properties=request.properties,
         )
         return UpdateNodePropertiesResponse.model_validate(response)
@@ -386,12 +413,17 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         name="snooze_node_notifications",
         description=(
             "Snooze notifications on one OpenSVC Collector node through "
-            "POST /nodes/<node_id>/snooze with duration. Accepts either exact "
-            "node_id or exact nodename; MCP resolves nodename to a single node_id "
-            "and refuses ambiguous duplicate nodenames. Before calling, ask the "
-            "user to repeat an exact confirmation phrase and include it in "
-            "request.confirmation.phrase. Requires Collector NodeManager or "
-            "Manager privileges through MCP RBAC."
+            "POST /nodes/<node_id>/snooze with duration. This tool is "
+            "node_id-only. If the user gives a nodename, first call get_node to "
+            "resolve exactly one node and read its node_id and nodename. Do not "
+            "ask for confirmation before this resolution step. Then ask the user "
+            "to repeat an exact phrase containing the resolved node_id, nodename, "
+            "and duration. When the latest user message contains that phrase, "
+            "call snooze_node_notifications with node_id, confirm_node_id, "
+            "confirm_nodename, duration, and request.confirmation.phrase. Do not "
+            "pass nodename as an execution selector; use confirm_nodename only "
+            "for correlation. Requires Collector NodeManager or Manager "
+            "privileges through MCP RBAC."
         ),
         tags={"nodes", "snooze", "write:nodes"},
         annotations={
@@ -411,7 +443,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         """Snooze notifications on one Collector node."""
         response = await core_snooze_node_notifications(
             node_id=request.node_id,
-            nodename=request.nodename,
+            nodename=None,
             duration=request.duration,
         )
         return SnoozeNodeNotificationsResponse.model_validate(response)
@@ -421,12 +453,17 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         name="unsnooze_node_notifications",
         description=(
             "Unsnooze notifications on one OpenSVC Collector node through "
-            "POST /nodes/<node_id>/snooze without duration. Accepts either "
-            "exact node_id or exact nodename; MCP resolves nodename to a single "
-            "node_id and refuses ambiguous duplicate nodenames. Before calling, "
-            "ask the user to repeat an exact confirmation phrase and include it "
-            "in request.confirmation.phrase. Requires Collector NodeManager or "
-            "Manager privileges through MCP RBAC."
+            "POST /nodes/<node_id>/snooze without duration. This tool is "
+            "node_id-only. If the user gives a nodename, first call get_node to "
+            "resolve exactly one node and read its node_id and nodename. Do not "
+            "ask for confirmation before this resolution step. Then ask the user "
+            "to repeat an exact phrase containing both resolved values. When the "
+            "latest user message contains that phrase, call "
+            "unsnooze_node_notifications with node_id, confirm_node_id, "
+            "confirm_nodename, and request.confirmation.phrase. Do not pass "
+            "nodename as an execution selector; use confirm_nodename only for "
+            "correlation. Requires Collector NodeManager or Manager privileges "
+            "through MCP RBAC."
         ),
         tags={"nodes", "unsnooze", "write:nodes"},
         annotations={
@@ -446,7 +483,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         """Unsnooze notifications on one Collector node."""
         response = await core_unsnooze_node_notifications(
             node_id=request.node_id,
-            nodename=request.nodename,
+            nodename=None,
         )
         return UnsnoozeNodeNotificationsResponse.model_validate(response)
 
