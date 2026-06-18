@@ -23,6 +23,10 @@ from opensvc_collector_mcp.models.nodes import (
     PushNodeAssetResponse,
     PushNodeDisksRequest,
     PushNodeDisksResponse,
+    PushNodePackagesRequest,
+    PushNodePackagesResponse,
+    PushNodePatchesRequest,
+    PushNodePatchesResponse,
     PushNodeStatsRequest,
     PushNodeStatsResponse,
     PullNodeConfigRequest,
@@ -66,6 +70,8 @@ from opensvc_collector_mcp.core.nodes import (
     collect_node_sysreport as core_collect_node_sysreport,
     push_node_asset as core_push_node_asset,
     push_node_disks as core_push_node_disks,
+    push_node_packages as core_push_node_packages,
+    push_node_patches as core_push_node_patches,
     push_node_stats as core_push_node_stats,
     pull_node_config as core_pull_node_config,
     push_node_config as core_push_node_config,
@@ -420,6 +426,94 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             confirm_nodename=request.confirm_nodename,
         )
         return PushNodeDisksResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="push_node_packages",
+        description=(
+            "Enqueue a node installed package inventory refresh for one OpenSVC "
+            "Collector node through PUT /actions with action=pushpkg. This "
+            "corresponds to the Collector UI action 'Update installed packages "
+            "information' and asks the OpenSVC agent to push package inventory "
+            "data back to Collector. This tool is node_id-only. If the user "
+            "gives a nodename, first call get_node to resolve exactly one node "
+            "and read its node_id and nodename. Do not ask for a runtime action "
+            "confirmation before this resolution step. Then ask the user to "
+            "repeat an exact phrase containing both resolved values, for "
+            "example: PUSH packages node <node_id> <nodename>. When the latest "
+            "user message contains that phrase, call push_node_packages with "
+            "node_id, confirm_node_id, confirm_nodename, and "
+            "request.confirmation.phrase. Do not pass nodename as an execution "
+            "selector; use confirm_nodename only for correlation. Requires "
+            "Collector NodeExec or Manager privileges through MCP RBAC."
+        ),
+        tags={"nodes", "packages", "exec:nodes"},
+        annotations={
+            "title": "Push OpenSVC Node Package Inventory",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        },
+    )
+    async def push_node_packages(
+        request: Annotated[
+            PushNodePackagesRequest,
+            Field(description="Node package push selector and explicit confirmations."),
+        ],
+    ) -> PushNodePackagesResponse:
+        """Enqueue a pushpkg action for one OpenSVC Collector node."""
+        response = await core_push_node_packages(
+            node_id=request.node_id,
+            nodename=None,
+            confirm_node_id=request.confirm_node_id,
+            confirm_nodename=request.confirm_nodename,
+        )
+        return PushNodePackagesResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="push_node_patches",
+        description=(
+            "Enqueue a node installed patch inventory refresh for one OpenSVC "
+            "Collector node through PUT /actions with action=pushpatch. This "
+            "corresponds to the Collector UI action 'Update installed patches "
+            "information' and asks the OpenSVC agent to push patch inventory "
+            "data back to Collector. This tool is node_id-only. If the user "
+            "gives a nodename, first call get_node to resolve exactly one node "
+            "and read its node_id and nodename. Do not ask for a runtime action "
+            "confirmation before this resolution step. Then ask the user to "
+            "repeat an exact phrase containing both resolved values, for "
+            "example: PUSH patches node <node_id> <nodename>. When the latest "
+            "user message contains that phrase, call push_node_patches with "
+            "node_id, confirm_node_id, confirm_nodename, and "
+            "request.confirmation.phrase. Do not pass nodename as an execution "
+            "selector; use confirm_nodename only for correlation. Requires "
+            "Collector NodeExec or Manager privileges through MCP RBAC."
+        ),
+        tags={"nodes", "patches", "exec:nodes"},
+        annotations={
+            "title": "Push OpenSVC Node Patch Inventory",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        },
+    )
+    async def push_node_patches(
+        request: Annotated[
+            PushNodePatchesRequest,
+            Field(description="Node patch push selector and explicit confirmations."),
+        ],
+    ) -> PushNodePatchesResponse:
+        """Enqueue a pushpatch action for one OpenSVC Collector node."""
+        response = await core_push_node_patches(
+            node_id=request.node_id,
+            nodename=None,
+            confirm_node_id=request.confirm_node_id,
+            confirm_nodename=request.confirm_nodename,
+        )
+        return PushNodePatchesResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

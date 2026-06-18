@@ -418,6 +418,22 @@ class PushNodeDisksResponse(PushNodeAssetResponse):
     pass
 
 
+class PushNodePackagesRequest(ConfirmedNodeIdRequest):
+    pass
+
+
+class PushNodePackagesResponse(PushNodeAssetResponse):
+    pass
+
+
+class PushNodePatchesRequest(ConfirmedNodeIdRequest):
+    pass
+
+
+class PushNodePatchesResponse(PushNodeAssetResponse):
+    pass
+
+
 class PushNodeStatsRequest(ConfirmedNodeIdRequest):
     pass
 

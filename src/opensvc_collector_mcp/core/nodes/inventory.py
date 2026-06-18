@@ -522,6 +522,40 @@ async def push_node_disks(
     )
 
 
+async def push_node_packages(
+    *,
+    node_id: str | None = None,
+    nodename: str | None = None,
+    confirm_node_id: str,
+    confirm_nodename: str,
+) -> dict[str, Any]:
+    return await _enqueue_confirmed_node_action(
+        action="pushpkg",
+        operation="push node packages",
+        node_id=node_id,
+        nodename=nodename,
+        confirm_node_id=confirm_node_id,
+        confirm_nodename=confirm_nodename,
+    )
+
+
+async def push_node_patches(
+    *,
+    node_id: str | None = None,
+    nodename: str | None = None,
+    confirm_node_id: str,
+    confirm_nodename: str,
+) -> dict[str, Any]:
+    return await _enqueue_confirmed_node_action(
+        action="pushpatch",
+        operation="push node patches",
+        node_id=node_id,
+        nodename=nodename,
+        confirm_node_id=confirm_node_id,
+        confirm_nodename=confirm_nodename,
+    )
+
+
 async def push_node_stats(
     *,
     node_id: str | None = None,

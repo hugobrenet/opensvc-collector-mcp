@@ -472,6 +472,8 @@ async def test_thaw_node_requires_exactly_one_selector(
         ("collect_node_sysreport", "sysreport"),
         ("push_node_asset", "pushasset"),
         ("push_node_disks", "pushdisks"),
+        ("push_node_packages", "pushpkg"),
+        ("push_node_patches", "pushpatch"),
         ("push_node_stats", "pushstats"),
         ("pull_node_config", "pull"),
         ("push_node_config", "push"),
