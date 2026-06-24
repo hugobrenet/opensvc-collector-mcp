@@ -41,6 +41,8 @@ from opensvc_collector_mcp.models.nodes import (
     ScanNodeScsiResponse,
     RebootNodeRequest,
     RebootNodeResponse,
+    ShutdownNodeRequest,
+    ShutdownNodeResponse,
     ScheduleNodeRebootRequest,
     ScheduleNodeRebootResponse,
     UnscheduleNodeRebootRequest,
@@ -91,6 +93,7 @@ from opensvc_collector_mcp.core.nodes import (
     update_node_opensvc_agent as core_update_node_opensvc_agent,
     scan_node_scsi as core_scan_node_scsi,
     reboot_node as core_reboot_node,
+    shutdown_node as core_shutdown_node,
     schedule_node_reboot as core_schedule_node_reboot,
     unschedule_node_reboot as core_unschedule_node_reboot,
     get_node as core_get_node,
@@ -849,6 +852,50 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             confirm_nodename=request.confirm_nodename,
         )
         return RebootNodeResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="shutdown_node",
+        description=(
+            "Enqueue an immediate shutdown action for one OpenSVC Collector node "
+            "through PUT /actions with action=shutdown. This corresponds to the "
+            "Collector UI action 'Shutdown'. It asks the OpenSVC agent to shut "
+            "down the target node as soon as the queued action is executed. "
+            "This tool is node_id-only. If the user gives a nodename, first "
+            "call get_node to resolve exactly one node and read its node_id "
+            "and nodename. Do not ask for a runtime action confirmation before "
+            "this resolution step. Then ask the user to repeat an exact phrase "
+            "containing both resolved values, for example: SHUTDOWN node "
+            "<node_id> <nodename>. When the latest user message contains that "
+            "phrase, call shutdown_node with node_id, confirm_node_id, "
+            "confirm_nodename, and request.confirmation.phrase. Do not pass "
+            "nodename as an execution selector; use confirm_nodename only for "
+            "correlation. Requires Collector NodeExec or Manager privileges "
+            "through MCP RBAC."
+        ),
+        tags={"nodes", "shutdown", "exec:nodes"},
+        annotations={
+            "title": "Shutdown OpenSVC Node",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def shutdown_node(
+        request: Annotated[
+            ShutdownNodeRequest,
+            Field(description="Node shutdown selector and explicit confirmations."),
+        ],
+    ) -> ShutdownNodeResponse:
+        """Enqueue a shutdown action for one OpenSVC Collector node."""
+        response = await core_shutdown_node(
+            node_id=request.node_id,
+            nodename=None,
+            confirm_node_id=request.confirm_node_id,
+            confirm_nodename=request.confirm_nodename,
+        )
+        return ShutdownNodeResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

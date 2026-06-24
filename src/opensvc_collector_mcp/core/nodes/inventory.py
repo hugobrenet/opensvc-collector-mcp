@@ -670,6 +670,23 @@ async def reboot_node(
     )
 
 
+async def shutdown_node(
+    *,
+    node_id: str | None = None,
+    nodename: str | None = None,
+    confirm_node_id: str,
+    confirm_nodename: str,
+) -> dict[str, Any]:
+    return await _enqueue_confirmed_node_action(
+        action="shutdown",
+        operation="shutdown node",
+        node_id=node_id,
+        nodename=nodename,
+        confirm_node_id=confirm_node_id,
+        confirm_nodename=confirm_nodename,
+    )
+
+
 async def schedule_node_reboot(
     *,
     node_id: str | None = None,

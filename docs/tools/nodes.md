@@ -1027,6 +1027,64 @@ meta
 ```
 
 
+### `shutdown_node`
+
+Enqueues an immediate shutdown action for one OpenSVC Collector node through
+`PUT /actions` with `node_id=<node_id>` and `action=shutdown`. This corresponds
+to the Collector UI action `Shutdown`. It asks the OpenSVC agent to shut down the
+target node as soon as the queued action is executed. MCP annotations mark it as
+destructive.
+
+The request is `node_id` only. If the user provides a `nodename`, first call
+`get_node` to resolve exactly one node and read its `node_id` and `nodename`.
+Do not ask for confirmation before this resolution step. The tool also requires
+`confirm_node_id` and `confirm_nodename` to match the resolved snapshot before
+calling Collector. Do not pass `nodename` as an execution selector.
+
+Because this can shut down the node as soon as the queued action runs, the
+request requires `confirmation.phrase`. The assistant must resolve the selected
+node, summarize that the node will be shut down immediately when the action is
+processed, ask the user to repeat a concise phrase containing the resolved
+`node_id` and `nodename` verbatim, and set `confirmation.phrase` only after that
+phrase appears in the latest user message.
+
+Required input fields:
+
+```text
+node_id
+confirm_node_id
+confirm_nodename
+confirmation.phrase
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "node_id": "NODE-ID",
+    "confirm_node_id": "NODE-ID",
+    "confirm_nodename": "lab-node-01",
+    "confirmation": {
+      "phrase": "SHUTDOWN node NODE-ID lab-node-01"
+    }
+  }
+}
+```
+
+Output fields:
+
+```text
+node_id
+nodename
+node
+action
+queued
+collector_response
+meta
+```
+
+
 ### `schedule_node_reboot`
 
 Enqueues a scheduled reboot flag action for one OpenSVC Collector node through

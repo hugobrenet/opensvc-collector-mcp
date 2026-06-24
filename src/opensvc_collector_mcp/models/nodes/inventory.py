@@ -490,6 +490,14 @@ class RebootNodeResponse(PushNodeAssetResponse):
     pass
 
 
+class ShutdownNodeRequest(ConfirmedNodeIdRequest):
+    pass
+
+
+class ShutdownNodeResponse(PushNodeAssetResponse):
+    pass
+
+
 class ScheduleNodeRebootRequest(ConfirmedNodeIdRequest):
     pass
 

@@ -48,6 +48,8 @@ from .inventory import (
     ScanNodeScsiResponse,
     RebootNodeRequest,
     RebootNodeResponse,
+    ShutdownNodeRequest,
+    ShutdownNodeResponse,
     ScheduleNodeRebootRequest,
     ScheduleNodeRebootResponse,
     UnscheduleNodeRebootRequest,
