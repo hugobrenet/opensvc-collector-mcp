@@ -268,39 +268,33 @@ async def update_node_properties(
     properties: dict[str, Any] | None = None,
     *,
     node_id: str | None = None,
-    confirm_node_id: str | None = None,
-    confirm_nodename: str | None = None,
+    confirm_node_id: str,
+    confirm_nodename: str,
 ) -> dict[str, Any]:
     selector_node_id = node_id.strip() if node_id else ""
     selector_nodename = nodename.strip() if nodename else ""
     confirmation_id = confirm_node_id.strip() if confirm_node_id else ""
     confirmation_name = confirm_nodename.strip() if confirm_nodename else ""
 
-    if selector_node_id:
-        if not confirmation_id:
-            raise ValueError("confirm_node_id must not be empty")
-        if not confirmation_name:
-            raise ValueError("confirm_nodename must not be empty")
-        if confirmation_id != selector_node_id:
-            raise ValueError("confirm_node_id must match node_id")
-        node = await resolve_single_node_selector(
-            node_id=selector_node_id,
-            nodename=None,
-            props=DEFAULT_NODE_UPDATE_SNAPSHOT_PROPS,
-            operation="update node properties",
-        )
-        resolved_node_id = str(node.get("node_id") or "").strip()
-        resolved_nodename = str(node.get("nodename") or "").strip()
-        if confirmation_id != resolved_node_id:
-            raise ValueError("confirm_node_id must match the resolved node_id")
-        if confirmation_name != resolved_nodename:
-            raise ValueError("confirm_nodename must match the resolved nodename")
-    else:
-        if not selector_nodename:
-            raise ValueError("nodename must not be empty")
-        resolved_node_id = None
-        resolved_nodename = selector_nodename
-        node = None
+    if not confirmation_id:
+        raise ValueError("confirm_node_id must not be empty")
+    if not confirmation_name:
+        raise ValueError("confirm_nodename must not be empty")
+    if selector_node_id and confirmation_id != selector_node_id:
+        raise ValueError("confirm_node_id must match node_id")
+
+    node = await resolve_single_node_selector(
+        node_id=selector_node_id or None,
+        nodename=selector_nodename or None,
+        props=DEFAULT_NODE_UPDATE_SNAPSHOT_PROPS,
+        operation="update node properties",
+    )
+    resolved_node_id = str(node.get("node_id") or "").strip()
+    resolved_nodename = str(node.get("nodename") or "").strip()
+    if confirmation_id != resolved_node_id:
+        raise ValueError("confirm_node_id must match the resolved node_id")
+    if confirmation_name != resolved_nodename:
+        raise ValueError("confirm_nodename must match the resolved nodename")
 
     payload = _normalized_node_write_payload(properties or {})
     response = await collector_post(
@@ -316,6 +310,7 @@ async def update_node_properties(
             "selector": "node_id" if selector_node_id else "nodename",
             "resolved_node_id": resolved_node_id,
             "node": node,
+            "confirmation": ["confirm_node_id", "confirm_nodename"],
             "allowed_properties": sorted(NODE_UPDATE_ALLOWED_PROPERTIES),
         },
     }
