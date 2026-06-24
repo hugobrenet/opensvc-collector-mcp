@@ -1021,6 +1021,8 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         response = await core_snooze_node_notifications(
             node_id=request.node_id,
             nodename=None,
+            confirm_node_id=request.confirm_node_id,
+            confirm_nodename=request.confirm_nodename,
             duration=request.duration,
         )
         return SnoozeNodeNotificationsResponse.model_validate(response)
@@ -1061,6 +1063,8 @@ def register_nodes_tools(mcp: FastMCP) -> None:
         response = await core_unsnooze_node_notifications(
             node_id=request.node_id,
             nodename=None,
+            confirm_node_id=request.confirm_node_id,
+            confirm_nodename=request.confirm_nodename,
         )
         return UnsnoozeNodeNotificationsResponse.model_validate(response)
 

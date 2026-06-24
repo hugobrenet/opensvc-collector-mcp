@@ -523,7 +523,13 @@ async def test_snooze_node_notifications_tool_passes_request_to_core(
     assert result.structured_content["snoozed"] is True
     assert result.structured_content["duration"] == "1h"
     assert recorder.calls == [
-        {"node_id": "node-a-id", "nodename": None, "duration": "1h"}
+        {
+            "node_id": "node-a-id",
+            "nodename": None,
+            "confirm_node_id": "node-a-id",
+            "confirm_nodename": "node-a",
+            "duration": "1h",
+        }
     ]
 
 
@@ -556,7 +562,14 @@ async def test_unsnooze_node_notifications_tool_passes_request_to_core(
     )
 
     assert result.structured_content["unsnoozed"] is True
-    assert recorder.calls == [{"node_id": "node-a-id", "nodename": None}]
+    assert recorder.calls == [
+        {
+            "node_id": "node-a-id",
+            "nodename": None,
+            "confirm_node_id": "node-a-id",
+            "confirm_nodename": "node-a",
+        }
+    ]
 
 
 @pytest.mark.parametrize(

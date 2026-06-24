@@ -713,34 +713,52 @@ async def snooze_node_notifications(
     *,
     node_id: str | None = None,
     nodename: str | None = None,
+    confirm_node_id: str,
+    confirm_nodename: str,
     duration: str,
 ) -> dict[str, Any]:
+    selector_node_id = node_id.strip() if node_id else ""
+    selector_nodename = nodename.strip() if nodename else ""
+    confirmation_id = confirm_node_id.strip() if confirm_node_id else ""
+    confirmation_name = confirm_nodename.strip() if confirm_nodename else ""
     duration = duration.strip() if duration else ""
     if not duration:
         raise ValueError("duration must not be empty")
+    if not confirmation_id:
+        raise ValueError("confirm_node_id must not be empty")
+    if not confirmation_name:
+        raise ValueError("confirm_nodename must not be empty")
+    if selector_node_id and confirmation_id != selector_node_id:
+        raise ValueError("confirm_node_id must match node_id")
 
     node = await resolve_single_node_selector(
-        node_id=node_id,
-        nodename=nodename,
+        node_id=selector_node_id or None,
+        nodename=selector_nodename or None,
         props=DEFAULT_NODE_SNOOZE_SNAPSHOT_PROPS,
         operation="snooze node notifications",
     )
-    resolved_node_id = str(node["node_id"])
+    resolved_node_id = str(node.get("node_id") or "").strip()
+    resolved_nodename = str(node.get("nodename") or "").strip()
+    if confirmation_id != resolved_node_id:
+        raise ValueError("confirm_node_id must match the resolved node_id")
+    if confirmation_name != resolved_nodename:
+        raise ValueError("confirm_nodename must match the resolved nodename")
+
     response = await collector_post(
         f"/nodes/{quote(resolved_node_id, safe='')}/snooze",
         data={"duration": duration},
     )
     return {
         "node_id": resolved_node_id,
-        "nodename": str(node["nodename"]),
+        "nodename": resolved_nodename,
         "duration": duration,
         "node": node,
         "snoozed": True,
         "collector_response": response,
         "meta": {
             "source": "nodes/<node_id>/snooze",
-            "selector": "node_id" if node_id else "nodename",
-            "confirmation": ["confirmation.phrase"],
+            "selector": "node_id" if selector_node_id else "nodename",
+            "confirmation": ["confirm_node_id", "confirm_nodename"],
         },
     }
 
@@ -749,25 +767,45 @@ async def unsnooze_node_notifications(
     *,
     node_id: str | None = None,
     nodename: str | None = None,
+    confirm_node_id: str,
+    confirm_nodename: str,
 ) -> dict[str, Any]:
+    selector_node_id = node_id.strip() if node_id else ""
+    selector_nodename = nodename.strip() if nodename else ""
+    confirmation_id = confirm_node_id.strip() if confirm_node_id else ""
+    confirmation_name = confirm_nodename.strip() if confirm_nodename else ""
+
+    if not confirmation_id:
+        raise ValueError("confirm_node_id must not be empty")
+    if not confirmation_name:
+        raise ValueError("confirm_nodename must not be empty")
+    if selector_node_id and confirmation_id != selector_node_id:
+        raise ValueError("confirm_node_id must match node_id")
+
     node = await resolve_single_node_selector(
-        node_id=node_id,
-        nodename=nodename,
+        node_id=selector_node_id or None,
+        nodename=selector_nodename or None,
         props=DEFAULT_NODE_SNOOZE_SNAPSHOT_PROPS,
         operation="unsnooze node notifications",
     )
-    resolved_node_id = str(node["node_id"])
+    resolved_node_id = str(node.get("node_id") or "").strip()
+    resolved_nodename = str(node.get("nodename") or "").strip()
+    if confirmation_id != resolved_node_id:
+        raise ValueError("confirm_node_id must match the resolved node_id")
+    if confirmation_name != resolved_nodename:
+        raise ValueError("confirm_nodename must match the resolved nodename")
+
     response = await collector_post(f"/nodes/{quote(resolved_node_id, safe='')}/snooze")
     return {
         "node_id": resolved_node_id,
-        "nodename": str(node["nodename"]),
+        "nodename": resolved_nodename,
         "node": node,
         "unsnoozed": True,
         "collector_response": response,
         "meta": {
             "source": "nodes/<node_id>/snooze",
-            "selector": "node_id" if node_id else "nodename",
-            "confirmation": ["confirmation.phrase"],
+            "selector": "node_id" if selector_node_id else "nodename",
+            "confirmation": ["confirm_node_id", "confirm_nodename"],
         },
     }
 
