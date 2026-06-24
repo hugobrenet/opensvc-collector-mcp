@@ -170,6 +170,8 @@ __all__ = [
     'ScanNodeScsiResponse',
     'RebootNodeRequest',
     'RebootNodeResponse',
+    'ShutdownNodeRequest',
+    'ShutdownNodeResponse',
     'ScheduleNodeRebootRequest',
     'ScheduleNodeRebootResponse',
     'UnscheduleNodeRebootRequest',
