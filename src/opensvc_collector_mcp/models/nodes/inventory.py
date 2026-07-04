@@ -514,6 +514,22 @@ class UnscheduleNodeRebootResponse(PushNodeAssetResponse):
     pass
 
 
+class RotateNodeRootPasswordRequest(ConfirmedNodeIdRequest):
+    pass
+
+
+class RotateNodeRootPasswordResponse(PushNodeAssetResponse):
+    pass
+
+
+class WakeNodeOnLanRequest(ConfirmedNodeIdRequest):
+    pass
+
+
+class WakeNodeOnLanResponse(PushNodeAssetResponse):
+    pass
+
+
 class SnoozeNodeNotificationsRequest(ConfirmedNodeIdRequest):
     duration: str = Field(
         description=(

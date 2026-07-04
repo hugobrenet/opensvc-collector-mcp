@@ -26,6 +26,8 @@ from .inventory import (
     shutdown_node,
     schedule_node_reboot,
     unschedule_node_reboot,
+    rotate_node_root_password,
+    wake_node_on_lan,
     snooze_node_notifications,
     unsnooze_node_notifications,
 )
@@ -104,6 +106,8 @@ __all__ = [
     'shutdown_node',
     'schedule_node_reboot',
     'unschedule_node_reboot',
+    'rotate_node_root_password',
+    'wake_node_on_lan',
     'get_node',
     'get_node_checks',
     'get_node_cluster',

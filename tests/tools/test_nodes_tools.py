@@ -277,6 +277,18 @@ async def test_thaw_node_tool_passes_request_to_core(monkeypatch, mcp_client):
             "unschedule_reboot",
             "UNSCHEDULE reboot node node-a-id node-a",
         ),
+        (
+            "rotate_node_root_password",
+            "core_rotate_node_root_password",
+            "rotate_root_pw",
+            "ROTATE root password node node-a-id node-a",
+        ),
+        (
+            "wake_node_on_lan",
+            "core_wake_node_on_lan",
+            "wol",
+            "WAKE node node-a-id node-a",
+        ),
     ],
 )
 async def test_node_exec_action_tool_passes_request_to_core(
@@ -404,6 +416,16 @@ async def test_node_exec_action_tool_passes_request_to_core(
             "unschedule_node_reboot",
             "core_unschedule_node_reboot",
             "UNSCHEDULE reboot node node-a-id node-a",
+        ),
+        (
+            "rotate_node_root_password",
+            "core_rotate_node_root_password",
+            "ROTATE root password node node-a-id node-a",
+        ),
+        (
+            "wake_node_on_lan",
+            "core_wake_node_on_lan",
+            "WAKE node node-a-id node-a",
         ),
     ],
 )

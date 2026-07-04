@@ -1315,6 +1315,122 @@ collector_response
 meta
 ```
 
+### `rotate_node_root_password`
+
+Enqueues a root password rotation action for one OpenSVC Collector node through
+`PUT /actions` with `node_id=<node_id>` and `action=rotate_root_pw`. This is a
+high-impact sensitive execution tool and requires `exec:nodes`, authorized for
+Collector `NodeExec` or `Manager` users by MCP RBAC. MCP annotations mark it as
+destructive.
+
+The request is `node_id` only. If the user provides a `nodename`, first call
+`get_node` to resolve exactly one node and read its `node_id` and `nodename`.
+Do not ask for confirmation before this resolution step. The tool also requires
+`confirm_node_id` and `confirm_nodename` to match the resolved snapshot before
+calling Collector. Do not pass `nodename` as an execution selector.
+
+Because this rotates a privileged credential, the request requires
+`confirmation.phrase`. The assistant must resolve the selected node, summarize
+that the root password will be rotated when the queued action is processed, ask
+the user to repeat a concise phrase containing the resolved `node_id` and
+`nodename` verbatim, and set `confirmation.phrase` only after that phrase
+appears in the latest user message.
+
+Required input fields:
+
+```text
+node_id
+confirm_node_id
+confirm_nodename
+confirmation.phrase
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "node_id": "NODE-ID",
+    "confirm_node_id": "NODE-ID",
+    "confirm_nodename": "lab-node-01",
+    "confirmation": {
+      "phrase": "ROTATE root password node NODE-ID lab-node-01"
+    }
+  }
+}
+```
+
+Output fields:
+
+```text
+node_id
+nodename
+node
+action
+queued
+collector_response
+meta
+```
+
+
+### `wake_node_on_lan`
+
+Enqueues a Wake-on-LAN action for one OpenSVC Collector node through
+`PUT /actions` with `node_id=<node_id>` and `action=wol`. This is an execution
+tool and requires `exec:nodes`, authorized for Collector `NodeExec` or `Manager`
+users by MCP RBAC. MCP annotations mark it as non-destructive, but it still
+changes runtime state by enqueuing work in Collector.
+
+The request is `node_id` only. If the user provides a `nodename`, first call
+`get_node` to resolve exactly one node and read its `node_id` and `nodename`.
+Do not ask for confirmation before this resolution step. The tool also requires
+`confirm_node_id` and `confirm_nodename` to match the resolved snapshot before
+calling Collector. Do not pass `nodename` as an execution selector.
+
+Because this enqueues runtime work, the request requires `confirmation.phrase`.
+The assistant must resolve the selected node, summarize that the node will be
+woken through the Collector-supported WOL action, ask the user to repeat a
+concise phrase containing the resolved `node_id` and `nodename` verbatim, and
+set `confirmation.phrase` only after that phrase appears in the latest user
+message.
+
+Required input fields:
+
+```text
+node_id
+confirm_node_id
+confirm_nodename
+confirmation.phrase
+```
+
+Example:
+
+```json
+{
+  "request": {
+    "node_id": "NODE-ID",
+    "confirm_node_id": "NODE-ID",
+    "confirm_nodename": "lab-node-01",
+    "confirmation": {
+      "phrase": "WAKE node NODE-ID lab-node-01"
+    }
+  }
+}
+```
+
+Output fields:
+
+```text
+node_id
+nodename
+node
+action
+queued
+collector_response
+meta
+```
+
+
 ### `update_node_properties`
 
 Updates Collector-writable properties on one existing OpenSVC Collector node

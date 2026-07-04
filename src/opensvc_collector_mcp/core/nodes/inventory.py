@@ -721,6 +721,40 @@ async def unschedule_node_reboot(
     )
 
 
+async def rotate_node_root_password(
+    *,
+    node_id: str | None = None,
+    nodename: str | None = None,
+    confirm_node_id: str,
+    confirm_nodename: str,
+) -> dict[str, Any]:
+    return await _enqueue_confirmed_node_action(
+        action="rotate_root_pw",
+        operation="rotate node root password",
+        node_id=node_id,
+        nodename=nodename,
+        confirm_node_id=confirm_node_id,
+        confirm_nodename=confirm_nodename,
+    )
+
+
+async def wake_node_on_lan(
+    *,
+    node_id: str | None = None,
+    nodename: str | None = None,
+    confirm_node_id: str,
+    confirm_nodename: str,
+) -> dict[str, Any]:
+    return await _enqueue_confirmed_node_action(
+        action="wol",
+        operation="wake node on lan",
+        node_id=node_id,
+        nodename=nodename,
+        confirm_node_id=confirm_node_id,
+        confirm_nodename=confirm_nodename,
+    )
+
+
 async def snooze_node_notifications(
     *,
     node_id: str | None = None,

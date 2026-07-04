@@ -484,6 +484,8 @@ async def test_thaw_node_requires_exactly_one_selector(
         ("shutdown_node", "shutdown"),
         ("schedule_node_reboot", "schedule_reboot"),
         ("unschedule_node_reboot", "unschedule_reboot"),
+        ("rotate_node_root_password", "rotate_root_pw"),
+        ("wake_node_on_lan", "wol"),
     ],
 )
 async def test_node_exec_action_resolves_nodename_confirms_and_enqueues_action(

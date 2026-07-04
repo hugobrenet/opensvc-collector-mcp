@@ -47,6 +47,10 @@ from opensvc_collector_mcp.models.nodes import (
     ScheduleNodeRebootResponse,
     UnscheduleNodeRebootRequest,
     UnscheduleNodeRebootResponse,
+    RotateNodeRootPasswordRequest,
+    RotateNodeRootPasswordResponse,
+    WakeNodeOnLanRequest,
+    WakeNodeOnLanResponse,
     InventoryStatsRequest,
     InventoryStatsResponse,
     ListNodesRequest,
@@ -96,6 +100,8 @@ from opensvc_collector_mcp.core.nodes import (
     shutdown_node as core_shutdown_node,
     schedule_node_reboot as core_schedule_node_reboot,
     unschedule_node_reboot as core_unschedule_node_reboot,
+    rotate_node_root_password as core_rotate_node_root_password,
+    wake_node_on_lan as core_wake_node_on_lan,
     get_node as core_get_node,
     get_node_cluster as core_get_node_cluster,
     get_node_checks as core_get_node_checks,
@@ -988,6 +994,92 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             confirm_nodename=request.confirm_nodename,
         )
         return UnscheduleNodeRebootResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="rotate_node_root_password",
+        description=(
+            "Enqueue a root password rotation action for one OpenSVC Collector "
+            "node through PUT /actions with action=rotate_root_pw. This "
+            "corresponds to the Collector action that asks the OpenSVC agent to "
+            "rotate the target node root password. This is a high-impact "
+            "sensitive action and is node_id-only. If the user gives a nodename, "
+            "first call get_node to resolve exactly one node and read its "
+            "node_id and nodename. Do not ask for a runtime action confirmation "
+            "before this resolution step. Then ask the user to repeat an exact "
+            "phrase containing both resolved values, for example: ROTATE root "
+            "password node <node_id> <nodename>. When the latest user message "
+            "contains that phrase, call rotate_node_root_password with node_id, "
+            "confirm_node_id, confirm_nodename, and request.confirmation.phrase. "
+            "Do not pass nodename as an execution selector; use "
+            "confirm_nodename only for correlation. Requires Collector NodeExec "
+            "or Manager privileges through MCP RBAC."
+        ),
+        tags={"nodes", "password", "exec:nodes"},
+        annotations={
+            "title": "Rotate OpenSVC Node Root Password",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": True,
+            "openWorldHint": False,
+        },
+    )
+    async def rotate_node_root_password(
+        request: Annotated[
+            RotateNodeRootPasswordRequest,
+            Field(description="Node root password rotation selector and confirmations."),
+        ],
+    ) -> RotateNodeRootPasswordResponse:
+        """Enqueue a rotate_root_pw action for one OpenSVC Collector node."""
+        response = await core_rotate_node_root_password(
+            node_id=request.node_id,
+            nodename=None,
+            confirm_node_id=request.confirm_node_id,
+            confirm_nodename=request.confirm_nodename,
+        )
+        return RotateNodeRootPasswordResponse.model_validate(response)
+
+    @mcp.tool(
+        timeout=TOOL_TIMEOUT_SECONDS,
+        name="wake_node_on_lan",
+        description=(
+            "Enqueue a Wake-on-LAN action for one OpenSVC Collector node through "
+            "PUT /actions with action=wol. This asks the OpenSVC agent path to "
+            "wake the target node using the Collector-supported WOL action. This "
+            "tool is node_id-only. If the user gives a nodename, first call "
+            "get_node to resolve exactly one node and read its node_id and "
+            "nodename. Do not ask for a runtime action confirmation before this "
+            "resolution step. Then ask the user to repeat an exact phrase "
+            "containing both resolved values, for example: WAKE node <node_id> "
+            "<nodename>. When the latest user message contains that phrase, call "
+            "wake_node_on_lan with node_id, confirm_node_id, confirm_nodename, "
+            "and request.confirmation.phrase. Do not pass nodename as an "
+            "execution selector; use confirm_nodename only for correlation. "
+            "Requires Collector NodeExec or Manager privileges through MCP RBAC."
+        ),
+        tags={"nodes", "wake", "wol", "exec:nodes"},
+        annotations={
+            "title": "Wake OpenSVC Node On LAN",
+            "readOnlyHint": False,
+            "idempotentHint": False,
+            "destructiveHint": False,
+            "openWorldHint": False,
+        },
+    )
+    async def wake_node_on_lan(
+        request: Annotated[
+            WakeNodeOnLanRequest,
+            Field(description="Node Wake-on-LAN selector and explicit confirmations."),
+        ],
+    ) -> WakeNodeOnLanResponse:
+        """Enqueue a wol action for one OpenSVC Collector node."""
+        response = await core_wake_node_on_lan(
+            node_id=request.node_id,
+            nodename=None,
+            confirm_node_id=request.confirm_node_id,
+            confirm_nodename=request.confirm_nodename,
+        )
+        return WakeNodeOnLanResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
