@@ -3,6 +3,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from opensvc_collector_mcp.models.nodes._common import NodeIdRequest
+from opensvc_collector_mcp.models.pagination import Pagination
 
 
 class NodeFilterRequest(BaseModel):
@@ -114,6 +115,13 @@ class NodeRowsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[dict[str, Any]]
+
+
+class NodePageResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    pagination: Pagination
     data: list[dict[str, Any]]
 
 

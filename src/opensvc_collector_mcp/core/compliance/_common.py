@@ -1,7 +1,7 @@
 from typing import Any
 from urllib.parse import quote
 
-from opensvc_collector_mcp.client import collector_get
+from opensvc_collector_mcp.client import collector_get, collector_get_page
 
 NODE_RELATION_PROPS = "node_id,nodename,app,node_env,status,updated"
 SERVICE_RELATION_PROPS = (
@@ -76,7 +76,7 @@ async def get_collection_page(
 ) -> dict[str, Any]:
     limit = max(1, min(limit, 1000))
     offset = max(0, offset)
-    return await collector_get(
+    return await collector_get_page(
         path,
         params=collection_params(
             filters=filters or [],
@@ -125,17 +125,11 @@ def collection_response(
     filters: list[tuple[str, str]],
     props: str | None,
 ) -> dict[str, Any]:
-    rows = response.get("data", [])
-    meta = dict(response.get("meta", {}))
-    meta.update(
-        {
-            "source": source,
-            "filter": {field: value for field, value in filters},
-            "included_props": props.split(",") if props else meta.get("included_props", []),
-            "output_count": len(rows),
-        }
-    )
-    return {"meta": meta, "data": rows}
+    del source, filters, props
+    return {
+        "pagination": response["pagination"],
+        "data": response.get("data", []),
+    }
 
 
 def object_response(
@@ -168,5 +162,4 @@ def relation_response(
     data = collection_response(response, source, filters, props)
     data["object_id"] = str(object_id)
     data["relation"] = relation
-    data["meta"].update({"object_id": str(object_id), "relation": relation})
     return data

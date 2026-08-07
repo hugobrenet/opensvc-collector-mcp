@@ -78,7 +78,7 @@ Example:
 Output fields:
 
 ```text
-meta
+pagination
 data
 ```
 

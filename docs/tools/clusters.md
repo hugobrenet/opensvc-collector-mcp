@@ -44,6 +44,6 @@ Output fields:
 
 ```text
 cluster_name
-meta
+pagination
 data
 ```

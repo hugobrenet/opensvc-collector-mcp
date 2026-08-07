@@ -117,6 +117,8 @@ Current package layout:
   app-domain Pydantic contracts
 - `src/opensvc_collector_mcp/models/arrays/`
   array-domain Pydantic contracts
+- `src/opensvc_collector_mcp/models/pagination.py`
+  shared public pagination contract for raw collection responses
 Current MCP node tool surface:
 
 - `create_node`
@@ -449,8 +451,9 @@ Layering standard:
 - Tests live under `tests/` and use `pytest` plus `pytest-asyncio`.
 - `tests/conftest.py` provides an in-memory FastMCP client fixture and Collector
   mock helpers.
-- Core tests should mock `collector_get` or `collector_get_all` and assert the
-  Collector path, query parameters, filters, pagination, and response shaping.
+- Core tests should mock `collector_get`, `collector_get_page`, or
+  `collector_get_all` and assert the Collector path, query parameters, filters,
+  pagination, and response shaping.
 - Tool tests should call the MCP tool through the FastMCP client and monkeypatch
   the imported core function in `tools/<domain>.py`.
 - For FastMCP tool tests, assert `result.structured_content` rather than
@@ -480,9 +483,22 @@ Collection and pagination standard:
 - Raw Collector collection tools must expose the same public contract whenever
   the Collector endpoint supports it:
   `limit`, `offset`, `orderby`, `filters`, `search`, and `props`.
-- The LLM is responsible for paginating raw collection tools by calling the same
-  tool again with a higher `offset`. Do not hide full collection scans behind a
-  listing tool.
+- Raw collection responses expose `pagination` and `data`, never the raw
+  Collector `meta`. `pagination` contains `limit`, `offset`, `returned`,
+  `next_offset`, `complete`, and `truncated`.
+- The LLM is responsible for pagination. It calls the same tool with the same
+  limit, filters, search, props, and ordering, setting only
+  `offset=pagination.next_offset`. It stops on `complete=true` or a null
+  `next_offset`. Do not increase `limit` between calls, infer a total from a
+  page, or hide full collection scans behind a listing tool.
+- A full page is deliberately incomplete. If the matching row count is an exact
+  multiple of `limit`, a final empty page proves completion.
+- Raw one-page reads use `collector_get_page()`, which forces `meta=false`.
+  Property-discovery and count tools may request Collector metadata because
+  those are their explicit business purpose.
+- Page-level business aggregates belong in a separate, clearly named field such
+  as `summary`; document that they describe the current page, not the complete
+  collection.
 - Object-detail tools should expose only the natural selector and optional
   `props`: use `id | name` when users are likely to know a name but the Collector
   endpoint requires an id. Resolve names to ids in `core/`, not in `tools/`.
@@ -501,6 +517,10 @@ Collection and pagination standard:
 - `collector_get_all` may remain as an internal helper for bounded business
   logic, but new raw listing/relation tools should prefer one Collector page per
   MCP call.
+- When user vocabulary does not map unambiguously to a Collector field or
+  value, use the domain `list_*_props` tool, then a compact sample or specialized
+  statistics tool. Do not hard-code an infrastructure-specific mapping when it
+  can be discovered dynamically.
 
 Error and production-readiness notes:
 
@@ -583,6 +603,7 @@ Post-implementation validation:
 Tool documentation:
 
 - Keep `README.md` oriented toward project presentation, setup, and links
+- Keep the shared client contract in `docs/pagination.md`.
 - Put detailed tool documentation under `docs/tools/`
 - Current tool docs:
   `docs/tools/nodes.md`, `docs/tools/services.md`, `docs/tools/clusters.md`,

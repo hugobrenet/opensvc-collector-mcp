@@ -59,6 +59,7 @@ from opensvc_collector_mcp.models.services import (
     ServiceNameRequest,
     ServiceNodesRequest,
     ServiceNodesResponse,
+    ServicePageResponse,
     ServicePropsResponse,
     ServiceResourcesResponse,
     ServiceResourceStatusRequest,
@@ -97,7 +98,7 @@ def register_services_tools(mcp: FastMCP) -> None:
             ListServicesRequest,
             Field(description="Optional service listing parameters."),
         ] = ListServicesRequest(),
-    ) -> ServiceRowsResponse:
+    ) -> ServicePageResponse:
         """Return OpenSVC Collector services and their selected properties."""
         response = await core_list_services(
             filters=request.merged_filters(),
@@ -107,7 +108,7 @@ def register_services_tools(mcp: FastMCP) -> None:
             limit=request.limit,
             offset=request.offset,
         )
-        return ServiceRowsResponse.model_validate(response)
+        return ServicePageResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
@@ -508,7 +509,7 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional exact-match compliance filters, "
-                    "returned properties, bounded result limits, and run_log "
+                    "returned properties, ordering, pagination, and run_log "
                     "output options used to inspect current service compliance "
                     "status through Collector /services/<svcname>/compliance/status."
                 ),
@@ -520,7 +521,9 @@ def register_services_tools(mcp: FastMCP) -> None:
             svcname=request.svcname,
             filters=request.merged_filters(),
             props=request.props,
-            max_status=request.max_status,
+            orderby=request.orderby,
+            limit=request.limit,
+            offset=request.offset,
             include_run_log=request.include_run_log,
             include_run_log_preview=request.include_run_log_preview,
             run_log_max_chars=request.run_log_max_chars,
@@ -533,7 +536,7 @@ def register_services_tools(mcp: FastMCP) -> None:
         description=(
             "Return OpenSVC compliance run history for one service selected by "
             "exact svcname. The tool reads /services/<svcname>/compliance/logs, "
-            "uses bounded server-side reads, returns the latest matching logs by default, "
+            "returns one explicitly paginated page ordered newest first by default, "
             "and includes bounded run_log previews for diagnostics."
         ),
         tags={"services", "compliance", "logs", "history", "read"},
@@ -550,8 +553,8 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional exact-match compliance log filters, "
-                    "returned properties, bounded result limits, latest-log "
-                    "selection, and run_log output options used to inspect historical "
+                    "returned properties, ordering, pagination, and run_log output "
+                    "options used to inspect historical "
                     "service compliance runs through Collector /services/<svcname>/compliance/logs."
                 ),
             ),
@@ -562,10 +565,9 @@ def register_services_tools(mcp: FastMCP) -> None:
             svcname=request.svcname,
             filters=request.merged_filters(),
             props=request.props,
-            max_logs=request.max_logs,
+            orderby=request.orderby,
+            limit=request.limit,
             offset=request.offset,
-            latest=request.latest,
-            latest_first=request.latest_first,
             include_run_log=request.include_run_log,
             include_run_log_preview=request.include_run_log_preview,
             run_log_max_chars=request.run_log_max_chars,
@@ -656,8 +658,8 @@ def register_services_tools(mcp: FastMCP) -> None:
         name="get_service_checks",
         description=(
             "Return live OpenSVC Collector checks for one service selected by exact "
-            "svcname. The tool retrieves all matching checks using bounded server-side "
-            "Collector reads and compact check properties by default."
+            "svcname. The tool retrieves one explicitly paginated Collector page "
+            "using compact check properties by default."
         ),
         tags={"services", "checks", "health", "read"},
         annotations={
@@ -836,7 +838,7 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional availability status filters, "
-                    "pagination, and bounded result limits used to inspect "
+                    "ordering and pagination used to inspect "
                     "service availability status history."
                 ),
             ),
@@ -847,11 +849,9 @@ def register_services_tools(mcp: FastMCP) -> None:
             svcname=request.svcname,
             filters=request.merged_filters(),
             props=request.props,
+            orderby=request.orderby,
             limit=request.limit,
             offset=request.offset,
-            latest=request.latest,
-            latest_first=request.latest_first,
-            max_history=request.max_history,
         )
         return ServiceStatusHistoryResponse.model_validate(response)
 
@@ -878,7 +878,7 @@ def register_services_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Exact service name, optional node and monitor status filters, "
-                    "pagination, and bounded result limits used to inspect "
+                    "ordering and pagination used to inspect "
                     "per-node service instance status history."
                 ),
             ),
@@ -889,11 +889,9 @@ def register_services_tools(mcp: FastMCP) -> None:
             svcname=request.svcname,
             filters=request.merged_filters(),
             props=request.props,
+            orderby=request.orderby,
             limit=request.limit,
             offset=request.offset,
-            latest=request.latest,
-            latest_first=request.latest_first,
-            max_history=request.max_history,
         )
         return ServiceInstanceStatusHistoryResponse.model_validate(response)
 

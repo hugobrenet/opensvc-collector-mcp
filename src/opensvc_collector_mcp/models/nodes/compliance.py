@@ -1,6 +1,6 @@
-from typing import Any
+from pydantic import BaseModel, ConfigDict
 
-from pydantic import BaseModel, ConfigDict, Field
+from opensvc_collector_mcp.models.pagination import Pagination
 
 
 class NodeComplianceEntry(BaseModel):
@@ -21,5 +21,5 @@ class NodeComplianceResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     nodename: str
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[NodeComplianceEntry]

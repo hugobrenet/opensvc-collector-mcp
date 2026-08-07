@@ -23,6 +23,7 @@ from opensvc_collector_mcp.models.apps import (
     AppGroupRelationResponse,
     AppNodesRequest,
     AppNodesResponse,
+    AppPageResponse,
     AppPropsResponse,
     AppQuotasRequest,
     AppQuotasResponse,
@@ -87,7 +88,7 @@ def register_apps_tools(mcp: FastMCP) -> None:
             ListAppsRequest,
             Field(description="Optional app listing parameters."),
         ] = ListAppsRequest(),
-    ) -> AppRowsResponse:
+    ) -> AppPageResponse:
         """Return OpenSVC Collector apps and their selected properties."""
         response = await core_list_apps(
             filters=request.merged_filters(),
@@ -97,7 +98,7 @@ def register_apps_tools(mcp: FastMCP) -> None:
             limit=request.limit,
             offset=request.offset,
         )
-        return AppRowsResponse.model_validate(response)
+        return AppPageResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
@@ -160,9 +161,8 @@ def register_apps_tools(mcp: FastMCP) -> None:
         timeout=TOOL_TIMEOUT_SECONDS,
         name="get_app_nodes",
         description=(
-            "Return all OpenSVC Collector nodes attached to one app "
-            "selected by exact app code or Collector app row id. The tool "
-            "follows Collector pagination until complete or max_nodes is reached."
+            "Return one page of OpenSVC Collector nodes attached to one app "
+            "selected by exact app code or Collector app row id."
         ),
         tags={"apps", "nodes", "inventory", "read"},
         annotations={
@@ -181,8 +181,12 @@ def register_apps_tools(mcp: FastMCP) -> None:
         """Return nodes attached to one OpenSVC Collector app."""
         response = await core_get_app_nodes(
             app=request.app,
+            filters=request.filters,
             props=request.props,
-            max_nodes=request.max_nodes,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
         )
         return AppNodesResponse.model_validate(response)
 
@@ -236,7 +240,10 @@ def register_apps_tools(mcp: FastMCP) -> None:
         """Return responsible groups attached to one OpenSVC Collector app."""
         response = await core_get_app_responsibles(
             app=request.app,
+            filters=request.filters,
             props=request.props,
+            orderby=request.orderby,
+            search=request.search,
             limit=request.limit,
             offset=request.offset,
         )
@@ -266,7 +273,10 @@ def register_apps_tools(mcp: FastMCP) -> None:
         """Return publication groups attached to one OpenSVC Collector app."""
         response = await core_get_app_publications(
             app=request.app,
+            filters=request.filters,
             props=request.props,
+            orderby=request.orderby,
+            search=request.search,
             limit=request.limit,
             offset=request.offset,
         )
@@ -296,7 +306,10 @@ def register_apps_tools(mcp: FastMCP) -> None:
         """Return quota rows attached to one OpenSVC Collector app."""
         response = await core_get_app_quotas(
             app=request.app,
+            filters=request.filters,
             props=request.props,
+            orderby=request.orderby,
+            search=request.search,
             limit=request.limit,
             offset=request.offset,
         )
@@ -306,9 +319,8 @@ def register_apps_tools(mcp: FastMCP) -> None:
         timeout=TOOL_TIMEOUT_SECONDS,
         name="get_app_services",
         description=(
-            "Return all OpenSVC Collector services attached to one app "
-            "selected by exact app code or Collector app row id. The tool "
-            "follows Collector pagination until complete or max_services is reached."
+            "Return one page of OpenSVC Collector services attached to one app "
+            "selected by exact app code or Collector app row id."
         ),
         tags={"apps", "services", "inventory", "read"},
         annotations={
@@ -327,8 +339,12 @@ def register_apps_tools(mcp: FastMCP) -> None:
         """Return services attached to one OpenSVC Collector app."""
         response = await core_get_app_services(
             app=request.app,
+            filters=request.filters,
             props=request.props,
-            max_services=request.max_services,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
         )
         return AppServicesResponse.model_validate(response)
 

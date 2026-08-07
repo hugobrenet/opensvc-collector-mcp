@@ -2,7 +2,11 @@ import asyncio
 from typing import Any
 from urllib.parse import quote
 
-from opensvc_collector_mcp.client import collector_get, collector_get_all
+from opensvc_collector_mcp.client import (
+    collector_get,
+    collector_get_all,
+    collector_get_page,
+)
 from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
 
 
@@ -26,7 +30,7 @@ async def list_users(
 ) -> dict[str, Any]:
     selected_props = props or DEFAULT_LIST_USER_PROPS
     parsed_filters = _user_search_filters(filters)
-    return await collector_get(
+    return await collector_get_page(
         "/users",
         params=collection_params(
             filters=parsed_filters,

@@ -1,6 +1,6 @@
 from typing import Any
 
-from opensvc_collector_mcp.client import collector_get
+from opensvc_collector_mcp.client import collector_get_page
 
 
 DEFAULT_INVENTORY_STATS_FIELDS = (
@@ -25,21 +25,18 @@ async def get_nodes_inventory_stats(
     counters: dict[str, dict[str, int]] = {field: {} for field in selected_fields}
     scanned = 0
     offset = 0
-    total: int | None = None
+    complete = False
 
     while scanned < max_nodes:
-        response = await collector_get(
+        response = await collector_get_page(
             "/nodes",
             params={
                 "props": ",".join(selected_fields),
-                "limit": min(page_size, max_nodes - scanned),
-                "offset": offset,
             },
+            limit=min(page_size, max_nodes - scanned),
+            offset=offset,
         )
-        meta = response.get("meta", {})
         data = response.get("data", [])
-        if total is None:
-            total = meta.get("total")
 
         for node in data:
             for field in selected_fields:
@@ -49,15 +46,16 @@ async def get_nodes_inventory_stats(
         count = len(data)
         scanned += count
         offset += count
-        if count == 0 or count < page_size:
+        if response["pagination"]["complete"]:
+            complete = True
             break
 
-    complete = total is None or scanned >= total
     return {
         "meta": {
-            "total": total,
+            "total": scanned if complete else None,
             "scanned": scanned,
             "complete": complete,
+            "truncated": not complete,
             "max_nodes": max_nodes,
             "fields": selected_fields,
         },

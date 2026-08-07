@@ -1,7 +1,7 @@
 from typing import Any
 from urllib.parse import quote
 
-from opensvc_collector_mcp.client import collector_get, collector_get_all
+from opensvc_collector_mcp.client import collector_get, collector_get_page
 from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
 
 
@@ -27,7 +27,7 @@ async def list_arrays(
 ) -> dict[str, Any]:
     selected_props = props or DEFAULT_LIST_ARRAY_PROPS
     parsed_filters = parse_collector_filters(filters)
-    return await collector_get(
+    return await collector_get_page(
         "/arrays",
         params=collection_params(
             filters=parsed_filters,
@@ -50,7 +50,7 @@ async def list_array_diskgroups(
 ) -> dict[str, Any]:
     selected_props = props or DEFAULT_ARRAY_DISKGROUP_PROPS
     parsed_filters = parse_collector_filters(filters)
-    return await collector_get(
+    return await collector_get_page(
         "/arrays_diskgroups",
         params=collection_params(
             filters=parsed_filters,
@@ -176,8 +176,12 @@ async def get_array_diskgroup(
 async def get_array_diskgroup_quotas(
     array: str,
     diskgroup: str,
+    filters: dict[str, str] | str | None = None,
     props: str | None = None,
-    max_quotas: int = 200000,
+    orderby: str | None = "id",
+    search: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
 ) -> dict[str, Any]:
     selector = array.strip()
     diskgroup_selector = diskgroup.strip()
@@ -187,30 +191,24 @@ async def get_array_diskgroup_quotas(
         raise ValueError("diskgroup must not be empty")
 
     selected_props = props or DEFAULT_ARRAY_DISKGROUP_QUOTA_PROPS
-    response = await collector_get_all(
+    response = await collector_get_page(
         (
             f"/arrays/{quote(selector, safe='')}/diskgroups/"
             f"{quote(diskgroup_selector, safe='')}/quotas"
         ),
-        params={"props": selected_props},
-        max_items=max_quotas,
-    )
-    rows = response.get("data", [])
-    meta = dict(response.get("meta") or {})
-    meta.update(
-        {
-            "source": "arrays/<id>/diskgroups/<id>/quotas",
-            "selector": selector,
-            "diskgroup_selector": diskgroup_selector,
-            "included_props": selected_props.split(","),
-            "quota_count": len(rows),
-        }
+        params=collection_params(
+            filters=parse_collector_filters(filters),
+            props=selected_props,
+            orderby=orderby,
+            search=search,
+            limit=limit,
+            offset=offset,
+        ),
     )
     return {
         "array": selector,
         "diskgroup": diskgroup_selector,
-        "meta": meta,
-        "data": rows,
+        **response,
     }
 
 
@@ -261,98 +259,86 @@ async def get_array_diskgroup_quota(
 
 async def get_array_diskgroups(
     array: str,
+    filters: dict[str, str] | str | None = None,
     props: str | None = None,
-    max_diskgroups: int = 200000,
+    orderby: str | None = "dg_name",
+    search: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
 ) -> dict[str, Any]:
     selector = array.strip()
     if not selector:
         raise ValueError("array must not be empty")
 
     selected_props = props or DEFAULT_ARRAY_DISKGROUP_PROPS
-    response = await collector_get_all(
+    response = await collector_get_page(
         f"/arrays/{quote(selector, safe='')}/diskgroups",
-        params={"props": selected_props},
-        max_items=max_diskgroups,
+        params=collection_params(
+            filters=parse_collector_filters(filters),
+            props=selected_props,
+            orderby=orderby,
+            search=search,
+            limit=limit,
+            offset=offset,
+        ),
     )
-    rows = response.get("data", [])
-    meta = dict(response.get("meta") or {})
-    meta.update(
-        {
-            "source": "arrays/<id>/diskgroups",
-            "selector": selector,
-            "included_props": selected_props.split(","),
-            "diskgroup_count": len(rows),
-        }
-    )
-    return {
-        "array": selector,
-        "meta": meta,
-        "data": rows,
-    }
+    return {"array": selector, **response}
 
 
 async def get_array_proxies(
     array: str,
+    filters: dict[str, str] | str | None = None,
     props: str | None = None,
-    max_proxies: int = 200000,
+    orderby: str | None = "id",
+    search: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
 ) -> dict[str, Any]:
     selector = array.strip()
     if not selector:
         raise ValueError("array must not be empty")
 
     selected_props = props or DEFAULT_ARRAY_PROXY_PROPS
-    response = await collector_get_all(
+    response = await collector_get_page(
         f"/arrays/{quote(selector, safe='')}/proxies",
-        params={"props": selected_props},
-        max_items=max_proxies,
+        params=collection_params(
+            filters=parse_collector_filters(filters),
+            props=selected_props,
+            orderby=orderby,
+            search=search,
+            limit=limit,
+            offset=offset,
+        ),
     )
-    rows = response.get("data", [])
-    meta = dict(response.get("meta") or {})
-    meta.update(
-        {
-            "source": "arrays/<id>/proxies",
-            "selector": selector,
-            "included_props": selected_props.split(","),
-            "proxy_count": len(rows),
-        }
-    )
-    return {
-        "array": selector,
-        "meta": meta,
-        "data": rows,
-    }
+    return {"array": selector, **response}
 
 
 async def get_array_targets(
     array: str,
+    filters: dict[str, str] | str | None = None,
     props: str | None = None,
-    max_targets: int = 200000,
+    orderby: str | None = "id",
+    search: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
 ) -> dict[str, Any]:
     selector = array.strip()
     if not selector:
         raise ValueError("array must not be empty")
 
     selected_props = props or DEFAULT_ARRAY_TARGET_PROPS
-    response = await collector_get_all(
+    response = await collector_get_page(
         f"/arrays/{quote(selector, safe='')}/targets",
-        params={"props": selected_props},
-        max_items=max_targets,
+        params=collection_params(
+            filters=parse_collector_filters(filters),
+            props=selected_props,
+            orderby=orderby,
+            search=search,
+            limit=limit,
+            offset=offset,
+        ),
     )
-    rows = response.get("data", [])
-    meta = dict(response.get("meta") or {})
-    meta.update(
-        {
-            "source": "arrays/<id>/targets",
-            "selector": selector,
-            "included_props": selected_props.split(","),
-            "target_count": len(rows),
-        }
-    )
-    return {
-        "array": selector,
-        "meta": meta,
-        "data": rows,
-    }
+    return {"array": selector, **response}
 
 
 async def list_array_props() -> dict[str, Any]:

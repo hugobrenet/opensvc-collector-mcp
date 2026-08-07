@@ -206,10 +206,10 @@ data
 
 ### `get_tag_nodes`
 
-Returns all nodes attached to one OpenSVC Collector tag selected by exact
+Returns one page of nodes attached to one OpenSVC Collector tag selected by exact
 `tag_id` or exact `tag_name`. If `tag_name` is provided, the tool resolves
-it through `/tags`, then calls `/tags/<id>/nodes` and follows Collector
-pagination until `meta.complete` is true or `max_nodes` is reached.
+it through `/tags`, then calls `/tags/<id>/nodes`. Follow the shared
+[pagination contract](../pagination.md) when more rows are needed.
 
 This is the tag-domain mirror of `get_node_tags`: `get_node_tags` starts
 from one node and returns its tags; `get_tag_nodes` starts from one tag and
@@ -222,7 +222,8 @@ Example:
   "request": {
     "tag_name": "tag_name",
     "props": "nodename,status,asset_env,node_env",
-    "max_nodes": 200000
+    "limit": 20,
+    "offset": 0
   }
 }
 ```
@@ -233,7 +234,7 @@ Output fields:
 tag_id
 tag_name
 tag
-meta
+pagination
 data
 ```
 
@@ -265,16 +266,14 @@ meta
 
 ### `get_tag_services`
 
-Returns all services attached to one OpenSVC Collector tag selected by exact
+Returns one page of services attached to one OpenSVC Collector tag selected by exact
 `tag_id` or exact `tag_name`. If `tag_name` is provided, the tool resolves
-it through `/tags`, then calls `/tags/<id>/services` and follows Collector
-pagination until `meta.complete` is true or `max_services` is reached.
+it through `/tags`, then calls `/tags/<id>/services`.
 
 This is the tag-domain mirror of `get_service_tags`: `get_service_tags`
 starts from one service and returns its tags; `get_tag_services` starts
-from one tag and returns its services. Returned services are deduplicated
-by `svcname`; `meta.raw_count` and `meta.duplicate_count` describe the raw
-Collector rows.
+from one tag and returns its services. Use `count_tag_services` when an exact
+deduplicated count is needed.
 
 Example:
 
@@ -283,7 +282,8 @@ Example:
   "request": {
     "tag_name": "tag_name",
     "props": "svcname,svc_app,svc_env,svc_status",
-    "max_services": 200000
+    "limit": 20,
+    "offset": 0
   }
 }
 ```
@@ -294,7 +294,7 @@ Output fields:
 tag_id
 tag_name
 tag
-meta
+pagination
 data
 ```
 
@@ -389,6 +389,6 @@ Example:
 Output fields:
 
 ```text
-meta
+pagination
 data
 ```

@@ -2,6 +2,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from opensvc_collector_mcp.models.pagination import Pagination
+
 from opensvc_collector_mcp.models.tags._common import (
     TagIdRequest,
     TagSelector,
@@ -123,12 +125,16 @@ class TagNodesRequest(TagSelectorRequest):
         default=None,
         description="Comma-separated node properties to include in the response.",
     )
-    max_nodes: int = Field(
-        default=200000,
+    filters: dict[str, str] = Field(default_factory=dict)
+    orderby: str | None = Field(default="nodename")
+    search: str | None = Field(default=None)
+    limit: int = Field(
+        default=20,
         ge=1,
-        le=500000,
-        description="Maximum number of nodes to return from Collector pagination.",
+        le=1000,
+        description="Maximum number of attached nodes to return.",
     )
+    offset: int = Field(default=0, ge=0)
 
 
 class TagNodesResponse(BaseModel):
@@ -137,7 +143,7 @@ class TagNodesResponse(BaseModel):
     tag_id: str
     tag_name: str | None = Field(default=None, exclude_if=_is_none)
     tag: dict[str, Any] | None = Field(default=None, exclude_if=_is_none)
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[dict[str, Any]]
 
 
@@ -158,12 +164,16 @@ class TagServicesRequest(TagSelectorRequest):
             "svcname is always included."
         ),
     )
-    max_services: int = Field(
-        default=200000,
+    filters: dict[str, str] = Field(default_factory=dict)
+    orderby: str | None = Field(default="svcname")
+    search: str | None = Field(default=None)
+    limit: int = Field(
+        default=20,
         ge=1,
-        le=500000,
-        description="Maximum number of services to return from Collector pagination.",
+        le=1000,
+        description="Maximum number of attached service rows to return.",
     )
+    offset: int = Field(default=0, ge=0)
 
 
 class TagServicesResponse(BaseModel):
@@ -172,7 +182,7 @@ class TagServicesResponse(BaseModel):
     tag_id: str
     tag_name: str | None = Field(default=None, exclude_if=_is_none)
     tag: dict[str, Any] | None = Field(default=None, exclude_if=_is_none)
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[dict[str, Any]]
 
 
@@ -227,6 +237,13 @@ class TagRowsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[TagRow]
+
+
+class TagPageResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    pagination: Pagination
     data: list[TagRow]
 
 

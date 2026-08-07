@@ -58,10 +58,10 @@ data
 
 ### `get_app_nodes`
 
-Returns all nodes attached to one OpenSVC Collector application code
+Returns one page of nodes attached to one OpenSVC Collector application code
 selected by exact `app` code or Collector app row id. The tool calls
-`/apps/<id>/nodes` and follows Collector pagination until `meta.complete`
-is true or `max_nodes` is reached.
+`/apps/<id>/nodes`. Follow the shared [pagination contract](../pagination.md)
+when more rows are needed.
 
 Example:
 
@@ -70,7 +70,8 @@ Example:
   "request": {
     "app": "APP-CODE",
     "props": "nodename,status,asset_env,node_env,app",
-    "max_nodes": 200000
+    "limit": 20,
+    "offset": 0
   }
 }
 ```
@@ -79,7 +80,7 @@ Output fields:
 
 ```text
 app
-meta
+pagination
 data
 ```
 
@@ -129,7 +130,7 @@ Output fields:
 
 ```text
 app
-meta
+pagination
 data
 ```
 
@@ -155,7 +156,7 @@ Output fields:
 
 ```text
 app
-meta
+pagination
 data
 ```
 
@@ -182,16 +183,15 @@ Output fields:
 
 ```text
 app
-meta
+pagination
 data
 ```
 
 ### `get_app_services`
 
-Returns all services attached to one OpenSVC Collector application code
+Returns one page of services attached to one OpenSVC Collector application code
 selected by exact `app` code or Collector app row id. The tool calls
-`/apps/<id>/services` and follows Collector pagination until
-`meta.complete` is true or `max_services` is reached.
+`/apps/<id>/services`.
 
 Example:
 
@@ -200,7 +200,8 @@ Example:
   "request": {
     "app": "APP-CODE",
     "props": "svcname,svc_app,svc_env,svc_status",
-    "max_services": 200000
+    "limit": 20,
+    "offset": 0
   }
 }
 ```
@@ -209,7 +210,7 @@ Output fields:
 
 ```text
 app
-meta
+pagination
 data
 ```
 
@@ -325,6 +326,6 @@ Example:
 Output fields:
 
 ```text
-meta
+pagination
 data
 ```

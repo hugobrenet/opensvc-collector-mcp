@@ -1,7 +1,7 @@
 from typing import Any
 from urllib.parse import quote
 
-from opensvc_collector_mcp.client import collector_get
+from opensvc_collector_mcp.client import collector_get_page
 from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
 
 
@@ -19,7 +19,7 @@ async def get_node_tags(
         raise ValueError("nodename must not be empty")
 
     parsed_filters = parse_collector_filters(filters)
-    response = await collector_get(
+    response = await collector_get_page(
         f"/nodes/{quote(nodename, safe='')}/tags",
         params=collection_params(
             filters=parsed_filters,
@@ -30,13 +30,4 @@ async def get_node_tags(
             offset=offset,
         ),
     )
-    meta = dict(response.get("meta", {}))
-    meta.update(
-        {
-            "source": "node_tags",
-            "filter": {"nodename": nodename, **{field: value for field, value in parsed_filters}},
-            "included_props": props.split(",") if props else meta.get("included_props", []),
-            "output_count": len(response.get("data", [])),
-        }
-    )
-    return {"nodename": nodename, "meta": meta, "data": response.get("data", [])}
+    return {"nodename": nodename, **response}

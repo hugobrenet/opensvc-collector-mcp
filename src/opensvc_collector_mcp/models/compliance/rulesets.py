@@ -2,6 +2,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from opensvc_collector_mcp.models.pagination import Pagination
+
 from ._common import ComplianceListRequest
 
 
@@ -246,7 +248,7 @@ class ComplianceRulesetVariableRow(BaseModel):
 class ComplianceRulesetsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[ComplianceRulesetRow]
 
 
@@ -285,7 +287,7 @@ class ComplianceRulesetCandidateNodesResponse(BaseModel):
     object_id: str
     relation: str = Field(default="candidate_nodes")
     ruleset_name: str | None = None
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[ComplianceRulesetNodeRow]
 
 
@@ -307,7 +309,7 @@ class ComplianceRulesetCandidateServicesResponse(BaseModel):
     object_id: str
     relation: str = Field(default="candidate_services")
     ruleset_name: str | None = None
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[ComplianceRulesetServiceRow]
 
 
@@ -326,7 +328,7 @@ class ComplianceRulesetPublicationsResponse(BaseModel):
     object_id: str
     relation: str = Field(default="publications")
     ruleset_name: str | None = None
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[ComplianceRulesetGroupRow]
 
 
@@ -336,7 +338,7 @@ class ComplianceRulesetResponsiblesResponse(BaseModel):
     object_id: str
     relation: str = Field(default="responsibles")
     ruleset_name: str | None = None
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[ComplianceRulesetGroupRow]
 
 
@@ -356,5 +358,5 @@ class ComplianceRulesetVariablesResponse(BaseModel):
     object_id: str
     relation: str
     ruleset_name: str | None = None
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[ComplianceRulesetVariableRow]

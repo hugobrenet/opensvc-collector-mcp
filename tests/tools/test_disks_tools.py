@@ -12,7 +12,18 @@ class CoreRecorder:
 
 
 async def test_list_disks_tool_passes_request_to_core(monkeypatch, mcp_client):
-    recorder = CoreRecorder({"meta": {"total": 1}, "data": [{"disk_id": "DISK-ID"}]})
+    recorder = CoreRecorder(
+        {
+            "pagination": {
+                "limit": 5,
+                "offset": 2,
+                "returned": 1,
+                "next_offset": None,
+                "complete": True,
+            },
+            "data": [{"disk_id": "DISK-ID"}],
+        }
+    )
     monkeypatch.setattr(disk_tools, "core_list_disks", recorder)
 
     result = await mcp_client.call_tool(

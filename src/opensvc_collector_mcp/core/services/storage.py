@@ -1,9 +1,9 @@
 from typing import Any
 from urllib.parse import quote
 
-from opensvc_collector_mcp.client import collector_get
+from opensvc_collector_mcp.client import collector_get_page
 
-from opensvc_collector_mcp.core.utils import collection_meta, collection_params
+from opensvc_collector_mcp.core.utils import collection_params
 
 from ._common import _parse_service_filters
 
@@ -50,7 +50,7 @@ async def get_service_hbas(
 
     selected_props = props or SERVICE_HBAS_PROPS
     parsed_filters = _parse_service_filters(filters)
-    response = await collector_get(
+    response = await collector_get_page(
         f"/services/{quote(svcname, safe='')}/hbas",
         params=collection_params(
             filters=parsed_filters,
@@ -61,15 +61,7 @@ async def get_service_hbas(
             offset=offset,
         ),
     )
-    rows = response.get("data", [])
-    meta = collection_meta(
-        response,
-        source="service_hbas",
-        filters=parsed_filters,
-        props=selected_props,
-        extra={"svcname": svcname, "hba_count": len(rows)},
-    )
-    return {"svcname": svcname, "meta": meta, "data": rows}
+    return {"svcname": svcname, **response}
 
 
 async def get_service_targets(
@@ -97,7 +89,7 @@ async def get_service_targets(
         tgt_id=tgt_id,
         array_name=array_name,
     )
-    response = await collector_get(
+    response = await collector_get_page(
         f"/services/{quote(svcname, safe='')}/targets",
         params=_service_target_params(
             filters=parsed_filters,
@@ -108,24 +100,7 @@ async def get_service_targets(
             offset=offset,
         ),
     )
-    rows = response.get("data", [])
-    meta = dict(response.get("meta", {}))
-    meta.update(
-        {
-            "source": "service_targets",
-            "filter": {
-                "svcname": svcname,
-                **{field: value for field, value in parsed_filters},
-            },
-            "included_props": selected_props.split(","),
-            "target_count": len(rows),
-        }
-    )
-    return {
-        "svcname": svcname,
-        "meta": meta,
-        "data": rows,
-    }
+    return {"svcname": svcname, **response}
 
 
 async def get_service_disks(
@@ -143,7 +118,7 @@ async def get_service_disks(
 
     selected_props = props or SERVICE_DISKS_PROPS
     parsed_filters = _parse_service_filters(filters)
-    response = await collector_get(
+    response = await collector_get_page(
         f"/services/{quote(svcname, safe='')}/disks",
         params=collection_params(
             filters=parsed_filters,
@@ -154,15 +129,7 @@ async def get_service_disks(
             offset=offset,
         ),
     )
-    rows = response.get("data", [])
-    meta = collection_meta(
-        response,
-        source="service_disks",
-        filters=parsed_filters,
-        props=selected_props,
-        extra={"svcname": svcname, "disk_count": len(rows)},
-    )
-    return {"svcname": svcname, "meta": meta, "data": rows}
+    return {"svcname": svcname, **response}
 
 
 def _service_target_filters(

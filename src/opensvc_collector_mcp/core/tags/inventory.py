@@ -5,6 +5,7 @@ from opensvc_collector_mcp.client import (
     collector_delete,
     collector_get,
     collector_get_all,
+    collector_get_page,
     collector_post,
 )
 from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
@@ -46,7 +47,7 @@ async def list_tags(
 ) -> dict[str, Any]:
     selected_props = props or DEFAULT_LIST_TAG_PROPS
     parsed_filters = parse_collector_filters(filters)
-    return await collector_get(
+    return await collector_get_page(
         "/tags",
         params=collection_params(
             filters=parsed_filters,
@@ -536,77 +537,62 @@ async def get_tag(
 async def get_tag_nodes(
     tag_id: str | None = None,
     tag_name: str | None = None,
+    filters: dict[str, str] | str | None = None,
     props: str | None = None,
-    max_nodes: int = 200000,
+    orderby: str | None = "nodename",
+    search: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
 ) -> dict[str, Any]:
     resolved = await _resolve_tag_selector(tag_id=tag_id, tag_name=tag_name)
     selected_props = props or DEFAULT_TAG_NODE_PROPS
-    response = await collector_get_all(
+    response = await collector_get_page(
         f"/tags/{quote(resolved['tag_id'], safe='')}/nodes",
-        params={"props": selected_props},
-        max_items=max_nodes,
-    )
-    rows = response.get("data", [])
-    meta = dict(response.get("meta", {}))
-    meta.update(
-        {
-            "source": "tags/<tag_id>/nodes",
-            "selector": resolved["selector"],
-            "resolution": resolved["resolution"],
-            "filter": {
-                "tag_id": resolved["tag_id"],
-                "tag_name": resolved.get("tag_name"),
-            },
-            "included_props": selected_props.split(","),
-            "node_count": len(rows),
-        }
+        params=collection_params(
+            filters=parse_collector_filters(filters),
+            props=selected_props,
+            orderby=orderby,
+            search=search,
+            limit=limit,
+            offset=offset,
+        ),
     )
     return {
         "tag_id": resolved["tag_id"],
         "tag_name": resolved.get("tag_name"),
         "tag": resolved.get("tag"),
-        "meta": meta,
-        "data": rows,
+        **response,
     }
 
 
 async def get_tag_services(
     tag_id: str | None = None,
     tag_name: str | None = None,
+    filters: dict[str, str] | str | None = None,
     props: str | None = None,
-    max_services: int = 200000,
+    orderby: str | None = "svcname",
+    search: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
 ) -> dict[str, Any]:
     resolved = await _resolve_tag_selector(tag_id=tag_id, tag_name=tag_name)
     selected_props = _ensure_props_include(props or DEFAULT_TAG_SERVICE_PROPS, "svcname")
-    response = await collector_get_all(
+    response = await collector_get_page(
         f"/tags/{quote(resolved['tag_id'], safe='')}/services",
-        params={"props": selected_props},
-        max_items=max_services,
-    )
-    raw_rows = response.get("data", [])
-    rows = _dedupe_rows_by_key(raw_rows, "svcname")
-    meta = dict(response.get("meta", {}))
-    meta.update(
-        {
-            "source": "tags/<tag_id>/services",
-            "selector": resolved["selector"],
-            "resolution": resolved["resolution"],
-            "filter": {
-                "tag_id": resolved["tag_id"],
-                "tag_name": resolved.get("tag_name"),
-            },
-            "included_props": selected_props.split(","),
-            "raw_count": len(raw_rows),
-            "service_count": len(rows),
-            "duplicate_count": len(raw_rows) - len(rows),
-        }
+        params=collection_params(
+            filters=parse_collector_filters(filters),
+            props=selected_props,
+            orderby=orderby,
+            search=search,
+            limit=limit,
+            offset=offset,
+        ),
     )
     return {
         "tag_id": resolved["tag_id"],
         "tag_name": resolved.get("tag_name"),
         "tag": resolved.get("tag"),
-        "meta": meta,
-        "data": rows,
+        **response,
     }
 
 

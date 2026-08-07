@@ -2,6 +2,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from opensvc_collector_mcp.models.pagination import Pagination
+
 from ._common import ServiceRelationCollectionRequest, ServiceNameRequest, _is_none
 from .inventory import ServiceFilterRequest, ServiceInstanceRow, ServiceRow
 
@@ -165,6 +167,10 @@ class ServiceStatusHistoryRequest(ServiceNameRequest):
             "svc_id, svc_begin, svc_end, svc_availstatus, and id."
         ),
     )
+    orderby: str | None = Field(
+        default="~svc_begin",
+        description="Collector ordering expression. Keep it unchanged between pages.",
+    )
     limit: int = Field(
         default=20,
         ge=1,
@@ -174,21 +180,7 @@ class ServiceStatusHistoryRequest(ServiceNameRequest):
     offset: int = Field(
         default=0,
         ge=0,
-        description="Number of sorted history rows to skip when latest is false.",
-    )
-    latest: bool = Field(
-        default=True,
-        description="When true, return the newest matching status rows and ignore offset.",
-    )
-    latest_first: bool = Field(
-        default=True,
-        description="When true, sort status history newest first.",
-    )
-    max_history: int = Field(
-        default=10000,
-        ge=1,
-        le=100000,
-        description="Maximum number of status history rows the tool may scan.",
+        description="Number of matching status history rows to skip.",
     )
 
     @model_validator(mode="after")
@@ -241,6 +233,10 @@ class ServiceInstanceStatusHistoryRequest(ServiceNameRequest):
             "Defaults to service, node, monitor status, and period fields."
         ),
     )
+    orderby: str | None = Field(
+        default="~mon_begin",
+        description="Collector ordering expression. Keep it unchanged between pages.",
+    )
     limit: int = Field(
         default=20,
         ge=1,
@@ -250,21 +246,7 @@ class ServiceInstanceStatusHistoryRequest(ServiceNameRequest):
     offset: int = Field(
         default=0,
         ge=0,
-        description="Number of matching history rows to skip when latest is false.",
-    )
-    latest: bool = Field(
-        default=True,
-        description="When true, return the newest matching instance status rows.",
-    )
-    latest_first: bool = Field(
-        default=True,
-        description="When true, sort instance status history newest first.",
-    )
-    max_history: int = Field(
-        default=1000,
-        ge=1,
-        le=100000,
-        description="Maximum number of instance status history rows the tool may scan.",
+        description="Number of matching instance history rows to skip.",
     )
 
     @model_validator(mode="after")
@@ -334,7 +316,7 @@ class ServiceChecksResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     svcname: str
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[ServiceCheckRow]
 
 
@@ -392,7 +374,7 @@ class ServiceAlertsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     svcname: str
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[ServiceAlertRow]
 
 
@@ -445,7 +427,7 @@ class ServiceStatusHistoryResponse(BaseModel):
         description="History row matching the current service availability status.",
         exclude_if=_is_none,
     )
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[ServiceStatusHistoryRow]
 
 
@@ -516,7 +498,7 @@ class ServiceInstanceStatusHistoryResponse(BaseModel):
         default_factory=ServiceRow,
         description="Current service state used as context for the instance history.",
     )
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[ServiceInstanceStatusHistoryRow]
 
 

@@ -1,6 +1,6 @@
-from typing import Any
-
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from opensvc_collector_mcp.models.pagination import Pagination
 
 from ._common import ServiceNameRequest, _is_none
 
@@ -28,11 +28,17 @@ class ServiceActionsRequest(ServiceNameRequest):
     offset: int = Field(
         default=0,
         ge=0,
-        description="Number of matching action rows to skip when latest is false.",
+        description=(
+            "Number of matching action rows to skip. With latest=true this is "
+            "a logical newest-first offset; use pagination.next_offset."
+        ),
     )
     latest: bool = Field(
         default=True,
-        description="When true, return the most recent matching actions and ignore offset.",
+        description=(
+            "When true, traverse actions from newest to oldest while still "
+            "honoring offset for subsequent pages."
+        ),
     )
     latest_first: bool = Field(
         default=True,
@@ -100,11 +106,17 @@ class ServiceUnacknowledgedErrorsRequest(ServiceNameRequest):
     offset: int = Field(
         default=0,
         ge=0,
-        description="Number of matching error rows to skip when latest is false.",
+        description=(
+            "Number of matching error rows to skip. With latest=true this is "
+            "a logical newest-first offset; use pagination.next_offset."
+        ),
     )
     latest: bool = Field(
         default=True,
-        description="When true, return the most recent matching errors and ignore offset.",
+        description=(
+            "When true, traverse errors from newest to oldest while still "
+            "honoring offset for subsequent pages."
+        ),
     )
     latest_first: bool = Field(
         default=True,
@@ -240,7 +252,7 @@ class ServiceActionsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     svcname: str
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[ServiceActionRow]
 
 

@@ -1,6 +1,6 @@
-from typing import Any
-
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from opensvc_collector_mcp.models.pagination import Pagination
 
 from ._common import ServiceNameRequest, _is_none
 
@@ -40,11 +40,20 @@ class ServiceComplianceStatusRequest(ServiceNameRequest):
             "is automatically requested when preview or full log output is enabled."
         ),
     )
-    max_status: int = Field(
-        default=10000,
+    orderby: str | None = Field(
+        default="~run_date",
+        description="Collector ordering expression. Keep it unchanged between pages.",
+    )
+    limit: int = Field(
+        default=50,
         ge=1,
-        le=100000,
-        description="Maximum number of compliance status rows the tool may return.",
+        le=1000,
+        description="Maximum number of compliance status rows in this page.",
+    )
+    offset: int = Field(
+        default=0,
+        ge=0,
+        description="Number of matching compliance status rows to skip.",
     )
     include_run_log: bool = Field(
         default=False,
@@ -127,24 +136,20 @@ class ServiceComplianceLogsRequest(ServiceNameRequest):
             "is automatically requested when preview or full log output is enabled."
         ),
     )
-    max_logs: int = Field(
-        default=1000,
+    orderby: str | None = Field(
+        default="~run_date",
+        description="Collector ordering expression. Keep it unchanged between pages.",
+    )
+    limit: int = Field(
+        default=20,
         ge=1,
-        le=50000,
-        description="Maximum number of compliance log rows the tool may return.",
+        le=1000,
+        description="Maximum number of compliance log rows in this page.",
     )
     offset: int = Field(
         default=0,
         ge=0,
-        description="Number of matching log rows to skip when latest is false.",
-    )
-    latest: bool = Field(
-        default=True,
-        description="When true, return the most recent matching log rows and ignore offset.",
-    )
-    latest_first: bool = Field(
-        default=True,
-        description="When true, sort returned compliance logs newest first.",
+        description="Number of matching compliance log rows to skip.",
     )
     include_run_log: bool = Field(
         default=False,
@@ -261,11 +266,26 @@ class ServiceComplianceLogRow(ServiceComplianceStatusRow):
     pass
 
 
+class ServiceCompliancePageSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    node_names_resolved: bool
+    node_name_count: int
+    unresolved_node_ids: list[str]
+    ok_count: int = Field(description="OK runs in this page only.")
+    error_count: int = Field(description="Non-OK runs in this page only.")
+    unknown_count: int = Field(description="Runs with unknown status in this page.")
+    failed_modules: list[str] = Field(
+        description="Distinct failed modules found in this page."
+    )
+
+
 class ServiceComplianceLogsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     svcname: str
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
+    summary: ServiceCompliancePageSummary
     data: list[ServiceComplianceLogRow]
 
 
@@ -273,5 +293,6 @@ class ServiceComplianceStatusResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     svcname: str
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
+    summary: ServiceCompliancePageSummary
     data: list[ServiceComplianceStatusRow]

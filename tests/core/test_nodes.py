@@ -877,8 +877,21 @@ async def test_update_node_properties_rejects_readonly_fields(
 
 
 async def test_list_nodes_builds_collection_params(monkeypatch, collector_mock_factory):
-    collector = collector_mock_factory([{"meta": {"total": 1}, "data": [{"nodename": "node-a"}]}])
-    monkeypatch.setattr(inventory, "collector_get", collector.get)
+    collector = collector_mock_factory(
+        [
+            {
+                "pagination": {
+                    "limit": 5,
+                    "offset": 10,
+                    "returned": 1,
+                    "next_offset": None,
+                    "complete": True,
+                },
+                "data": [{"nodename": "node-a"}],
+            }
+        ]
+    )
+    monkeypatch.setattr(inventory, "collector_get_page", collector.get)
 
     response = await inventory.list_nodes(
         filters={"status": "up"},
@@ -889,7 +902,8 @@ async def test_list_nodes_builds_collection_params(monkeypatch, collector_mock_f
         offset=10,
     )
 
-    assert response["meta"]["total"] == 1
+    assert response["pagination"]["complete"] is True
+    assert response["data"] == [{"nodename": "node-a"}]
     call = collector.calls[0]
     assert call.path == "/nodes"
     assert call.single_param("limit") == 5
@@ -917,8 +931,21 @@ async def test_count_nodes_uses_lightweight_total_query(monkeypatch, collector_m
 
 
 async def test_get_node_disks_does_not_send_default_orderby(monkeypatch, collector_mock_factory):
-    collector = collector_mock_factory([{"meta": {"total": 2}, "data": [{"disk_id": "DISK-ID"}]}])
-    monkeypatch.setattr(storage, "collector_get", collector.get)
+    collector = collector_mock_factory(
+        [
+            {
+                "pagination": {
+                    "limit": 2,
+                    "offset": 0,
+                    "returned": 1,
+                    "next_offset": None,
+                    "complete": True,
+                },
+                "data": [{"disk_id": "DISK-ID"}],
+            }
+        ]
+    )
+    monkeypatch.setattr(storage, "collector_get_page", collector.get)
 
     response = await storage.get_node_disks(
         "node-a",
@@ -939,8 +966,21 @@ async def test_get_node_disks_does_not_send_default_orderby(monkeypatch, collect
 
 
 async def test_get_node_disks_uses_qualified_default_props(monkeypatch, collector_mock_factory):
-    collector = collector_mock_factory([{"meta": {"total": 1}, "data": [{"disk_id": "DISK-ID"}]}])
-    monkeypatch.setattr(storage, "collector_get", collector.get)
+    collector = collector_mock_factory(
+        [
+            {
+                "pagination": {
+                    "limit": 20,
+                    "offset": 0,
+                    "returned": 1,
+                    "next_offset": None,
+                    "complete": True,
+                },
+                "data": [{"disk_id": "DISK-ID"}],
+            }
+        ]
+    )
+    monkeypatch.setattr(storage, "collector_get_page", collector.get)
 
     response = await storage.get_node_disks("node-a")
 
@@ -955,7 +995,13 @@ async def test_node_disks_response_accepts_collector_numeric_fields():
     response = NodeDisksResponse.model_validate(
         {
             "nodename": "node-a",
-            "meta": {},
+            "pagination": {
+                "limit": 20,
+                "offset": 0,
+                "returned": 1,
+                "next_offset": None,
+                "complete": True,
+            },
             "data": [{"app_id": 1, "disk_level": 0, "disk_id": "DISK-ID"}],
         }
     )
@@ -965,8 +1011,21 @@ async def test_node_disks_response_accepts_collector_numeric_fields():
 
 
 async def test_get_node_services_filters_services_instances_by_nodename(monkeypatch, collector_mock_factory):
-    collector = collector_mock_factory([{"meta": {"total": 1}, "data": [{"svcname": "svc-a"}]}])
-    monkeypatch.setattr(services, "collector_get", collector.get)
+    collector = collector_mock_factory(
+        [
+            {
+                "pagination": {
+                    "limit": 3,
+                    "offset": 1,
+                    "returned": 1,
+                    "next_offset": None,
+                    "complete": True,
+                },
+                "data": [{"svcname": "svc-a"}],
+            }
+        ]
+    )
+    monkeypatch.setattr(services, "collector_get_page", collector.get)
 
     response = await services.get_node_services(
         "node-a",
@@ -977,10 +1036,7 @@ async def test_get_node_services_filters_services_instances_by_nodename(monkeypa
     )
 
     assert response["nodename"] == "node-a"
-    assert response["meta"]["filter"] == {
-        "nodes.nodename": "node-a",
-        "services.svc_status": "up",
-    }
+    assert response["pagination"]["complete"] is True
     call = collector.calls[0]
     assert call.path == "/services_instances"
     assert call.single_param("limit") == 3

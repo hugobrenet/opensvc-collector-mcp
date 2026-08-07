@@ -1,7 +1,7 @@
 from typing import Any
 from urllib.parse import quote
 
-from opensvc_collector_mcp.client import collector_get, collector_get_all
+from opensvc_collector_mcp.client import collector_get, collector_get_page
 from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
 
 
@@ -30,7 +30,7 @@ async def list_apps(
 ) -> dict[str, Any]:
     selected_props = props or DEFAULT_LIST_APP_PROPS
     parsed_filters = parse_collector_filters(filters)
-    return await collector_get(
+    return await collector_get_page(
         "/apps",
         params=collection_params(
             filters=parsed_filters,
@@ -88,78 +88,76 @@ async def get_app(
 
 async def get_app_nodes(
     app: str,
+    filters: dict[str, str] | str | None = None,
     props: str | None = None,
-    max_nodes: int = 200000,
+    orderby: str | None = "nodename",
+    search: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
 ) -> dict[str, Any]:
     selector = app.strip()
     if not selector:
         raise ValueError("app must not be empty")
 
     selected_props = props or DEFAULT_APP_NODE_PROPS
-    response = await collector_get_all(
+    response = await collector_get_page(
         f"/apps/{quote(selector, safe='')}/nodes",
-        params={"props": selected_props},
-        max_items=max_nodes,
+        params=collection_params(
+            filters=parse_collector_filters(filters),
+            props=selected_props,
+            orderby=orderby,
+            search=search,
+            limit=limit,
+            offset=offset,
+        ),
     )
-    rows = response.get("data", [])
-    meta = dict(response.get("meta", {}))
-    meta.update(
-        {
-            "source": "apps/<id>/nodes",
-            "selector": selector,
-            "included_props": selected_props.split(","),
-            "node_count": len(rows),
-        }
-    )
-    return {
-        "app": selector,
-        "meta": meta,
-        "data": rows,
-    }
+    return {"app": selector, **response}
 
 
 async def get_app_services(
     app: str,
+    filters: dict[str, str] | str | None = None,
     props: str | None = None,
-    max_services: int = 200000,
+    orderby: str | None = "svcname",
+    search: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
 ) -> dict[str, Any]:
     selector = app.strip()
     if not selector:
         raise ValueError("app must not be empty")
 
     selected_props = props or DEFAULT_APP_SERVICE_PROPS
-    response = await collector_get_all(
+    response = await collector_get_page(
         f"/apps/{quote(selector, safe='')}/services",
-        params={"props": selected_props},
-        max_items=max_services,
+        params=collection_params(
+            filters=parse_collector_filters(filters),
+            props=selected_props,
+            orderby=orderby,
+            search=search,
+            limit=limit,
+            offset=offset,
+        ),
     )
-    rows = response.get("data", [])
-    meta = dict(response.get("meta", {}))
-    meta.update(
-        {
-            "source": "apps/<id>/services",
-            "selector": selector,
-            "included_props": selected_props.split(","),
-            "service_count": len(rows),
-        }
-    )
-    return {
-        "app": selector,
-        "meta": meta,
-        "data": rows,
-    }
+    return {"app": selector, **response}
 
 
 async def get_app_responsibles(
     app: str,
+    filters: dict[str, str] | str | None = None,
     props: str | None = None,
+    orderby: str | None = "role",
+    search: str | None = None,
     limit: int = 20,
     offset: int = 0,
 ) -> dict[str, Any]:
     return await _get_app_group_relation(
         app=app,
         relation="responsibles",
+        filters=filters,
         props=props,
+        orderby=orderby,
+        search=search,
         limit=limit,
         offset=offset,
     )
@@ -167,14 +165,20 @@ async def get_app_responsibles(
 
 async def get_app_publications(
     app: str,
+    filters: dict[str, str] | str | None = None,
     props: str | None = None,
+    orderby: str | None = "role",
+    search: str | None = None,
     limit: int = 20,
     offset: int = 0,
 ) -> dict[str, Any]:
     return await _get_app_group_relation(
         app=app,
         relation="publications",
+        filters=filters,
         props=props,
+        orderby=orderby,
+        search=search,
         limit=limit,
         offset=offset,
     )
@@ -182,7 +186,10 @@ async def get_app_publications(
 
 async def get_app_quotas(
     app: str,
+    filters: dict[str, str] | str | None = None,
     props: str | None = None,
+    orderby: str | None = "array_name",
+    search: str | None = None,
     limit: int = 20,
     offset: int = 0,
 ) -> dict[str, Any]:
@@ -191,29 +198,18 @@ async def get_app_quotas(
         raise ValueError("app must not be empty")
 
     selected_props = props or DEFAULT_APP_QUOTA_PROPS
-    response = await collector_get(
+    response = await collector_get_page(
         f"/apps/{quote(selector, safe='')}/quotas",
-        params={
-            "props": selected_props,
-            "limit": limit,
-            "offset": offset,
-        },
+        params=collection_params(
+            filters=parse_collector_filters(filters),
+            props=selected_props,
+            orderby=orderby,
+            search=search,
+            limit=limit,
+            offset=offset,
+        ),
     )
-    rows = response.get("data", [])
-    meta = dict(response.get("meta", {}))
-    meta.update(
-        {
-            "source": "apps/<id>/quotas",
-            "selector": selector,
-            "included_props": selected_props.split(","),
-            "quota_count": len(rows) if isinstance(rows, list) else 0,
-        }
-    )
-    return {
-        "app": selector,
-        "meta": meta,
-        "data": rows if isinstance(rows, list) else [],
-    }
+    return {"app": selector, **response}
 
 
 async def count_app_services(
@@ -305,7 +301,10 @@ async def list_app_props() -> dict[str, Any]:
 async def _get_app_group_relation(
     app: str,
     relation: str,
+    filters: dict[str, str] | str | None = None,
     props: str | None = None,
+    orderby: str | None = "role",
+    search: str | None = None,
     limit: int = 20,
     offset: int = 0,
 ) -> dict[str, Any]:
@@ -316,26 +315,15 @@ async def _get_app_group_relation(
         raise ValueError(f"unsupported app group relation: {relation}")
 
     selected_props = props or DEFAULT_APP_GROUP_PROPS
-    response = await collector_get(
+    response = await collector_get_page(
         f"/apps/{quote(selector, safe='')}/{relation}",
-        params={
-            "props": selected_props,
-            "limit": limit,
-            "offset": offset,
-        },
+        params=collection_params(
+            filters=parse_collector_filters(filters),
+            props=selected_props,
+            orderby=orderby,
+            search=search,
+            limit=limit,
+            offset=offset,
+        ),
     )
-    rows = response.get("data", [])
-    meta = dict(response.get("meta", {}))
-    meta.update(
-        {
-            "source": f"apps/<id>/{relation}",
-            "selector": selector,
-            "included_props": selected_props.split(","),
-            "group_count": len(rows) if isinstance(rows, list) else 0,
-        }
-    )
-    return {
-        "app": selector,
-        "meta": meta,
-        "data": rows if isinstance(rows, list) else [],
-    }
+    return {"app": selector, **response}

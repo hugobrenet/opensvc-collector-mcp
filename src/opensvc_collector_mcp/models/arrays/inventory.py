@@ -2,6 +2,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from opensvc_collector_mcp.models.pagination import Pagination
+
 
 def _is_none(value: object) -> bool:
     return value is None
@@ -161,7 +163,7 @@ class ListArrayDiskgroupsRequest(ArrayDiskgroupFilterRequest):
 class ArrayDiskgroupRowsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[dict[str, Any]]
 
 
@@ -238,19 +240,26 @@ class ArrayDiskgroupsRequest(BaseModel):
             "Defaults to a compact array diskgroup view."
         ),
     )
-    max_diskgroups: int = Field(
-        default=200000,
-        ge=1,
-        le=500000,
-        description="Maximum number of diskgroups to return from Collector pagination.",
+    filters: dict[str, str] = Field(
+        default_factory=dict,
+        description="Exact-match diskgroup property filters.",
     )
+    orderby: str | None = Field(default="dg_name")
+    search: str | None = Field(default=None)
+    limit: int = Field(
+        default=20,
+        ge=1,
+        le=1000,
+        description="Maximum number of attached diskgroups to return.",
+    )
+    offset: int = Field(default=0, ge=0)
 
 
 class ArrayDiskgroupsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     array: str
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[dict[str, Any]]
 
 
@@ -280,12 +289,19 @@ class ArrayDiskgroupQuotasRequest(BaseModel):
             "Defaults to a compact diskgroup quota view."
         ),
     )
-    max_quotas: int = Field(
-        default=200000,
-        ge=1,
-        le=500000,
-        description="Maximum number of quotas to return from Collector pagination.",
+    filters: dict[str, str] = Field(
+        default_factory=dict,
+        description="Exact-match quota property filters.",
     )
+    orderby: str | None = Field(default="id")
+    search: str | None = Field(default=None)
+    limit: int = Field(
+        default=20,
+        ge=1,
+        le=1000,
+        description="Maximum number of attached quota rows to return.",
+    )
+    offset: int = Field(default=0, ge=0)
 
 
 class ArrayDiskgroupQuotasResponse(BaseModel):
@@ -293,7 +309,7 @@ class ArrayDiskgroupQuotasResponse(BaseModel):
 
     array: str
     diskgroup: str
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[dict[str, Any]]
 
 
@@ -355,19 +371,26 @@ class ArrayProxiesRequest(BaseModel):
             "Defaults to a compact array proxy view."
         ),
     )
-    max_proxies: int = Field(
-        default=200000,
-        ge=1,
-        le=500000,
-        description="Maximum number of proxies to return from Collector pagination.",
+    filters: dict[str, str] = Field(
+        default_factory=dict,
+        description="Exact-match proxy property filters.",
     )
+    orderby: str | None = Field(default="id")
+    search: str | None = Field(default=None)
+    limit: int = Field(
+        default=20,
+        ge=1,
+        le=1000,
+        description="Maximum number of attached proxies to return.",
+    )
+    offset: int = Field(default=0, ge=0)
 
 
 class ArrayProxiesResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     array: str
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[dict[str, Any]]
 
 
@@ -389,19 +412,26 @@ class ArrayTargetsRequest(BaseModel):
             "Defaults to a compact array target view."
         ),
     )
-    max_targets: int = Field(
-        default=200000,
-        ge=1,
-        le=500000,
-        description="Maximum number of targets to return from Collector pagination.",
+    filters: dict[str, str] = Field(
+        default_factory=dict,
+        description="Exact-match target property filters.",
     )
+    orderby: str | None = Field(default="id")
+    search: str | None = Field(default=None)
+    limit: int = Field(
+        default=20,
+        ge=1,
+        le=1000,
+        description="Maximum number of attached targets to return.",
+    )
+    offset: int = Field(default=0, ge=0)
 
 
 class ArrayTargetsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     array: str
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[dict[str, Any]]
 
 
@@ -434,4 +464,11 @@ class ArrayRowsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[ArrayRow]
+
+
+class ArrayPageResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    pagination: Pagination
     data: list[ArrayRow]

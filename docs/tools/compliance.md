@@ -33,7 +33,7 @@ Example:
 Output fields:
 
 ```text
-meta
+pagination
 data
 ```
 
@@ -63,7 +63,7 @@ Example:
 Output fields:
 
 ```text
-meta
+pagination
 data
 ```
 
@@ -82,9 +82,9 @@ The tool reads:
 ```
 
 Observed `run_status` values are `0` for OK and `1` for error/NOK. The response
-is paginated with `limit` and `offset`, and `meta.total` tells the caller whether
-more pages are available. By default `latest=true`, so the tool returns the
-latest/current status page with newest rows first.
+is paginated with `limit` and `offset` and ordered by `~run_date` by default.
+Follow the shared [pagination contract](../pagination.md) for later pages. The
+`summary` counts describe only the current page.
 
 Run logs are hidden by default. Set `include_run_log_preview=true` for a bounded
 diagnostic preview, or `include_run_log=true` only when the full log is explicitly
@@ -107,7 +107,8 @@ Example:
 Output fields:
 
 ```text
-meta
+pagination
+summary
 data
 ```
 
@@ -127,10 +128,9 @@ The tool reads:
 /compliance/logs
 ```
 
-The response is paginated with `limit` and `offset`, and `meta.total` tells the
-caller whether more pages are available. By default `latest=false`, so `offset`
-works for historical pagination while rows are still returned newest first via
-`latest_first=true`. Set `latest=true` only to force the newest log page.
+The response is paginated with `limit` and `offset` and ordered by `~run_date`
+by default. Keep that ordering and the page size unchanged while advancing with
+`pagination.next_offset`.
 
 A bounded `run_log_preview` is included by default. Set `include_run_log=false`
 to keep full logs hidden, or `include_run_log=true` only when the full raw log is
@@ -155,7 +155,8 @@ Example:
 Output fields:
 
 ```text
-meta
+pagination
+summary
 data
 ```
 
@@ -300,7 +301,7 @@ Output fields:
 object_id
 relation
 ruleset_name
-meta
+pagination
 data
 ```
 
@@ -357,8 +358,8 @@ through `/compliance/rulesets`, then calls:
 ```
 
 The tool follows the standard Collector collection contract with `limit`,
-`offset`, `orderby`, `filters`, `search`, and `props`. Use `offset` to request
-the next page when `meta.total` is greater than the returned count.
+`offset`, `orderby`, `filters`, `search`, and `props`. Use
+`pagination.next_offset` to request the next page.
 
 Example:
 
@@ -379,7 +380,7 @@ Output fields:
 object_id
 relation
 ruleset_name
-meta
+pagination
 data
 ```
 
@@ -398,8 +399,8 @@ through `/compliance/rulesets`, then calls:
 ```
 
 The tool follows the standard Collector collection contract with `limit`,
-`offset`, `orderby`, `filters`, `search`, and `props`. Use `offset` to request
-the next page when `meta.total` is greater than the returned count.
+`offset`, `orderby`, `filters`, `search`, and `props`. Use
+`pagination.next_offset` to request the next page.
 
 Example:
 
@@ -420,7 +421,7 @@ Output fields:
 object_id
 relation
 ruleset_name
-meta
+pagination
 data
 ```
 
@@ -455,7 +456,7 @@ Output fields:
 object_id
 relation
 ruleset_name
-meta
+pagination
 data
 ```
 
@@ -489,7 +490,7 @@ Output fields:
 object_id
 relation
 ruleset_name
-meta
+pagination
 data
 ```
 
@@ -528,8 +529,7 @@ Returns modules declared in one compliance moduleset, selected by Collector
 moduleset id or exact `modset_name`.
 
 Use this when the question is about the concrete modules composing a moduleset.
-The response is paginated and includes Collector metadata such as `total`,
-`limit`, and `offset`.
+The response follows the shared pagination contract.
 
 Example:
 
@@ -547,7 +547,7 @@ Output fields:
 object_id
 modset_name
 relation
-meta
+pagination
 data
 ```
 
@@ -577,7 +577,7 @@ Output fields:
 object_id
 modset_name
 relation
-meta
+pagination
 data
 ```
 
@@ -607,7 +607,7 @@ Output fields:
 object_id
 modset_name
 relation
-meta
+pagination
 data
 ```
 
@@ -636,7 +636,7 @@ Output fields:
 object_id
 modset_name
 relation
-meta
+pagination
 data
 ```
 
@@ -665,7 +665,7 @@ Output fields:
 object_id
 modset_name
 relation
-meta
+pagination
 data
 ```
 
@@ -696,7 +696,7 @@ Output fields:
 object_id
 modset_name
 relation
-meta
+pagination
 data
 ```
 
@@ -727,7 +727,7 @@ Output fields:
 object_id
 modset_name
 relation
-meta
+pagination
 data
 ```
 

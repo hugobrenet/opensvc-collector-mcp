@@ -118,7 +118,7 @@ Example:
 Output fields:
 
 ```text
-meta
+pagination
 data
 ```
 
@@ -176,10 +176,10 @@ data
 
 ### `get_array_diskgroups`
 
-Returns all diskgroups attached to one OpenSVC Collector storage array
+Returns one page of diskgroups attached to one OpenSVC Collector storage array
 selected by exact `array_name` or Collector array row id. The tool calls
-`/arrays/<id>/diskgroups` and follows Collector pagination until
-`meta.complete` is true or `max_diskgroups` is reached.
+`/arrays/<id>/diskgroups`. Follow the shared
+[pagination contract](../pagination.md) when more rows are needed.
 
 Default props:
 
@@ -194,7 +194,8 @@ Example:
   "request": {
     "array": "ARRAY-NAME",
     "props": "id,array_id,dg_name,dg_size,dg_free,dg_used,dg_reserved,dg_updated",
-    "max_diskgroups": 200000
+    "limit": 20,
+    "offset": 0
   }
 }
 ```
@@ -203,15 +204,14 @@ Output fields:
 
 ```text
 array
-meta
+pagination
 data
 ```
 
 ### `get_array_diskgroup_quotas`
 
-Returns all quota rows attached to one OpenSVC Collector storage array
-diskgroup. The tool calls `/arrays/<id>/diskgroups/<id>/quotas` and follows
-Collector pagination until `meta.complete` is true or `max_quotas` is reached.
+Returns one page of quota rows attached to one OpenSVC Collector storage array
+diskgroup. The tool calls `/arrays/<id>/diskgroups/<id>/quotas`.
 
 Default props:
 
@@ -227,7 +227,8 @@ Example:
     "array": "ARRAY-NAME",
     "diskgroup": "DISKGROUP-NAME",
     "props": "id,dg_id,app_id,quota",
-    "max_quotas": 200000
+    "limit": 20,
+    "offset": 0
   }
 }
 ```
@@ -237,7 +238,7 @@ Output fields:
 ```text
 array
 diskgroup
-meta
+pagination
 data
 ```
 
@@ -271,10 +272,9 @@ data
 
 ### `get_array_proxies`
 
-Returns all proxy rows attached to one OpenSVC Collector storage array selected
+Returns one page of proxy rows attached to one OpenSVC Collector storage array selected
 by exact `array_name` or Collector array row id. The tool calls
-`/arrays/<id>/proxies` and follows Collector pagination until `meta.complete`
-is true or `max_proxies` is reached.
+`/arrays/<id>/proxies`.
 
 Default props:
 
@@ -289,7 +289,8 @@ Example:
   "request": {
     "array": "ARRAY-NAME",
     "props": "id,array_id,node_id",
-    "max_proxies": 200000
+    "limit": 20,
+    "offset": 0
   }
 }
 ```
@@ -298,16 +299,15 @@ Output fields:
 
 ```text
 array
-meta
+pagination
 data
 ```
 
 ### `get_array_targets`
 
-Returns all target id rows attached to one OpenSVC Collector storage array
+Returns one page of target id rows attached to one OpenSVC Collector storage array
 selected by exact `array_name` or Collector array row id. The tool calls
-`/arrays/<id>/targets` and follows Collector pagination until `meta.complete`
-is true or `max_targets` is reached.
+`/arrays/<id>/targets`.
 
 Default props:
 
@@ -322,7 +322,8 @@ Example:
   "request": {
     "array": "ARRAY-NAME",
     "props": "id,array_id,array_tgtid",
-    "max_targets": 200000
+    "limit": 20,
+    "offset": 0
   }
 }
 ```
@@ -331,7 +332,7 @@ Output fields:
 
 ```text
 array
-meta
+pagination
 data
 ```
 
@@ -370,6 +371,6 @@ Example:
 Output fields:
 
 ```text
-meta
+pagination
 data
 ```

@@ -22,15 +22,28 @@ from opensvc_collector_mcp.tools.tags import register_tags_tools
 from opensvc_collector_mcp.tools.users import register_users_tools
 
 
+SERVER_INSTRUCTIONS = (
+    "This server exposes the OpenSVC Collector domain to MCP clients. "
+    "Use search_tools with concise English domain keywords to find the right "
+    "tool. Raw collection tools return one page with a pagination object and "
+    "do not return Collector metadata. To continue a collection, call the "
+    "same tool with the same limit, filters, search, props, and ordering, and "
+    "set offset to pagination.next_offset. Stop when pagination.complete is "
+    "true or next_offset is null; a full page is not proof that the collection "
+    "is complete. Do not increase limit between page calls and do not infer a "
+    "total from the current page. When a user concept does not map clearly to "
+    "a Collector property or value, first use the domain property-discovery "
+    "tool (for example list_node_props), then a compact filtered/sample page "
+    "or a specialized statistics tool when available. Prefer count tools for "
+    "counts and detail tools for one selected object instead of scanning every "
+    "page."
+)
+
+
 def build_mcp(*, require_basic_auth: bool = True) -> FastMCP:
     server = FastMCP(
         name="OpenSVC Collector",
-        instructions=(
-            "This server exposes the OpenSVC Collector domain to MCP clients. "
-            "Use search_tools with concise English domain keywords when looking "
-            "for the right tool, then use the available tools to inspect server "
-            "health and Collector data."
-        ),
+        instructions=SERVER_INSTRUCTIONS,
         transforms=[BM25SearchTransform(max_results=MCP_TOOL_SEARCH_MAX_RESULTS)],
     )
 

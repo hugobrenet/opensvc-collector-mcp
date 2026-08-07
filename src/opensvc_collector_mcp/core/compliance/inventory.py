@@ -188,16 +188,6 @@ async def get_compliance_moduleset_items(
         selected_props,
     )
     data["modset_name"] = resolved_name
-    data["meta"].update(
-        {
-            "requested_moduleset_id": str(moduleset_id).strip()
-            if moduleset_id is not None
-            else None,
-            "requested_modset_name": modset_name,
-            "resolved_moduleset_id": resolved_id,
-            "resolved_modset_name": resolved_name,
-        }
-    )
     return data
 
 

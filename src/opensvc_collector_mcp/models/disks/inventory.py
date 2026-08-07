@@ -2,6 +2,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from opensvc_collector_mcp.models.pagination import Pagination
+
 
 def _is_none(value: object) -> bool:
     return value is None
@@ -176,7 +178,7 @@ class DiskRow(BaseModel):
 class DiskRowsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[DiskRow]
 
 

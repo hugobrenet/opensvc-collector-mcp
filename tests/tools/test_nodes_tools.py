@@ -443,7 +443,18 @@ async def test_node_notification_tools_reject_nodename_selector(
 
 
 async def test_list_nodes_tool_passes_request_to_core(monkeypatch, mcp_client):
-    recorder = CoreRecorder({"meta": {"total": 1}, "data": [{"nodename": "node-a"}]})
+    recorder = CoreRecorder(
+        {
+            "pagination": {
+                "limit": 5,
+                "offset": 2,
+                "returned": 1,
+                "next_offset": None,
+                "complete": True,
+            },
+            "data": [{"nodename": "node-a"}],
+        }
+    )
     monkeypatch.setattr(node_tools, "core_list_nodes", recorder)
 
     result = await mcp_client.call_tool(
@@ -460,7 +471,8 @@ async def test_list_nodes_tool_passes_request_to_core(monkeypatch, mcp_client):
         },
     )
 
-    assert result.structured_content == {"meta": {"total": 1}, "data": [{"nodename": "node-a"}]}
+    assert result.structured_content["pagination"]["complete"] is True
+    assert result.structured_content["data"] == [{"nodename": "node-a"}]
     assert recorder.calls == [
         {
             "filters": {"status": "up"},
@@ -503,7 +515,17 @@ async def test_get_node_tool_passes_nodename_to_core(monkeypatch, mcp_client):
 
 async def test_get_node_disks_tool_passes_relation_request_to_core(monkeypatch, mcp_client):
     recorder = CoreRecorder(
-        {"nodename": "node-a", "meta": {"total": 1}, "data": [{"disk_id": "DISK-ID"}]}
+        {
+            "nodename": "node-a",
+            "pagination": {
+                "limit": 4,
+                "offset": 1,
+                "returned": 1,
+                "next_offset": None,
+                "complete": True,
+            },
+            "data": [{"disk_id": "DISK-ID"}],
+        }
     )
     monkeypatch.setattr(node_tools, "core_get_node_disks", recorder)
 
@@ -536,7 +558,17 @@ async def test_get_node_disks_tool_passes_relation_request_to_core(monkeypatch, 
 
 async def test_get_node_services_tool_passes_relation_request_to_core(monkeypatch, mcp_client):
     recorder = CoreRecorder(
-        {"nodename": "node-a", "meta": {"total": 1}, "data": [{"svcname": "svc-a"}]}
+        {
+            "nodename": "node-a",
+            "pagination": {
+                "limit": 3,
+                "offset": 0,
+                "returned": 1,
+                "next_offset": None,
+                "complete": True,
+            },
+            "data": [{"svcname": "svc-a"}],
+        }
     )
     monkeypatch.setattr(node_tools, "core_get_node_services", recorder)
 

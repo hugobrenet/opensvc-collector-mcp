@@ -2,9 +2,9 @@ from configparser import ConfigParser, Error as ConfigParserError
 from typing import Any
 from urllib.parse import quote
 
-from opensvc_collector_mcp.client import collector_get
+from opensvc_collector_mcp.client import collector_get, collector_get_page
 
-from opensvc_collector_mcp.core.utils import collection_meta, collection_params
+from opensvc_collector_mcp.core.utils import collection_params
 
 from ._common import _parse_service_filters, _truncate_text
 
@@ -46,7 +46,7 @@ async def list_services(
     offset = max(0, offset)
     selected_props = props or DEFAULT_LIST_SERVICE_PROPS
     parsed_filters = _service_search_filters(filters)
-    return await collector_get(
+    return await collector_get_page(
         "/services",
         params=_service_search_params(
             filters=parsed_filters,
@@ -175,7 +175,7 @@ async def get_service_instances(
     parsed_filters = _service_instance_filters(
         [("svcname", svcname), *_parse_service_filters(filters)]
     )
-    response = await collector_get(
+    response = await collector_get_page(
         "/services_instances",
         params=collection_params(
             filters=parsed_filters,
@@ -186,17 +186,7 @@ async def get_service_instances(
             offset=offset,
         ),
     )
-    meta = collection_meta(
-        response,
-        source="services_instances",
-        filters=parsed_filters,
-        props=selected_props,
-    )
-    return {
-        "svcname": svcname,
-        "meta": meta,
-        "data": response.get("data", []),
-    }
+    return {"svcname": svcname, **response}
 
 
 async def get_service_nodes(
@@ -214,7 +204,7 @@ async def get_service_nodes(
 
     selected_props = props or SERVICE_NODES_PROPS
     parsed_filters = _parse_service_filters(filters)
-    response = await collector_get(
+    response = await collector_get_page(
         f"/services/{quote(svcname, safe='')}/nodes",
         params=collection_params(
             filters=parsed_filters,
@@ -225,19 +215,7 @@ async def get_service_nodes(
             offset=offset,
         ),
     )
-    rows = response.get("data", [])
-    meta = collection_meta(
-        response,
-        source="service_nodes",
-        filters=parsed_filters,
-        props=selected_props,
-        extra={"svcname": svcname, "node_count": len(rows)},
-    )
-    return {
-        "svcname": svcname,
-        "meta": meta,
-        "data": rows,
-    }
+    return {"svcname": svcname, **response}
 
 
 async def list_service_props() -> dict[str, Any]:

@@ -1,6 +1,6 @@
 from typing import Any, Literal
 
-from opensvc_collector_mcp.client import collector_get
+from opensvc_collector_mcp.client import collector_get, collector_get_page
 from opensvc_collector_mcp.core.utils import (
     enrich_rows_with_nodenames,
     enrich_rows_with_svcnames,
@@ -37,10 +37,9 @@ async def get_compliance_status(
     svc_id: str | None = None,
     rset_md5: str | None = None,
     props: str | None = None,
+    orderby: str | None = "~run_date",
     limit: int = 50,
     offset: int = 0,
-    latest: bool = True,
-    latest_first: bool = True,
     include_run_log: bool = False,
     include_run_log_preview: bool = False,
     run_log_max_chars: int = 1000,
@@ -55,10 +54,9 @@ async def get_compliance_status(
         svc_id=svc_id,
         rset_md5=rset_md5,
         props=props,
+        orderby=orderby,
         limit=limit,
         offset=offset,
-        latest=latest,
-        latest_first=latest_first,
         include_run_log=include_run_log,
         include_run_log_preview=include_run_log_preview,
         run_log_max_chars=run_log_max_chars,
@@ -74,10 +72,9 @@ async def get_compliance_logs(
     svc_id: str | None = None,
     rset_md5: str | None = None,
     props: str | None = None,
+    orderby: str | None = "~run_date",
     limit: int = 20,
     offset: int = 0,
-    latest: bool = True,
-    latest_first: bool = True,
     include_run_log: bool = False,
     include_run_log_preview: bool = True,
     run_log_max_chars: int = 1000,
@@ -97,10 +94,9 @@ async def get_compliance_logs(
         svc_id=svc_id,
         rset_md5=rset_md5,
         props=props,
+        orderby=orderby,
         limit=limit,
         offset=offset,
-        latest=latest,
-        latest_first=latest_first,
         include_run_log=include_run_log,
         include_run_log_preview=include_run_log_preview,
         run_log_max_chars=run_log_max_chars,
@@ -153,10 +149,9 @@ async def _get_compliance_runs(
     svc_id: str | None,
     rset_md5: str | None,
     props: str | None,
+    orderby: str | None,
     limit: int,
     offset: int,
-    latest: bool,
-    latest_first: bool,
     include_run_log: bool,
     include_run_log_preview: bool,
     run_log_max_chars: int,
@@ -177,9 +172,7 @@ async def _get_compliance_runs(
         svc_id=svc_id,
         rset_md5=rset_md5,
     )
-    effective_offset = 0 if latest else offset
-    orderby = "~run_date" if latest or latest_first else "run_date"
-    response = await collector_get(
+    response = await collector_get_page(
         f"/compliance/{source}",
         params=collection_params(
             filters=parsed_filters,
@@ -187,7 +180,7 @@ async def _get_compliance_runs(
             orderby=orderby,
             search=None,
             limit=limit,
-            offset=effective_offset,
+            offset=offset,
         ),
     )
     rows = await _shape_run_rows(
@@ -197,25 +190,12 @@ async def _get_compliance_runs(
         run_log_max_chars=run_log_max_chars,
         enrich_names=True,
     )
-    rows = _sort_run_rows(rows, latest_first=latest_first)
     summary = _run_summary(rows)
-    meta = dict(response.get("meta", {}))
-    meta.update(
-        {
-            "source": f"compliance_{source}",
-            "filter": {field: value for field, value in parsed_filters},
-            "included_props": selected_props.split(","),
-            "requested_latest": latest,
-            "latest_first": latest_first,
-            "effective_offset": effective_offset,
-            "include_run_log": include_run_log,
-            "include_run_log_preview": include_run_log_preview,
-            "run_log_max_chars": run_log_max_chars,
-            "output_count": len(rows),
-            **summary,
-        }
-    )
-    return {"meta": meta, "data": rows}
+    return {
+        "pagination": response["pagination"],
+        "summary": summary,
+        "data": rows,
+    }
 
 
 def _has_run_log_scope(
@@ -306,19 +286,6 @@ async def _shape_run_rows(
         if not row.get("svcname")
     )
     return enrich_rows_with_svcnames(rows_with_nodes, svcnames_by_svc_id)
-
-
-def _sort_run_rows(
-    rows: list[dict[str, Any]], latest_first: bool
-) -> list[dict[str, Any]]:
-    return sorted(
-        rows,
-        key=lambda row: (
-            str(row.get("run_date") or ""),
-            str(row.get("id") or ""),
-        ),
-        reverse=latest_first,
-    )
 
 
 def _run_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:

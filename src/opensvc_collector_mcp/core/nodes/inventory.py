@@ -4,6 +4,7 @@ from urllib.parse import quote
 from opensvc_collector_mcp.client import (
     collector_delete,
     collector_get,
+    collector_get_page,
     collector_post,
     collector_put,
 )
@@ -104,7 +105,7 @@ async def list_nodes(
     parsed_filters = _node_search_filters(filters)
 
     if not nodename_contains:
-        return await collector_get(
+        return await collector_get_page(
             "/nodes",
             params=_node_search_params(
                 filters=parsed_filters,
@@ -127,10 +128,9 @@ async def list_nodes(
     scanned = 0
     api_offset = 0
     page_size = min(max(limit + offset, 100), 1000)
-    total_candidates: int | None = None
 
     while scanned < max_scan:
-        response = await collector_get(
+        response = await collector_get_page(
             "/nodes",
             params=_node_search_params(
                 filters=parsed_filters,
@@ -141,10 +141,7 @@ async def list_nodes(
                 offset=api_offset,
             ),
         )
-        meta = response.get("meta", {})
         data = response.get("data", [])
-        if total_candidates is None:
-            total_candidates = meta.get("total")
 
         for node in data:
             nodename = str(node.get("nodename", "")).lower()
@@ -154,25 +151,22 @@ async def list_nodes(
         count = len(data)
         scanned += count
         api_offset += count
-        if count == 0 or count < page_size or len(matches) >= offset + limit:
+        source_complete = response["pagination"]["complete"]
+        if source_complete or len(matches) >= offset + limit:
             break
 
     result_data = matches[offset : offset + limit]
-    complete = total_candidates is None or api_offset >= total_candidates
+    complete = source_complete and len(matches) <= offset + limit
+    truncated = not source_complete and scanned >= max_scan
+    returned = len(result_data)
     return {
-        "meta": {
-            "count": len(result_data),
-            "total": len(matches) if complete else None,
+        "pagination": {
             "limit": limit,
             "offset": offset,
-            "scanned": scanned,
-            "max_scan": max_scan,
+            "returned": returned,
+            "next_offset": None if complete or truncated else offset + returned,
             "complete": complete,
-            "filters": {
-                "nodename_contains": nodename_contains,
-                **{field: value for field, value in parsed_filters},
-            },
-            "included_props": selected_props.split(","),
+            "truncated": truncated,
         },
         "data": result_data,
     }

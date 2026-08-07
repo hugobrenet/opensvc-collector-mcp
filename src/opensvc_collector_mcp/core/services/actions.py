@@ -1,7 +1,7 @@
 from typing import Any
 from urllib.parse import quote
 
-from opensvc_collector_mcp.client import collector_get
+from opensvc_collector_mcp.client import collector_get, collector_get_page
 
 from ._common import _int_or_none, _parse_service_filters, _truncate_text
 
@@ -50,34 +50,14 @@ async def get_service_actions(
         include_status_log_preview=include_status_log_preview,
     )
 
-    effective_offset = offset
-    total: int | None = None
-    if latest:
-        probe = await collector_get(
-            endpoint,
-            params=_service_action_params(
-                filters=parsed_filters,
-                props="action",
-                limit=1,
-                offset=0,
-            ),
-        )
-        total = _int_or_none(probe.get("meta", {}).get("total"))
-        if total is not None:
-            effective_offset = max(0, total - limit)
-
-    response = await collector_get(
-        endpoint,
-        params=_service_action_params(
-            filters=parsed_filters,
-            props=props,
-            limit=limit,
-            offset=effective_offset,
-        ),
+    response = await _get_service_action_page(
+        endpoint=endpoint,
+        filters=parsed_filters,
+        props=props,
+        limit=limit,
+        offset=offset,
+        latest=latest,
     )
-    meta = dict(response.get("meta", {}))
-    if total is None:
-        total = _int_or_none(meta.get("total"))
     rows = _service_action_rows(
         response.get("data", []),
         include_status_log=include_status_log,
@@ -85,26 +65,9 @@ async def get_service_actions(
         status_log_max_chars=status_log_max_chars,
         latest_first=latest_first,
     )
-    meta.update(
-        {
-            "source": "service_actions",
-            "filter": {
-                "svcname": svcname,
-                **{field: value for field, value in parsed_filters},
-            },
-            "requested_latest": latest,
-            "latest_first": latest_first,
-            "effective_offset": effective_offset,
-            "total": total,
-            "include_status_log": include_status_log,
-            "include_status_log_preview": include_status_log_preview,
-            "status_log_max_chars": status_log_max_chars,
-            "output_count": len(rows),
-        }
-    )
     return {
         "svcname": svcname,
-        "meta": meta,
+        "pagination": response["pagination"],
         "data": rows,
     }
 
@@ -142,34 +105,14 @@ async def get_service_unacknowledged_errors(
         include_status_log_preview=include_status_log_preview,
     )
 
-    effective_offset = offset
-    total: int | None = None
-    if latest:
-        probe = await collector_get(
-            endpoint,
-            params=_service_action_params(
-                filters=parsed_filters,
-                props="action",
-                limit=1,
-                offset=0,
-            ),
-        )
-        total = _int_or_none(probe.get("meta", {}).get("total"))
-        if total is not None:
-            effective_offset = max(0, total - limit)
-
-    response = await collector_get(
-        endpoint,
-        params=_service_action_params(
-            filters=parsed_filters,
-            props=props,
-            limit=limit,
-            offset=effective_offset,
-        ),
+    response = await _get_service_action_page(
+        endpoint=endpoint,
+        filters=parsed_filters,
+        props=props,
+        limit=limit,
+        offset=offset,
+        latest=latest,
     )
-    meta = dict(response.get("meta", {}))
-    if total is None:
-        total = _int_or_none(meta.get("total"))
     rows = _service_action_rows(
         response.get("data", []),
         include_status_log=include_status_log,
@@ -177,28 +120,91 @@ async def get_service_unacknowledged_errors(
         status_log_max_chars=status_log_max_chars,
         latest_first=latest_first,
     )
-    meta.update(
-        {
-            "source": "service_actions_unacknowledged_errors",
-            "filter": {
-                "svcname": svcname,
-                **{field: value for field, value in parsed_filters},
-            },
-            "implicit_filter": {"status": "err", "ack": "unacknowledged"},
-            "requested_latest": latest,
-            "latest_first": latest_first,
-            "effective_offset": effective_offset,
-            "total": total,
-            "include_status_log": include_status_log,
-            "include_status_log_preview": include_status_log_preview,
-            "status_log_max_chars": status_log_max_chars,
-            "output_count": len(rows),
-        }
-    )
     return {
         "svcname": svcname,
-        "meta": meta,
+        "pagination": response["pagination"],
         "data": rows,
+    }
+
+
+async def _get_service_action_page(
+    endpoint: str,
+    filters: list[tuple[str, str]],
+    props: str,
+    limit: int,
+    offset: int,
+    latest: bool,
+) -> dict[str, Any]:
+    if not latest:
+        return await collector_get_page(
+            endpoint,
+            params=_service_action_params(
+                filters=filters,
+                props=props,
+                limit=limit,
+                offset=offset,
+            ),
+        )
+
+    probe = await collector_get(
+        endpoint,
+        params=_service_action_params(
+            filters=filters,
+            props="action",
+            limit=1,
+            offset=0,
+        ),
+    )
+    total = _int_or_none(probe.get("meta", {}).get("total"))
+    if total is None:
+        return await collector_get_page(
+            endpoint,
+            params=_service_action_params(
+                filters=filters,
+                props=props,
+                limit=limit,
+                offset=offset,
+            ),
+        )
+
+    available = max(total - offset, 0)
+    if available == 0:
+        return {
+            "pagination": {
+                "limit": limit,
+                "offset": offset,
+                "returned": 0,
+                "next_offset": None,
+                "complete": True,
+                "truncated": False,
+            },
+            "data": [],
+        }
+
+    request_limit = min(limit, available)
+    effective_offset = max(total - offset - request_limit, 0)
+    response = await collector_get_page(
+        endpoint,
+        params=_service_action_params(
+            filters=filters,
+            props=props,
+            limit=request_limit,
+            offset=effective_offset,
+        ),
+    )
+    data = response.get("data", [])
+    returned = len(data)
+    complete = offset + returned >= total
+    return {
+        "pagination": {
+            "limit": limit,
+            "offset": offset,
+            "returned": returned,
+            "next_offset": None if complete else offset + returned,
+            "complete": complete,
+            "truncated": False,
+        },
+        "data": data,
     }
 
 

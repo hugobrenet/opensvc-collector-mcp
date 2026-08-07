@@ -1,6 +1,6 @@
-from typing import Any
-
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from opensvc_collector_mcp.models.pagination import Pagination
 
 
 class ClusterNameRequest(BaseModel):
@@ -51,5 +51,5 @@ class ClusterNodesResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     cluster_name: str
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[ClusterNode]

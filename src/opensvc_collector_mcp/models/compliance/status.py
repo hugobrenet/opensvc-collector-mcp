@@ -2,6 +2,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from opensvc_collector_mcp.models.pagination import Pagination
+
 
 class ComplianceStatusRequest(BaseModel):
     filters: dict[str, str] = Field(
@@ -36,6 +38,13 @@ class ComplianceStatusRequest(BaseModel):
         default=None,
         description="Comma-separated Collector compliance status properties to return.",
     )
+    orderby: str | None = Field(
+        default="~run_date",
+        description=(
+            "Collector ordering expression. Defaults to newest runs first; use "
+            "run_date for oldest runs first. Keep it unchanged between pages."
+        ),
+    )
     limit: int = Field(
         default=50,
         ge=1,
@@ -46,14 +55,6 @@ class ComplianceStatusRequest(BaseModel):
         default=0,
         ge=0,
         description="Number of matching compliance status rows to skip.",
-    )
-    latest: bool = Field(
-        default=True,
-        description="Return the latest/current status page by forcing offset 0 and run_date descending.",
-    )
-    latest_first: bool = Field(
-        default=True,
-        description="Sort returned rows newest first.",
     )
     include_run_log: bool = Field(
         default=False,
@@ -153,10 +154,6 @@ class ComplianceLogsRequest(ComplianceStatusRequest):
         ge=0,
         description="Number of matching historical compliance log rows to skip.",
     )
-    latest: bool = Field(
-        default=False,
-        description="When true, force the newest log page by using offset 0. Keep false to paginate historical logs.",
-    )
     include_run_log_preview: bool = Field(
         default=True,
         description="Include bounded run_log_preview by default for historical log diagnostics.",
@@ -178,10 +175,22 @@ class ComplianceLogsRequest(ComplianceStatusRequest):
         return self
 
 
+class ComplianceRunPageSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    ok_count: int = Field(description="OK runs in this page only.")
+    error_count: int = Field(description="Non-OK runs in this page only.")
+    unknown_count: int = Field(description="Runs with an unknown status in this page.")
+    failed_modules: list[str] = Field(
+        description="Distinct failed module names found in this page."
+    )
+
+
 class ComplianceLogsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
+    summary: ComplianceRunPageSummary
     data: list[ComplianceStatusRow]
 
 
@@ -235,5 +244,6 @@ class ComplianceRunDetailResponse(BaseModel):
 class ComplianceStatusResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
+    summary: ComplianceRunPageSummary
     data: list[ComplianceStatusRow]

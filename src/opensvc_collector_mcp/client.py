@@ -17,6 +17,7 @@ from opensvc_collector_mcp.config import (
 __all__ = [
     "CollectorCredentials",
     "collector_get",
+    "collector_get_page",
     "collector_get_all",
     "collector_get_with_credentials",
     "collector_delete",
@@ -45,6 +46,52 @@ async def collector_get(
         credentials=credentials,
         params=params,
     )
+
+
+async def collector_get_page(
+    path: str,
+    params: dict[str, Any] | Sequence[tuple[str, Any]] | None = None,
+    *,
+    limit: int | None = None,
+    offset: int | None = None,
+) -> dict[str, Any]:
+    """Return one lightweight Collector collection page.
+
+    Collector metadata is disabled because property discovery and counts have
+    dedicated tools. The public pagination state is derived from the requested
+    page and returned row count instead.
+    """
+    if limit is None:
+        limit = int(_last_param_value(params, "limit", 20))
+    if offset is None:
+        offset = int(_last_param_value(params, "offset", 0))
+    limit = max(1, min(limit, 1000))
+    offset = max(0, offset)
+    response = await collector_get(
+        path,
+        params=_with_page_params(
+            params=params,
+            limit=limit,
+            offset=offset,
+        ),
+    )
+    data = response.get("data", [])
+    if not isinstance(data, list):
+        raise ValueError("Collector collection response data must be a list")
+
+    returned = len(data)
+    complete = returned < limit
+    return {
+        "pagination": {
+            "limit": limit,
+            "offset": offset,
+            "returned": returned,
+            "next_offset": None if complete else offset + returned,
+            "complete": complete,
+            "truncated": False,
+        },
+        "data": data,
+    }
 
 
 async def collector_post(
@@ -219,66 +266,75 @@ async def collector_get_all(
     max_items = max(1, min(max_items, 500000))
     rows: list[dict[str, Any]] = []
     offset = 0
-    total: int | None = None
-    first_meta: dict[str, Any] = {}
+    complete = False
 
     while len(rows) < max_items:
-        response = await collector_get(
+        request_limit = min(page_size, max_items - len(rows))
+        response = await collector_get_page(
             path,
-            params=_with_limit_offset(
-                params=params,
-                limit=min(page_size, max_items - len(rows)),
-                offset=offset,
-            ),
+            params=params,
+            limit=request_limit,
+            offset=offset,
         )
-        meta = response.get("meta", {})
         data = response.get("data", [])
-        if not first_meta:
-            first_meta = dict(meta)
-        if total is None:
-            total = meta.get("total")
-
         rows.extend(data)
 
         count = len(data)
         offset += count
-        if count == 0 or count < page_size:
-            break
-        if total is not None and offset >= total:
+        if response["pagination"]["complete"]:
+            complete = True
             break
 
-    complete = total is None or offset >= total
-    merged_meta = dict(first_meta)
-    merged_meta.update(
-        {
+    return {
+        "meta": {
             "count": len(rows),
-            "total": total if complete else None,
+            "total": len(rows) if complete else None,
             "offset": 0,
             "complete": complete,
+            "truncated": not complete,
             "max_items": max_items,
             "scanned": offset,
-        }
-    )
-    return {
-        "meta": merged_meta,
+        },
         "data": rows,
     }
 
 
-def _with_limit_offset(
+def _with_page_params(
     params: dict[str, Any] | Sequence[tuple[str, Any]] | None,
+    *,
     limit: int,
     offset: int,
 ) -> dict[str, Any] | list[tuple[str, Any]]:
     if params is None:
-        return {"limit": limit, "offset": offset}
+        return {"limit": limit, "offset": offset, "meta": False}
     if isinstance(params, dict):
         merged = dict(params)
-        merged["limit"] = limit
-        merged["offset"] = offset
+        merged.update({"limit": limit, "offset": offset, "meta": False})
         return merged
 
-    filtered = [(key, value) for key, value in params if key not in {"limit", "offset"}]
-    filtered.append(("limit", limit))
-    filtered.append(("offset", offset))
+    filtered = [
+        (key, value)
+        for key, value in params
+        if key not in {"limit", "offset", "meta"}
+    ]
+    filtered.extend(
+        [
+            ("limit", limit),
+            ("offset", offset),
+            ("meta", False),
+        ]
+    )
     return filtered
+
+
+def _last_param_value(
+    params: dict[str, Any] | Sequence[tuple[str, Any]] | None,
+    key: str,
+    default: Any,
+) -> Any:
+    if params is None:
+        return default
+    if isinstance(params, dict):
+        return params.get(key, default)
+    values = [value for item_key, value in params if item_key == key]
+    return values[-1] if values else default

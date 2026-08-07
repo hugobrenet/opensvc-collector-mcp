@@ -26,6 +26,7 @@ from opensvc_collector_mcp.models.arrays import (
     ArrayDiskgroupRequest,
     ArrayDiskgroupResponse,
     ArrayDiskgroupRowsResponse,
+    ArrayPageResponse,
     ArrayDiskgroupsRequest,
     ArrayDiskgroupsResponse,
     ArrayPropsResponse,
@@ -66,7 +67,7 @@ def register_arrays_tools(mcp: FastMCP) -> None:
             ListArraysRequest,
             Field(description="Optional array listing parameters."),
         ] = ListArraysRequest(),
-    ) -> ArrayRowsResponse:
+    ) -> ArrayPageResponse:
         """Return OpenSVC Collector storage arrays and selected properties."""
         response = await core_list_arrays(
             filters=request.merged_filters(),
@@ -76,7 +77,7 @@ def register_arrays_tools(mcp: FastMCP) -> None:
             limit=request.limit,
             offset=request.offset,
         )
-        return ArrayRowsResponse.model_validate(response)
+        return ArrayPageResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,
@@ -225,10 +226,8 @@ def register_arrays_tools(mcp: FastMCP) -> None:
         timeout=TOOL_TIMEOUT_SECONDS,
         name="get_array_diskgroups",
         description=(
-            "Return all OpenSVC Collector diskgroups attached to one storage "
-            "array selected by exact array name or Collector array row id. "
-            "The tool follows Collector pagination until complete or "
-            "max_diskgroups is reached."
+            "Return one page of OpenSVC Collector diskgroups attached to one "
+            "storage array selected by exact name or Collector row id."
         ),
         tags={"arrays", "storage", "diskgroups", "inventory", "read"},
         annotations={
@@ -247,8 +246,12 @@ def register_arrays_tools(mcp: FastMCP) -> None:
         """Return diskgroups attached to one OpenSVC Collector storage array."""
         response = await core_get_array_diskgroups(
             array=request.array,
+            filters=request.filters,
             props=request.props,
-            max_diskgroups=request.max_diskgroups,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
         )
         return ArrayDiskgroupsResponse.model_validate(response)
 
@@ -256,9 +259,8 @@ def register_arrays_tools(mcp: FastMCP) -> None:
         timeout=TOOL_TIMEOUT_SECONDS,
         name="get_array_diskgroup_quotas",
         description=(
-            "Return all OpenSVC Collector quota rows attached to one storage "
-            "array diskgroup. The tool follows Collector pagination until "
-            "complete or max_quotas is reached."
+            "Return one page of OpenSVC Collector quota rows attached to one "
+            "storage array diskgroup."
         ),
         tags={"arrays", "storage", "diskgroups", "quotas", "inventory", "read"},
         annotations={
@@ -278,8 +280,12 @@ def register_arrays_tools(mcp: FastMCP) -> None:
         response = await core_get_array_diskgroup_quotas(
             array=request.array,
             diskgroup=request.diskgroup,
+            filters=request.filters,
             props=request.props,
-            max_quotas=request.max_quotas,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
         )
         return ArrayDiskgroupQuotasResponse.model_validate(response)
 
@@ -317,10 +323,8 @@ def register_arrays_tools(mcp: FastMCP) -> None:
         timeout=TOOL_TIMEOUT_SECONDS,
         name="get_array_proxies",
         description=(
-            "Return all OpenSVC Collector proxy nodes attached to one storage "
-            "array selected by exact array name or Collector array row id. "
-            "The tool follows Collector pagination until complete or "
-            "max_proxies is reached."
+            "Return one page of OpenSVC Collector proxy nodes attached to one "
+            "storage array selected by exact name or Collector row id."
         ),
         tags={"arrays", "storage", "proxies", "inventory", "read"},
         annotations={
@@ -339,8 +343,12 @@ def register_arrays_tools(mcp: FastMCP) -> None:
         """Return proxy rows attached to one OpenSVC Collector storage array."""
         response = await core_get_array_proxies(
             array=request.array,
+            filters=request.filters,
             props=request.props,
-            max_proxies=request.max_proxies,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
         )
         return ArrayProxiesResponse.model_validate(response)
 
@@ -348,10 +356,8 @@ def register_arrays_tools(mcp: FastMCP) -> None:
         timeout=TOOL_TIMEOUT_SECONDS,
         name="get_array_targets",
         description=(
-            "Return all OpenSVC Collector target ids attached to one storage "
-            "array selected by exact array name or Collector array row id. "
-            "The tool follows Collector pagination until complete or "
-            "max_targets is reached."
+            "Return one page of OpenSVC Collector target ids attached to one "
+            "storage array selected by exact name or Collector row id."
         ),
         tags={"arrays", "storage", "targets", "inventory", "read"},
         annotations={
@@ -370,8 +376,12 @@ def register_arrays_tools(mcp: FastMCP) -> None:
         """Return target id rows attached to one OpenSVC Collector storage array."""
         response = await core_get_array_targets(
             array=request.array,
+            filters=request.filters,
             props=request.props,
-            max_targets=request.max_targets,
+            orderby=request.orderby,
+            search=request.search,
+            limit=request.limit,
+            offset=request.offset,
         )
         return ArrayTargetsResponse.model_validate(response)
 

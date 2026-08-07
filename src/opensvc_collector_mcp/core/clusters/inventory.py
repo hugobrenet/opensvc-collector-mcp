@@ -1,6 +1,6 @@
 from typing import Any
 
-from opensvc_collector_mcp.client import collector_get
+from opensvc_collector_mcp.client import collector_get_page
 from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
 
 
@@ -25,7 +25,7 @@ async def get_cluster_nodes(
         ("clusters.cluster_name", cluster_name),
         *parse_collector_filters(filters),
     ]
-    response = await collector_get(
+    response = await collector_get_page(
         "/nodes",
         params=collection_params(
             filters=parsed_filters,
@@ -36,14 +36,4 @@ async def get_cluster_nodes(
             offset=offset,
         ),
     )
-    data = response.get("data", [])
-    meta = dict(response.get("meta", {}))
-    meta.update(
-        {
-            "source": "nodes",
-            "filter": {field: value for field, value in parsed_filters},
-            "included_props": selected_props.split(","),
-            "output_count": len(data),
-        }
-    )
-    return {"cluster_name": cluster_name, "meta": meta, "data": data}
+    return {"cluster_name": cluster_name, **response}

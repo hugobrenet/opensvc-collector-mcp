@@ -1,7 +1,7 @@
 from typing import Any
 from urllib.parse import quote
 
-from opensvc_collector_mcp.client import collector_get
+from opensvc_collector_mcp.client import collector_get_page
 from opensvc_collector_mcp.core.utils import collection_params
 
 from ._common import _parse_service_filters
@@ -33,7 +33,7 @@ async def get_service_tags(
         tag_id=tag_id,
         tag_exclude=tag_exclude,
     )
-    response = await collector_get(
+    response = await collector_get_page(
         f"/services/{quote(svcname, safe='')}/tags",
         params=_service_tag_params(
             filters=parsed_filters,
@@ -44,24 +44,7 @@ async def get_service_tags(
             offset=offset,
         ),
     )
-    rows = response.get("data", [])
-    meta = dict(response.get("meta", {}))
-    meta.update(
-        {
-            "source": "service_tags",
-            "filter": {
-                "svcname": svcname,
-                **{field: value for field, value in parsed_filters},
-            },
-            "included_props": selected_props.split(","),
-            "output_count": len(rows),
-        }
-    )
-    return {
-        "svcname": svcname,
-        "meta": meta,
-        "data": rows,
-    }
+    return {"svcname": svcname, **response}
 
 
 def _service_tag_filters(

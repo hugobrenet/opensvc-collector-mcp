@@ -89,6 +89,13 @@ array_name    -> stor_array.array_name
 
 The tool also accepts raw Collector property names in `filters`.
 
+The response follows the shared [pagination contract](../pagination.md):
+
+```text
+pagination
+data
+```
+
 Common output fields:
 
 ```text

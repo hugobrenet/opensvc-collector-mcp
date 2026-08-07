@@ -66,6 +66,7 @@ from opensvc_collector_mcp.models.nodes import (
     NodeNetworkResponse,
     NodeOrganizationResponse,
     NodeOsResponse,
+    NodePageResponse,
     NodePropsResponse,
     NodeRowsResponse,
     NodeServicesRequest,
@@ -929,7 +930,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             ListNodesRequest,
             Field(description="Optional node listing parameters."),
         ] = ListNodesRequest(),
-    ) -> NodeRowsResponse:
+    ) -> NodePageResponse:
         """Return OpenSVC Collector nodes and their selected properties."""
         response = await core_list_nodes(
             filters=request.merged_filters(),
@@ -941,7 +942,7 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             nodename_contains=request.nodename_contains,
             max_scan=request.max_scan,
         )
-        return NodeRowsResponse.model_validate(response)
+        return NodePageResponse.model_validate(response)
 
     @mcp.tool(
         timeout=TOOL_TIMEOUT_SECONDS,

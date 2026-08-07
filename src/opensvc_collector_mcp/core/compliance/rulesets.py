@@ -136,9 +136,6 @@ async def get_compliance_ruleset_items(
         limit=limit,
         offset=offset,
     )
-    meta = dict(response.get("meta", {}))
-    meta["include_var_value"] = include_var_value
-    response = {**response, "meta": meta}
     return relation_response(
         response,
         "compliance_ruleset_items",
@@ -178,16 +175,6 @@ async def get_compliance_ruleset_variables(
         include_var_value=include_var_value,
     )
     response["ruleset_name"] = resolved_name
-    response["meta"].update(
-        {
-            "requested_ruleset_id": str(ruleset_id).strip()
-            if ruleset_id is not None
-            else None,
-            "requested_ruleset_name": ruleset_name,
-            "resolved_ruleset_id": resolved_id,
-            "resolved_ruleset_name": resolved_name,
-        }
-    )
     return response
 
 
@@ -218,16 +205,6 @@ async def get_compliance_ruleset_candidate_nodes(
         offset=offset,
     )
     response["ruleset_name"] = resolved_name
-    response["meta"].update(
-        {
-            "requested_ruleset_id": str(ruleset_id).strip()
-            if ruleset_id is not None
-            else None,
-            "requested_ruleset_name": ruleset_name,
-            "resolved_ruleset_id": resolved_id,
-            "resolved_ruleset_name": resolved_name,
-        }
-    )
     return response
 
 
@@ -258,16 +235,6 @@ async def get_compliance_ruleset_candidate_services(
         offset=offset,
     )
     response["ruleset_name"] = resolved_name
-    response["meta"].update(
-        {
-            "requested_ruleset_id": str(ruleset_id).strip()
-            if ruleset_id is not None
-            else None,
-            "requested_ruleset_name": ruleset_name,
-            "resolved_ruleset_id": resolved_id,
-            "resolved_ruleset_name": resolved_name,
-        }
-    )
     return response
 
 
@@ -345,16 +312,6 @@ async def _get_compliance_ruleset_relation(
         offset=offset,
     )
     response["ruleset_name"] = resolved_name
-    response["meta"].update(
-        {
-            "requested_ruleset_id": str(ruleset_id).strip()
-            if ruleset_id is not None
-            else None,
-            "requested_ruleset_name": ruleset_name,
-            "resolved_ruleset_id": resolved_id,
-            "resolved_ruleset_name": resolved_name,
-        }
-    )
     return response
 
 

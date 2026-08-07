@@ -180,8 +180,8 @@ def register_compliance_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Compliance status parameters: exact filters, run_module, "
-                    "run_status, node_id, svc_id, pagination, latest/current "
-                    "selection, and optional run log preview/full log."
+                    "run_status, node_id, svc_id, ordering, pagination, and "
+                    "optional run log preview/full log."
                 ),
             ),
         ] = ComplianceStatusRequest(),
@@ -196,10 +196,9 @@ def register_compliance_tools(mcp: FastMCP) -> None:
             svc_id=request.svc_id,
             rset_md5=request.rset_md5,
             props=request.props,
+            orderby=request.orderby,
             limit=request.limit,
             offset=request.offset,
-            latest=request.latest,
-            latest_first=request.latest_first,
             include_run_log=request.include_run_log,
             include_run_log_preview=request.include_run_log_preview,
             run_log_max_chars=request.run_log_max_chars,
@@ -231,9 +230,8 @@ def register_compliance_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Compliance log parameters: required node_id or svc_id, "
-                    "exact filters, run_module, run_status, pagination, "
-                    "historical/latest "
-                    "selection, and optional run log preview/full log."
+                    "exact filters, run_module, run_status, ordering, pagination, "
+                    "and optional run log preview/full log."
                 ),
             ),
         ],
@@ -248,10 +246,9 @@ def register_compliance_tools(mcp: FastMCP) -> None:
             svc_id=request.svc_id,
             rset_md5=request.rset_md5,
             props=request.props,
+            orderby=request.orderby,
             limit=request.limit,
             offset=request.offset,
-            latest=request.latest,
-            latest_first=request.latest_first,
             include_run_log=request.include_run_log,
             include_run_log_preview=request.include_run_log_preview,
             run_log_max_chars=request.run_log_max_chars,

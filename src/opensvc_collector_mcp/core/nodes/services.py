@@ -1,6 +1,6 @@
 from typing import Any
 
-from opensvc_collector_mcp.client import collector_get
+from opensvc_collector_mcp.client import collector_get_page
 from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
 
 
@@ -27,7 +27,7 @@ async def get_node_services(
 
     selected_props = props or NODE_SERVICES_INSTANCE_PROPS
     parsed_filters = [("nodes.nodename", nodename), *parse_collector_filters(filters)]
-    response = await collector_get(
+    response = await collector_get_page(
         "/services_instances",
         params=collection_params(
             filters=parsed_filters,
@@ -38,14 +38,4 @@ async def get_node_services(
             offset=offset,
         ),
     )
-    rows = response.get("data", [])
-    meta = dict(response.get("meta", {}))
-    meta.update(
-        {
-            "source": "services_instances",
-            "filter": {field: value for field, value in parsed_filters},
-            "included_props": selected_props.split(","),
-            "output_count": len(rows),
-        }
-    )
-    return {"nodename": nodename, "meta": meta, "data": rows}
+    return {"nodename": nodename, **response}

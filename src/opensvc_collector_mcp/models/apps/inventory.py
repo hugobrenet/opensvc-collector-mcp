@@ -2,6 +2,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from opensvc_collector_mcp.models.pagination import Pagination
+
 
 def _is_none(value: object) -> bool:
     return value is None
@@ -112,11 +114,28 @@ class AppNodesRequest(BaseModel):
         default=None,
         description="Comma-separated node properties to include in the response.",
     )
-    max_nodes: int = Field(
-        default=200000,
+    filters: dict[str, str] = Field(
+        default_factory=dict,
+        description="Exact-match node property filters.",
+    )
+    orderby: str | None = Field(
+        default="nodename",
+        description="Collector node ordering expression.",
+    )
+    search: str | None = Field(
+        default=None,
+        description="Collector full-text node search expression.",
+    )
+    limit: int = Field(
+        default=20,
         ge=1,
-        le=500000,
-        description="Maximum number of nodes to return from Collector pagination.",
+        le=1000,
+        description="Maximum number of attached nodes to return.",
+    )
+    offset: int = Field(
+        default=0,
+        ge=0,
+        description="Number of matching attached nodes to skip.",
     )
 
 
@@ -124,7 +143,7 @@ class AppNodesResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     app: str
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[dict[str, Any]]
 
 
@@ -139,6 +158,18 @@ class AppGroupRelationRequest(BaseModel):
     props: str | None = Field(
         default=None,
         description="Comma-separated group properties to include in the response.",
+    )
+    filters: dict[str, str] = Field(
+        default_factory=dict,
+        description="Exact-match group property filters.",
+    )
+    orderby: str | None = Field(
+        default="role",
+        description="Collector group ordering expression.",
+    )
+    search: str | None = Field(
+        default=None,
+        description="Collector full-text group search expression.",
     )
     limit: int = Field(
         default=20,
@@ -157,7 +188,7 @@ class AppGroupRelationResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     app: str
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[dict[str, Any]]
 
 
@@ -172,6 +203,18 @@ class AppQuotasRequest(BaseModel):
     props: str | None = Field(
         default=None,
         description="Comma-separated quota properties to include in the response.",
+    )
+    filters: dict[str, str] = Field(
+        default_factory=dict,
+        description="Exact-match quota property filters.",
+    )
+    orderby: str | None = Field(
+        default="array_name",
+        description="Collector quota ordering expression.",
+    )
+    search: str | None = Field(
+        default=None,
+        description="Collector full-text quota search expression.",
     )
     limit: int = Field(
         default=20,
@@ -190,7 +233,7 @@ class AppQuotasResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     app: str
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[dict[str, Any]]
 
 
@@ -206,11 +249,28 @@ class AppServicesRequest(BaseModel):
         default=None,
         description="Comma-separated service properties to include in the response.",
     )
-    max_services: int = Field(
-        default=200000,
+    filters: dict[str, str] = Field(
+        default_factory=dict,
+        description="Exact-match service property filters.",
+    )
+    orderby: str | None = Field(
+        default="svcname",
+        description="Collector service ordering expression.",
+    )
+    search: str | None = Field(
+        default=None,
+        description="Collector full-text service search expression.",
+    )
+    limit: int = Field(
+        default=20,
         ge=1,
-        le=500000,
-        description="Maximum number of services to return from Collector pagination.",
+        le=1000,
+        description="Maximum number of attached services to return.",
+    )
+    offset: int = Field(
+        default=0,
+        ge=0,
+        description="Number of matching attached services to skip.",
     )
 
 
@@ -218,7 +278,7 @@ class AppServicesResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     app: str
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[dict[str, Any]]
 
 
@@ -317,4 +377,11 @@ class AppRowsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     meta: dict[str, Any] = Field(default_factory=dict)
+    data: list[AppRow]
+
+
+class AppPageResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    pagination: Pagination
     data: list[AppRow]

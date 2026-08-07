@@ -2,6 +2,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from opensvc_collector_mcp.models.pagination import Pagination
+
 from ._common import ServiceNameRequest, ServiceRelationCollectionRequest, _is_none
 
 
@@ -252,6 +254,13 @@ class ServiceRowsResponse(BaseModel):
     data: list[ServiceRow]
 
 
+class ServicePageResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    pagination: Pagination
+    data: list[ServiceRow]
+
+
 class ServiceConfigSection(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -359,7 +368,7 @@ class ServiceNodesResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     svcname: str
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[ServiceNodeRow]
 
 
@@ -432,7 +441,7 @@ class ServiceInstancesResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     svcname: str
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[ServiceInstanceRow]
 
 

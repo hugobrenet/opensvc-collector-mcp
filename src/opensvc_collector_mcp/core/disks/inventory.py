@@ -3,7 +3,7 @@ from urllib.parse import quote
 
 import httpx
 
-from opensvc_collector_mcp.client import collector_get
+from opensvc_collector_mcp.client import collector_get, collector_get_page
 from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
 
 
@@ -61,7 +61,7 @@ async def list_disks(
 ) -> dict[str, Any]:
     selected_props = props or DEFAULT_LIST_DISK_PROPS
     parsed_filters = _normalize_disk_filters(parse_collector_filters(filters))
-    return await collector_get(
+    return await collector_get_page(
         "/disks",
         params=collection_params(
             filters=parsed_filters,

@@ -144,6 +144,66 @@ EXPECTED_TOOL_NAMES = {
     "update_node_properties",
 }
 
+PAGINATED_TOOL_NAMES = {
+    "get_app_nodes",
+    "get_app_publications",
+    "get_app_quotas",
+    "get_app_responsibles",
+    "get_app_services",
+    "get_array_diskgroup_quotas",
+    "get_array_diskgroups",
+    "get_array_proxies",
+    "get_array_targets",
+    "get_cluster_nodes",
+    "get_compliance_moduleset_candidate_nodes",
+    "get_compliance_moduleset_candidate_services",
+    "get_compliance_moduleset_modules",
+    "get_compliance_moduleset_nodes",
+    "get_compliance_moduleset_publications",
+    "get_compliance_moduleset_responsibles",
+    "get_compliance_moduleset_services",
+    "get_compliance_logs",
+    "get_compliance_ruleset_candidate_nodes",
+    "get_compliance_ruleset_candidate_services",
+    "get_compliance_ruleset_publications",
+    "get_compliance_ruleset_responsibles",
+    "get_compliance_ruleset_variables",
+    "get_compliance_status",
+    "get_node_checks",
+    "get_node_compliance",
+    "get_node_disks",
+    "get_node_network",
+    "get_node_services",
+    "get_node_tags",
+    "get_service_alerts",
+    "get_service_actions",
+    "get_service_checks",
+    "get_service_compliance_logs",
+    "get_service_compliance_status",
+    "get_service_disks",
+    "get_service_hbas",
+    "get_service_instances",
+    "get_service_instance_status_history",
+    "get_service_nodes",
+    "get_service_resource_status",
+    "get_service_status_history",
+    "get_service_tags",
+    "get_service_targets",
+    "get_service_unacknowledged_errors",
+    "get_tag_nodes",
+    "get_tag_services",
+    "list_apps",
+    "list_array_diskgroups",
+    "list_arrays",
+    "list_compliance_modulesets",
+    "list_compliance_rulesets",
+    "list_disks",
+    "list_nodes",
+    "list_services",
+    "list_tags",
+    "list_users",
+}
+
 EFFECT_TAG_PREFIXES = (
     "write:",
     "delete:",
@@ -179,6 +239,29 @@ async def test_all_registered_tools_keep_one_effect_classification_tag():
     }
 
     assert invalid == {}
+
+
+async def test_raw_collection_tools_expose_only_compact_pagination_metadata():
+    tools = await build_mcp(require_basic_auth=False)._list_tools()
+    schemas = {
+        tool.name: tool.output_schema
+        for tool in tools
+        if "pagination" in (tool.output_schema or {}).get("properties", {})
+    }
+
+    assert set(schemas) == PAGINATED_TOOL_NAMES
+    for schema in schemas.values():
+        assert "pagination" in schema["required"]
+        assert "meta" not in schema["properties"]
+        pagination_schema = schema["$defs"]["Pagination"]
+        assert {
+            "limit",
+            "offset",
+            "returned",
+            "next_offset",
+            "complete",
+            "truncated",
+        } <= set(pagination_schema["properties"])
 
 
 async def test_attach_tag_to_node_is_marked_as_non_destructive_write():

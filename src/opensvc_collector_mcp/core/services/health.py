@@ -4,7 +4,10 @@ from urllib.parse import quote
 
 import httpx
 
-from opensvc_collector_mcp.client import collector_get, collector_get_all
+from opensvc_collector_mcp.client import (
+    collector_get_all,
+    collector_get_page,
+)
 
 from ._common import (
     _ensure_props_include,
@@ -73,7 +76,7 @@ async def get_service_checks(
         node_id=node_id,
         chk_instance=chk_instance,
     )
-    response = await collector_get(
+    response = await collector_get_page(
         f"/services/{quote(svcname, safe='')}/checks",
         params=_service_check_params(
             filters=parsed_filters,
@@ -84,24 +87,7 @@ async def get_service_checks(
             offset=offset,
         ),
     )
-    rows = response.get("data", [])
-    meta = dict(response.get("meta", {}))
-    meta.update(
-        {
-            "source": "service_checks",
-            "filter": {
-                "svcname": svcname,
-                **{field: value for field, value in parsed_filters},
-            },
-            "included_props": selected_props.split(","),
-            "output_count": len(rows),
-        }
-    )
-    return {
-        "svcname": svcname,
-        "meta": meta,
-        "data": rows,
-    }
+    return {"svcname": svcname, **response}
 
 
 async def get_service_alerts(
@@ -129,7 +115,7 @@ async def get_service_alerts(
         dash_severity=str(dash_severity) if dash_severity is not None else None,
         node_id=node_id,
     )
-    response = await collector_get(
+    response = await collector_get_page(
         f"/services/{quote(svcname, safe='')}/alerts",
         params=_service_alert_params(
             filters=parsed_filters,
@@ -140,24 +126,7 @@ async def get_service_alerts(
             offset=offset,
         ),
     )
-    rows = response.get("data", [])
-    meta = dict(response.get("meta", {}))
-    meta.update(
-        {
-            "source": "service_alerts",
-            "filter": {
-                "svcname": svcname,
-                **{field: value for field, value in parsed_filters},
-            },
-            "included_props": selected_props.split(","),
-            "output_count": len(rows),
-        }
-    )
-    return {
-        "svcname": svcname,
-        "meta": meta,
-        "data": rows,
-    }
+    return {"svcname": svcname, **response}
 
 
 async def get_service_status_history(
@@ -165,12 +134,9 @@ async def get_service_status_history(
     filters: dict[str, str] | str | None = None,
     svc_availstatus: str | None = None,
     props: str | None = None,
+    orderby: str | None = "~svc_begin",
     limit: int = 20,
     offset: int = 0,
-    latest: bool = True,
-    latest_first: bool = True,
-    page_size: int = 1000,
-    max_history: int = 10000,
 ) -> dict[str, Any]:
     svcname = svcname.strip()
     if not svcname:
@@ -191,13 +157,13 @@ async def get_service_status_history(
             "service": service,
             "current_status_since": None,
             "current_history": None,
-            "meta": {
-                "count": 0,
-                "source": "services_status_log",
-                "filter": {"svcname": svcname},
+            "pagination": {
+                "limit": limit,
+                "offset": offset,
+                "returned": 0,
+                "next_offset": None,
                 "complete": True,
-                "history_count": 0,
-                "output_count": 0,
+                "truncated": False,
             },
             "data": [],
         }
@@ -206,41 +172,21 @@ async def get_service_status_history(
         filters,
         svc_availstatus=svc_availstatus,
     )
-    response = await collector_get_all(
+    response = await collector_get_page(
         "/services_status_log",
         params=_service_status_history_params(
             filters=[("svc_id", svc_id), *parsed_filters],
             props=selected_props,
+            orderby=orderby,
+            limit=limit,
+            offset=offset,
         ),
-        page_size=page_size,
-        max_items=max_history,
     )
-    rows = _sort_service_status_history_rows(
-        response.get("data", []),
-        latest_first=latest_first,
-    )
-    effective_offset = 0 if latest else offset
-    output_rows = rows[effective_offset : effective_offset + limit]
-    current_history = _current_service_status_history(
-        rows=response.get("data", []),
+    rows = response.get("data", [])
+    current_history = await _get_current_service_status_history(
+        svc_id=svc_id,
         current_status=service.get("svc_availstatus"),
-    )
-    meta = dict(response.get("meta", {}))
-    meta.update(
-        {
-            "source": "services_status_log",
-            "filter": {
-                "svcname": svcname,
-                "svc_id": svc_id,
-                **{field: value for field, value in parsed_filters},
-            },
-            "included_props": selected_props.split(","),
-            "requested_latest": latest,
-            "latest_first": latest_first,
-            "effective_offset": effective_offset,
-            "history_count": len(rows),
-            "output_count": len(output_rows),
-        }
+        props=selected_props,
     )
     return {
         "svcname": svcname,
@@ -250,8 +196,8 @@ async def get_service_status_history(
             current_history.get("svc_begin") if current_history else None
         ),
         "current_history": current_history,
-        "meta": meta,
-        "data": output_rows,
+        "pagination": response["pagination"],
+        "data": rows,
     }
 
 
@@ -263,12 +209,9 @@ async def get_service_instance_status_history(
     mon_availstatus: str | None = None,
     mon_overallstatus: str | None = None,
     props: str | None = None,
+    orderby: str | None = "~mon_begin",
     limit: int = 20,
     offset: int = 0,
-    latest: bool = True,
-    latest_first: bool = True,
-    page_size: int = 1000,
-    max_history: int = 1000,
 ) -> dict[str, Any]:
     svcname = svcname.strip()
     if not svcname:
@@ -276,8 +219,6 @@ async def get_service_instance_status_history(
 
     limit = max(1, min(limit, 100))
     offset = max(0, offset)
-    page_size = max(1, min(page_size, 5000))
-    max_history = max(1, min(max_history, 100000))
     selected_props = props or SERVICE_INSTANCE_STATUS_HISTORY_PROPS
     for required_prop in (
         "svcname",
@@ -297,13 +238,13 @@ async def get_service_instance_status_history(
             "svcname": svcname,
             "svc_id": None,
             "service": service,
-            "meta": {
-                "count": 0,
-                "source": "services_instances_status_log",
-                "filter": {"svcname": svcname},
+            "pagination": {
+                "limit": limit,
+                "offset": offset,
+                "returned": 0,
+                "next_offset": None,
                 "complete": True,
-                "history_count": 0,
-                "output_count": 0,
+                "truncated": False,
             },
             "data": [],
         }
@@ -315,45 +256,22 @@ async def get_service_instance_status_history(
         mon_availstatus=mon_availstatus,
         mon_overallstatus=mon_overallstatus,
     )
-    effective_offset = 0 if latest else offset
-    fetch_limit = min(max_history, limit)
-    orderby = "~mon_begin" if latest or latest_first else "mon_begin"
-    response = await _get_service_instance_status_history_page(
-        filters=[("svc_id", svc_id), *parsed_filters],
-        props=selected_props,
-        orderby=orderby,
-        page_size=page_size,
-        max_history=fetch_limit,
-        offset=effective_offset,
-    )
-    rows = _sort_service_instance_status_history_rows(
-        response.get("data", []),
-        latest_first=latest_first,
-    )
-    output_rows = rows[:limit]
-    meta = dict(response.get("meta", {}))
-    meta.update(
-        {
-            "source": "services_instances_status_log",
-            "filter": {
-                "svcname": svcname,
-                "svc_id": svc_id,
-                **{field: value for field, value in parsed_filters},
-            },
-            "included_props": selected_props.split(","),
-            "requested_latest": latest,
-            "latest_first": latest_first,
-            "effective_offset": effective_offset,
-            "history_count": len(rows),
-            "output_count": len(output_rows),
-        }
+    response = await collector_get_page(
+        "/services_instances_status_log",
+        params=_service_instance_status_history_params(
+            filters=[("svc_id", svc_id), *parsed_filters],
+            props=selected_props,
+            orderby=orderby,
+            limit=limit,
+            offset=offset,
+        ),
     )
     return {
         "svcname": service.get("svcname") or svcname,
         "svc_id": svc_id,
         "service": service,
-        "meta": meta,
-        "data": output_rows,
+        "pagination": response["pagination"],
+        "data": response.get("data", []),
     }
 
 
@@ -485,14 +403,13 @@ def _service_instance_status_history_filter_field(field: str) -> str:
 def _service_instance_status_history_params(
     filters: list[tuple[str, str]],
     props: str,
-    orderby: str,
+    orderby: str | None,
     limit: int | None = None,
     offset: int | None = None,
 ) -> list[tuple[str, Any]]:
-    params: list[tuple[str, Any]] = [
-        ("props", props),
-        ("orderby", orderby),
-    ]
+    params: list[tuple[str, Any]] = [("props", props)]
+    if orderby:
+        params.append(("orderby", orderby))
     if limit is not None:
         params.append(("limit", limit))
     if offset is not None:
@@ -500,78 +417,6 @@ def _service_instance_status_history_params(
     for field, value in filters:
         params.append(("filters", f"{field}={value}"))
     return params
-
-
-async def _get_service_instance_status_history_page(
-    filters: list[tuple[str, str]],
-    props: str,
-    orderby: str,
-    page_size: int,
-    max_history: int,
-    offset: int,
-) -> dict[str, Any]:
-    rows: list[dict[str, Any]] = []
-    scanned = 0
-    total: int | None = None
-    first_meta: dict[str, Any] = {}
-    current_offset = offset
-    while len(rows) < max_history:
-        response = await collector_get(
-            "/services_instances_status_log",
-            params=_service_instance_status_history_params(
-                filters=filters,
-                props=props,
-                orderby=orderby,
-                limit=min(page_size, max_history - len(rows)),
-                offset=current_offset,
-            ),
-        )
-        meta = response.get("meta", {})
-        data = response.get("data", [])
-        if not first_meta:
-            first_meta = dict(meta)
-        if total is None:
-            raw_total = meta.get("total")
-            try:
-                total = int(raw_total) if raw_total is not None else None
-            except (TypeError, ValueError):
-                total = None
-        rows.extend(data)
-        count = len(data)
-        scanned += count
-        current_offset += count
-        if count == 0 or count < page_size:
-            break
-        if total is not None and current_offset >= total:
-            break
-
-    complete = total is None or current_offset >= total
-    merged_meta = dict(first_meta)
-    merged_meta.update(
-        {
-            "count": len(rows),
-            "total": total if complete else None,
-            "offset": offset,
-            "complete": complete,
-            "max_items": max_history,
-            "scanned": scanned,
-        }
-    )
-    return {"meta": merged_meta, "data": rows}
-
-
-def _sort_service_instance_status_history_rows(
-    rows: list[dict[str, Any]],
-    latest_first: bool,
-) -> list[dict[str, Any]]:
-    return sorted(
-        rows,
-        key=lambda row: (
-            str(row.get("mon_begin") or ""),
-            str(row.get("id") or ""),
-        ),
-        reverse=latest_first,
-    )
 
 
 def _service_status_history_filters(
@@ -606,8 +451,17 @@ def _service_status_history_filter_field(field: str) -> str:
 def _service_status_history_params(
     filters: list[tuple[str, str]],
     props: str,
+    orderby: str | None,
+    limit: int,
+    offset: int,
 ) -> list[tuple[str, Any]]:
-    params: list[tuple[str, Any]] = [("props", props)]
+    params: list[tuple[str, Any]] = [
+        ("props", props),
+        ("limit", limit),
+        ("offset", offset),
+    ]
+    if orderby:
+        params.append(("orderby", orderby))
     for field, value in filters:
         params.append(("filters", f"{field}={value}"))
     return params
@@ -635,35 +489,29 @@ def _collector_params(
     return params
 
 
-def _sort_service_status_history_rows(
-    rows: list[dict[str, Any]],
-    latest_first: bool,
-) -> list[dict[str, Any]]:
-    return sorted(
-        rows,
-        key=lambda row: (
-            str(row.get("svc_begin") or ""),
-            str(row.get("id") or ""),
-        ),
-        reverse=latest_first,
-    )
-
-
-def _current_service_status_history(
-    rows: list[dict[str, Any]],
+async def _get_current_service_status_history(
+    svc_id: str,
     current_status: Any,
+    props: str,
 ) -> dict[str, Any] | None:
     current_status = str(current_status or "").strip()
     if not current_status:
         return None
-    matching = [
-        row
-        for row in rows
-        if str(row.get("svc_availstatus") or "").strip() == current_status
-    ]
-    if not matching:
-        return None
-    return _sort_service_status_history_rows(matching, latest_first=True)[0]
+    response = await collector_get_page(
+        "/services_status_log",
+        params=_service_status_history_params(
+            filters=[
+                ("svc_id", svc_id),
+                ("v_services_log.svc_availstatus", current_status),
+            ],
+            props=props,
+            orderby="~svc_begin",
+            limit=1,
+            offset=0,
+        ),
+    )
+    rows = response.get("data", [])
+    return rows[0] if rows else None
 
 
 def _service_check_filters(

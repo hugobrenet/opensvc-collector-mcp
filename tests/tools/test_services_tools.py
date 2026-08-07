@@ -12,7 +12,18 @@ class CoreRecorder:
 
 
 async def test_list_services_tool_passes_request_to_core(monkeypatch, mcp_client):
-    recorder = CoreRecorder({"meta": {"total": 1}, "data": [{"svcname": "svc-a"}]})
+    recorder = CoreRecorder(
+        {
+            "pagination": {
+                "limit": 5,
+                "offset": 2,
+                "returned": 1,
+                "next_offset": None,
+                "complete": True,
+            },
+            "data": [{"svcname": "svc-a"}],
+        }
+    )
     monkeypatch.setattr(service_tools, "core_list_services", recorder)
 
     result = await mcp_client.call_tool(
@@ -29,7 +40,8 @@ async def test_list_services_tool_passes_request_to_core(monkeypatch, mcp_client
         },
     )
 
-    assert result.structured_content == {"meta": {"total": 1}, "data": [{"svcname": "svc-a"}]}
+    assert result.structured_content["pagination"]["complete"] is True
+    assert result.structured_content["data"] == [{"svcname": "svc-a"}]
     assert recorder.calls == [
         {
             "filters": {"svc_status": "up"},
@@ -70,7 +82,17 @@ async def test_get_service_tool_passes_svcname_to_core(monkeypatch, mcp_client):
 
 async def test_get_service_nodes_tool_passes_relation_request_to_core(monkeypatch, mcp_client):
     recorder = CoreRecorder(
-        {"svcname": "svc-a", "meta": {"total": 1}, "data": [{"nodename": "node-a"}]}
+        {
+            "svcname": "svc-a",
+            "pagination": {
+                "limit": 3,
+                "offset": 0,
+                "returned": 1,
+                "next_offset": None,
+                "complete": True,
+            },
+            "data": [{"nodename": "node-a"}],
+        }
     )
     monkeypatch.setattr(service_tools, "core_get_service_nodes", recorder)
 
@@ -102,7 +124,17 @@ async def test_get_service_nodes_tool_passes_relation_request_to_core(monkeypatc
 
 async def test_get_service_disks_tool_passes_relation_request_to_core(monkeypatch, mcp_client):
     recorder = CoreRecorder(
-        {"svcname": "svc-a", "meta": {"total": 1}, "data": [{"disk_id": "DISK-ID"}]}
+        {
+            "svcname": "svc-a",
+            "pagination": {
+                "limit": 4,
+                "offset": 1,
+                "returned": 1,
+                "next_offset": None,
+                "complete": True,
+            },
+            "data": [{"disk_id": "DISK-ID"}],
+        }
     )
     monkeypatch.setattr(service_tools, "core_get_service_disks", recorder)
 

@@ -2,6 +2,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from opensvc_collector_mcp.models.pagination import Pagination
+
 from ._common import ComplianceListRequest
 
 
@@ -173,7 +175,7 @@ class ComplianceModulesetRow(BaseModel):
 class ComplianceModulesetsResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[ComplianceModulesetRow]
 
 
@@ -223,7 +225,7 @@ class ComplianceModulesetModulesResponse(BaseModel):
     object_id: str
     modset_name: str | None = None
     relation: str = Field(default="modules")
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[ComplianceModulesetModuleRow]
 
 
@@ -244,7 +246,7 @@ class ComplianceModulesetNodesResponse(BaseModel):
     object_id: str
     modset_name: str | None = None
     relation: str = Field(default="nodes")
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[ComplianceModulesetNodeRow]
 
 
@@ -254,7 +256,7 @@ class ComplianceModulesetCandidateNodesResponse(BaseModel):
     object_id: str
     modset_name: str | None = None
     relation: str = Field(default="candidate_nodes")
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[ComplianceModulesetNodeRow]
 
 
@@ -276,7 +278,7 @@ class ComplianceModulesetServicesResponse(BaseModel):
     object_id: str
     modset_name: str | None = None
     relation: str = Field(default="services")
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[ComplianceModulesetServiceRow]
 
 
@@ -286,7 +288,7 @@ class ComplianceModulesetCandidateServicesResponse(BaseModel):
     object_id: str
     modset_name: str | None = None
     relation: str = Field(default="candidate_services")
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[ComplianceModulesetServiceRow]
 
 
@@ -305,7 +307,7 @@ class ComplianceModulesetPublicationsResponse(BaseModel):
     object_id: str
     modset_name: str | None = None
     relation: str = Field(default="publications")
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[ComplianceModulesetGroupRow]
 
 
@@ -315,5 +317,5 @@ class ComplianceModulesetResponsiblesResponse(BaseModel):
     object_id: str
     modset_name: str | None = None
     relation: str = Field(default="responsibles")
-    meta: dict[str, Any] = Field(default_factory=dict)
+    pagination: Pagination
     data: list[ComplianceModulesetGroupRow]

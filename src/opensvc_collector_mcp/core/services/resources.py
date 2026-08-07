@@ -1,14 +1,14 @@
 from typing import Any
 from urllib.parse import quote
 
-from opensvc_collector_mcp.client import collector_get, collector_get_all
+from opensvc_collector_mcp.client import collector_get_all, collector_get_page
 from opensvc_collector_mcp.core.utils import (
     collection_params,
     enrich_rows_with_nodenames,
     get_nodenames_by_node_ids,
 )
 
-from ._common import _parse_service_filters, _unresolved_node_ids
+from ._common import _parse_service_filters
 
 
 SERVICE_RESOURCES_PROPS = "nodes.nodename:nodename,rid,res_key,res_value,updated"
@@ -85,7 +85,7 @@ async def get_service_resource_status(
         res_optional=res_optional,
         res_monitor=res_monitor,
     )
-    response = await collector_get(
+    response = await collector_get_page(
         f"/services/{quote(svcname, safe='')}/resources",
         params=_service_resource_status_params(
             filters=parsed_filters,
@@ -101,26 +101,9 @@ async def get_service_resource_status(
         str(row.get("node_id") or "") for row in raw_rows
     )
     rows = enrich_rows_with_nodenames(raw_rows, nodenames_by_node_id)
-    unresolved_node_ids = _unresolved_node_ids(rows, nodenames_by_node_id)
-    meta = dict(response.get("meta", {}))
-    meta.update(
-        {
-            "source": "service_resource_status",
-            "filter": {
-                "svcname": svcname,
-                **{field: value for field, value in parsed_filters},
-            },
-            "included_props": selected_props.split(","),
-            "resource_count": len(rows),
-            "output_count": len(rows),
-            "node_names_resolved": not unresolved_node_ids,
-            "node_name_count": len(nodenames_by_node_id),
-            "unresolved_node_ids": unresolved_node_ids,
-        }
-    )
     return {
         "svcname": svcname,
-        "meta": meta,
+        "pagination": response["pagination"],
         "data": rows,
     }
 

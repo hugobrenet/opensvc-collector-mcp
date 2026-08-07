@@ -203,7 +203,8 @@ team_responsible
 ### `list_nodes`
 
 Returns nodes from the OpenSVC Collector inventory. Use this when the user asks
-to list or search nodes matching criteria.
+to list or search nodes matching criteria. The response follows the shared
+[pagination contract](../pagination.md).
 
 Common arguments:
 
@@ -245,6 +246,13 @@ Example:
     "orderby": "nodename"
   }
 }
+```
+
+Output fields:
+
+```text
+pagination
+data
 ```
 
 ### `count_nodes`
@@ -333,7 +341,7 @@ Output fields:
 
 ```text
 nodename
-meta
+pagination
 data
 ```
 
@@ -460,7 +468,7 @@ Output fields:
 
 ```text
 nodename
-meta
+pagination
 data
 ```
 
@@ -489,7 +497,7 @@ Output fields:
 
 ```text
 nodename
-meta
+pagination
 data
 ```
 
@@ -517,7 +525,7 @@ Output fields:
 
 ```text
 nodename
-meta
+pagination
 data
 ```
 
@@ -553,7 +561,7 @@ Output fields:
 
 ```text
 nodename
-meta
+pagination
 data
 ```
 
@@ -608,7 +616,7 @@ Output fields:
 
 ```text
 nodename
-meta
+pagination
 data
 ```
 

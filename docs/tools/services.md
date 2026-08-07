@@ -16,7 +16,8 @@ By default, this tool returns a compact service inventory view and deliberately
 does not include large fields such as `svc_config`.
 
 This tool follows the standard Collector collection contract: `limit`, `offset`,
-`orderby`, `filters`, `search`, and `props`. Use `offset` to request the next page.
+`orderby`, `filters`, `search`, and `props`. Follow the shared
+[pagination contract](../pagination.md) to request later pages.
 It is also the service search tool: use exact-match shortcut filters such as
 `svc_env`, `svc_status`, `svc_app`, `svc_availstatus`, `svc_topology`,
 `svc_frozen`, or generic `filters` discovered through `list_service_props`.
@@ -43,7 +44,7 @@ Example:
 Output fields:
 
 ```text
-meta
+pagination
 data
 ```
 
@@ -201,7 +202,7 @@ Output fields:
 
 ```text
 svcname
-meta
+pagination
 data
 ```
 
@@ -235,7 +236,7 @@ Output fields:
 
 ```text
 svcname
-meta
+pagination
 data
 ```
 
@@ -272,7 +273,7 @@ Output fields:
 
 ```text
 svcname
-meta
+pagination
 data
 ```
 
@@ -284,8 +285,9 @@ exact `svcname`.
 
 Use this tool to inspect actions executed on a service, such as starts, stops,
 provisions, syncs, freezes, and related errors. By default, `latest` is true, so
-it returns the newest matching actions without requiring the client to calculate
-an offset from Collector `meta.total`.
+the logical `offset=0` page contains the newest matching actions. Continue with
+`pagination.next_offset`; the tool translates that logical newest-first offset
+to the Collector order internally.
 
 Use exact filters such as `action`, `status`, `ack`, `rid`, and `subset` to
 focus the history. Full `status_log` values can be large, so they are excluded
@@ -309,7 +311,7 @@ Output fields:
 
 ```text
 svcname
-meta
+pagination
 data
 ```
 
@@ -326,7 +328,8 @@ parameters. Use `action`, `rid`, `subset`, or generic action filters such as
 
 By default, `latest` is true and full `status_log` values are excluded. The tool
 returns `status_log_preview` when a log is available, keeping responses usable
-for LLM clients while preserving enough error context.
+for LLM clients while preserving enough error context. `offset` remains
+effective when `latest=true`, so later pages use `pagination.next_offset`.
 
 Example:
 
@@ -345,7 +348,7 @@ Output fields:
 
 ```text
 svcname
-meta
+pagination
 data
 ```
 
@@ -356,7 +359,7 @@ Returns availability status history for one service selected by exact `svcname`.
 
 Use this tool to answer when a service changed availability state, or since when
 it has been in its current state. The tool resolves the service `svc_id`, reads
-`/services_status_log`, sorts matching history rows by `svc_begin`, and returns
+one `/services_status_log` page ordered by `~svc_begin` by default, and returns
 `current_status_since` when it can match the current `svc_availstatus`.
 
 Example:
@@ -366,7 +369,8 @@ Example:
   "request": {
     "svcname": "tst-lab-service",
     "svc_availstatus": "down",
-    "limit": 10
+    "limit": 10,
+    "offset": 0
   }
 }
 ```
@@ -379,7 +383,7 @@ svc_id
 service
 current_status_since
 current_history
-meta
+pagination
 data
 ```
 
@@ -403,7 +407,7 @@ Use this tool when the question is about a service instance on a node: when an
 instance changed monitor state, which node was affected, or the historical
 `mon_availstatus` / `mon_overallstatus` periods. The tool resolves the service
 `svc_id`, reads `/services_instances_status_log`, filters by `svc_id`, and
-returns joined `svcname` and `nodename` fields.
+returns one page with joined `svcname` and `nodename` fields.
 
 Example:
 
@@ -412,7 +416,8 @@ Example:
   "request": {
     "svcname": "tst-lab-service",
     "mon_availstatus": "down",
-    "limit": 10
+    "limit": 10,
+    "offset": 0
   }
 }
 ```
@@ -423,7 +428,7 @@ Output fields:
 svcname
 svc_id
 service
-meta
+pagination
 data
 ```
 
@@ -527,7 +532,7 @@ Output fields:
 
 ```text
 svcname
-meta
+pagination
 data
 ```
 
@@ -555,7 +560,7 @@ Output fields:
 
 ```text
 svcname
-meta
+pagination
 data
 ```
 
@@ -597,7 +602,7 @@ Output fields:
 
 ```text
 svcname
-meta
+pagination
 data
 ```
 
@@ -636,7 +641,7 @@ Output fields:
 
 ```text
 svcname
-meta
+pagination
 data
 ```
 
@@ -681,7 +686,7 @@ Output fields:
 
 ```text
 svcname
-meta
+pagination
 data
 ```
 
@@ -743,13 +748,14 @@ Returns current OpenSVC compliance status rows for one service selected by exact
 
 Use this tool to inspect service compliance checks and quickly identify modules
 that are not OK. In this Collector, `run_status=0` is OK and non-zero values are
-not OK. The tool returns summary counts in `meta`, including `ok_count`,
+not OK. The tool returns page-only counts in `summary`, including `ok_count`,
 `error_count`, `unknown_count`, and `failed_modules`.
 
-The tool reads Collector `/services/<svcname>/compliance/status` using internal
-bounded server-side retrieval. By default it includes a bounded `run_log_preview` when a log is
-available, but omits full `run_log` values. Set `include_run_log` to `true` only
-when the full diagnostic log is needed.
+The tool reads one Collector page from
+`/services/<svcname>/compliance/status`, ordered by `~run_date` by default. It
+includes a bounded `run_log_preview` when available, but omits full `run_log`
+values. Set `include_run_log` to `true` only when the full diagnostic log is
+needed.
 
 Use exact filters such as `run_module`, `run_status`, `run_action`, `node_id`, or
 `rset_md5` to narrow the result.
@@ -760,7 +766,9 @@ Example:
 {
   "request": {
     "svcname": "rct-asuhures",
-    "run_status": 1
+    "run_status": 1,
+    "limit": 20,
+    "offset": 0
   }
 }
 ```
@@ -781,7 +789,8 @@ Output fields:
 
 ```text
 svcname
-meta
+pagination
+summary
 data
 ```
 
@@ -811,10 +820,10 @@ Use this tool after `get_service_compliance_status` shows a non-OK compliance
 module and the user needs history: recent failures, recurrence, previous run
 logs, or the timeline of a specific module/action/ruleset.
 
-The tool reads Collector `/services/<svcname>/compliance/logs` using internal
-bounded server-side retrieval. Because this endpoint can return many rows, it returns the most
-recent matching logs by default (`latest=true`) and is bounded by `max_logs`.
-Set `latest=false` with `offset` to walk older pages from the Collector order.
+The tool reads one Collector page from
+`/services/<svcname>/compliance/logs`, ordered by `~run_date` by default. Use
+`pagination.next_offset` to walk older pages without changing the ordering or
+page size.
 
 By default it includes a bounded `run_log_preview` when a log is available, but
 omits full `run_log` values. Set `include_run_log` to `true` only when the full
@@ -830,7 +839,8 @@ Example:
   "request": {
     "svcname": "rct-asuhures",
     "run_status": 1,
-    "max_logs": 20
+    "limit": 20,
+    "offset": 0
   }
 }
 ```
@@ -844,7 +854,8 @@ Example requesting full logs for a module:
     "run_module": "aits.outils.controlm",
     "run_status": 1,
     "include_run_log": true,
-    "max_logs": 5
+    "limit": 5,
+    "offset": 0
   }
 }
 ```
@@ -853,7 +864,8 @@ Output fields:
 
 ```text
 svcname
-meta
+pagination
+summary
 data
 ```
 
@@ -904,7 +916,7 @@ Output fields:
 
 ```text
 svcname
-meta
+pagination
 data
 ```
 

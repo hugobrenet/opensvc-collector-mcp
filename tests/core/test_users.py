@@ -2,8 +2,21 @@ from opensvc_collector_mcp.core.users import inventory
 
 
 async def test_list_users_builds_collection_params(monkeypatch, collector_mock_factory):
-    collector = collector_mock_factory([{"meta": {"total": 1}, "data": [{"username": "user-a"}]}])
-    monkeypatch.setattr(inventory, "collector_get", collector.get)
+    collector = collector_mock_factory(
+        [
+            {
+                "pagination": {
+                    "limit": 5,
+                    "offset": 1,
+                    "returned": 1,
+                    "next_offset": None,
+                    "complete": True,
+                },
+                "data": [{"username": "user-a"}],
+            }
+        ]
+    )
+    monkeypatch.setattr(inventory, "collector_get_page", collector.get)
 
     response = await inventory.list_users(
         filters={"username": "user-a"},

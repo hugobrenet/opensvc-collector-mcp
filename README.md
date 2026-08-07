@@ -152,6 +152,7 @@ user approval, and execution before forwarding the final business arguments to
 
 Tool documentation is organized by Collector domain:
 
+- [Pagination and dynamic property discovery](docs/pagination.md)
 - [Node tools](docs/tools/nodes.md)
 - [Service tools](docs/tools/services.md)
 - [Cluster tools](docs/tools/clusters.md)
