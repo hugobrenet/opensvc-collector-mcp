@@ -33,8 +33,9 @@ Local project notes for working on `opensvc-collector-mcp`.
   `call_tool`, while the full catalog remains registered and callable.
 - Tool tags are descriptive metadata only. Domain/action tags such as `nodes`,
   `create`, and `delete`, and effect tags such as `read`, `write:tags`,
-  `delete:tags`, and `exec:nodes`, support discovery, audit, documentation, and
-  contract tests. They must never be used by MCP to authorize a tool call.
+  `delete:tags`, and `exec:nodes`, support discovery, documentation, external
+  orchestration, and contract tests. They must never be used by MCP to authorize
+  a tool call.
 - State-changing tools must include the shared Pydantic field
   `request.confirmation.phrase` using `models/common.py::ToolConfirmation`. The
   assistant generates this phrase after resolving/summarizing the target action,
@@ -50,17 +51,12 @@ Local project notes for working on `opensvc-collector-mcp`.
   request-scoped Basic Auth credentials for Collector API calls, and Collector
   decides whether the authenticated user may execute the endpoint. MCP does not
   load Collector groups or map tool tags to grants.
-- `CollectorToolAuthorizationMiddleware` is temporarily retained for Audit V1
-  compatibility and proxied `call_tool` correlation. Despite its legacy name,
-  it is pass-through and never authorizes or denies from tool tags.
 - `search_tools` remains available after authentication. BM25 discovery is not
   filtered by Collector grants; Collector evaluates authorization only when a
   discovered tool calls its API.
-- MCP tool calls emit structured JSON audit logs on stdout/stderr through the
-  `opensvc_collector_mcp.audit` logger. Audit V1 is intentionally log-based,
-  not database-persisted.
-- Gateway propagates a request id to MCP tool calls so multiple MCP events from
-  one AI prompt can be correlated.
+- MCP deliberately does not implement business or security audit. A dedicated
+  external harness owns interaction audit, request correlation, confirmation
+  evidence, and outcome recording. MCP keeps only framework/runtime logs.
 - Collector user credentials are not loaded by the MCP server from `.env`.
   Validated Basic Auth credentials are stored in request context and reused by
   `client.py` for Collector API calls.
@@ -75,9 +71,8 @@ Current package layout:
   request-scoped Collector Basic Auth credential context
 - `src/opensvc_collector_mcp/auth/basic.py`
   FastMCP middleware for Collector Basic Auth validation
-- `src/opensvc_collector_mcp/auth/middleware.py`
-  temporary Audit V1 pass-through middleware and tool argument validation error
-  enrichment; it does not authorize tool execution
+- `src/opensvc_collector_mcp/middleware.py`
+  FastMCP tool argument validation error enrichment
 - `src/opensvc_collector_mcp/tools/`
   FastMCP tool definitions
 - `src/opensvc_collector_mcp/core/`
@@ -395,8 +390,8 @@ Delete tool selector and confirmation standard:
 State-changing tool class standards:
 
 - All state-changing classes share the same baseline: explicit effect tag,
-  `request.confirmation.phrase`, clear MCP annotations, structured audit,
-  sanitized errors, and Collector as final authority.
+  `request.confirmation.phrase`, clear MCP annotations, sanitized errors, and
+  Collector as final authority.
 - `POST create` tools create new Collector objects. They do not need a mandatory
   pre-check for object existence; let Collector return the conflict/error and
   propagate it cleanly. The assistant should still summarize the object to
@@ -431,8 +426,7 @@ State-changing tool class standards:
   provisioning, scheduler actions, or any endpoint that asks an OpenSVC agent or
   backend worker to do operational work. They must use dedicated `exec:<domain>`
   effect tags, explicit target resolution, confirmation with stable identifiers
-  when available, no implicit batch scope, and audit for accepted,
-  Collector-rejected, and failed executions. Add dry-run/preview support when
+  when available, and no implicit batch scope. Add dry-run/preview support when
   Collector exposes it.
 - Do not claim a state-changing operation is executable just because a user asks
   for it. The assistant must select real MCP tools returned by `search_tools`;
@@ -557,13 +551,6 @@ Error and production-readiness notes:
   with the correct payload after a single error. Keep the enrichment scoped to
   `call[tool_name]` validation errors so internal Pydantic validation failures
   are not misreported as client argument errors.
-- `CollectorToolAuthorizationMiddleware` currently preserves Audit V1 and
-  `call_tool` target correlation only. It is pass-through: it does not inspect
-  Collector groups, require particular effect tags, or deny tool execution.
-- Audit V1 keeps its existing JSON schema until the dedicated audit refactor.
-  Its RBAC-era fields are neutral: `decision=allowed` means MCP forwarded the
-  call, `reason=authorization_delegated_to_collector`, `required_tag=null`,
-  `required_groups=[]`, and `user_groups=null`.
 
 Collector authorization standard:
 
@@ -574,11 +561,20 @@ Collector authorization standard:
   scope. Do not add local group lookups, grant tables, or tag-based preflight
   authorization.
 - Effect tags such as `read`, `write:<domain>`, `delete:<domain>`, and
-  `exec:<domain>` are stable classification metadata for discovery, audit,
-  documentation, confirmation rules, and contract tests. They are not security
-  controls.
+  `exec:<domain>` are stable classification metadata for discovery,
+  documentation, external orchestration, confirmation rules, and contract
+  tests. They are not security controls.
 - Treat Collector handlers as the source of truth for request behavior and
   payloads, but do not duplicate their authorization policy in MCP.
+
+Audit responsibility:
+
+- MCP does not own business/security audit and must not add an audit middleware,
+  audit event model, or persistent audit sink.
+- A dedicated external harness is responsible for interaction audit, request
+  correlation, confirmation evidence, tool arguments, and outcomes.
+- MCP and framework runtime logs must never include passwords, Authorization
+  headers, API keys, or raw sensitive payloads.
 
 Safety rules for the first write/action wave:
 
@@ -591,30 +587,6 @@ Safety rules for the first write/action wave:
   at execution time, requires prior `get_tag` resolution when the user gives a
   tag name, requires `confirm_tag_id` plus `confirm_tag_name`, and matches both
   against the resolved Collector tag before calling `DELETE /tags/<tag_id>`.
-- Audit is mandatory for write/delete/exec attempts, including successful,
-  Collector-rejected, and execution-error cases. Include request id, user,
-  client tool, target tool, status, duration, and sanitized error details.
-- Audit V1 logs one `mcp.tool_call` event for success and error cases.
-  Current event fields:
-  - `request_id`
-  - `user`
-  - `client_tool`
-  - `target_tool`
-  - `decision`
-  - `reason`
-  - `duration_ms`
-  - `status`
-  - `error_type`
-  - `error_message`
-  - `required_tag`
-  - `required_groups`
-  - `user_groups`
-  - `tool_tags`
-- Audit logs must stay sanitized: no passwords, no `Authorization` headers, no
-  API keys, and no raw sensitive payloads.
-- Audit V1 was validated from Docker/OpenSVC logs for:
-  - successful `call_tool` target execution.
-  - target tool execution error with sanitized root error type/message.
 - `CollectorBasicAuthMiddleware` validates `Authorization: Basic ...` against
   Collector `GET /users/self`. FastMCP filters the `authorization` header by
   default, so keep `get_http_headers(include={"authorization"})` when reading

@@ -116,6 +116,10 @@ The MCP server does not read Collector usernames or passwords from environment
 variables. Clients must pass `Authorization: Basic ...`; the server validates
 those credentials against the Collector before executing tools.
 
+Business and security audit is intentionally outside this server. A dedicated
+external harness is responsible for interaction audit, request correlation,
+confirmation evidence, and tool outcomes.
+
 In the Collector shared network namespace, do not point `OPENSVC_API_BASE_URL`
 to `127.0.0.1:8001`: that port is the uWSGI socket behind nginx, not an HTTP
 REST endpoint. Use nginx over HTTPS on `https://127.0.0.1/init/rest/api`.
@@ -167,8 +171,9 @@ The current tool surface covers:
 
 Most tools are read-only against OpenSVC Collector. Tags such as `read`,
 `write:nodes`, `delete:tags`, and `exec:nodes` classify tool effects for
-discovery, audit, and testing; they are not authorization rules. Collector
-authorizes every API request using the authenticated caller's credentials.
+discovery, external orchestration, and testing; they are not authorization
+rules. Collector authorizes every API request using the authenticated caller's
+credentials.
 
 ## Development
 

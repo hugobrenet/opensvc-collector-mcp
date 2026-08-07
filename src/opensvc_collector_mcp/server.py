@@ -10,10 +10,7 @@ from opensvc_collector_mcp.config import (
     MCP_TOOL_SEARCH_MAX_RESULTS,
 )
 from opensvc_collector_mcp.auth.basic import CollectorBasicAuthMiddleware
-from opensvc_collector_mcp.auth.middleware import (
-    CollectorToolAuthorizationMiddleware,
-    ToolSchemaValidationErrorMiddleware,
-)
+from opensvc_collector_mcp.middleware import ToolSchemaValidationErrorMiddleware
 from opensvc_collector_mcp.tools.apps import register_apps_tools
 from opensvc_collector_mcp.tools.arrays import register_arrays_tools
 from opensvc_collector_mcp.tools.clusters import register_clusters_tools
@@ -53,7 +50,6 @@ def build_mcp(*, require_basic_auth: bool = True) -> FastMCP:
 
     if require_basic_auth:
         server.add_middleware(CollectorBasicAuthMiddleware())
-        server.add_middleware(CollectorToolAuthorizationMiddleware(server))
     server.add_middleware(ToolSchemaValidationErrorMiddleware(server))
 
     return server
