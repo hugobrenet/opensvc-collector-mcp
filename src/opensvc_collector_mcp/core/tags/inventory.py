@@ -36,28 +36,6 @@ DEFAULT_TAG_SERVICE_WRITE_PROPS = (
 )
 
 
-def _verify_tag_confirmation(
-    *,
-    tag: dict[str, Any],
-    confirm_tag_id: str | None = None,
-    confirm_tag_name: str | None = None,
-) -> None:
-    confirmation_id = clean_value(confirm_tag_id)
-    confirmation_name = clean_value(confirm_tag_name)
-    if not confirmation_id and not confirmation_name:
-        return
-    if not confirmation_id:
-        raise ValueError("confirm_tag_id must not be empty")
-    if not confirmation_name:
-        raise ValueError("confirm_tag_name must not be empty")
-    resolved_tag_id = clean_value(tag.get("tag_id"))
-    resolved_tag_name = clean_value(tag.get("tag_name"))
-    if confirmation_id != resolved_tag_id:
-        raise ValueError("confirm_tag_id must match the resolved tag_id")
-    if confirmation_name != resolved_tag_name:
-        raise ValueError("confirm_tag_name must match the resolved tag_name")
-
-
 async def list_tags(
     filters: dict[str, str] | str | None = None,
     props: str | None = None,
@@ -101,20 +79,9 @@ async def delete_tag(
     *,
     tag_id: str | None = None,
     tag_name: str | None = None,
-    confirm_tag_id: str,
-    confirm_tag_name: str,
 ) -> dict[str, Any]:
     selector_tag_id = tag_id.strip() if tag_id else ""
     selector_tag_name = tag_name.strip() if tag_name else ""
-    confirmation_id = confirm_tag_id.strip() if confirm_tag_id else ""
-    confirmation_name = confirm_tag_name.strip() if confirm_tag_name else ""
-
-    if not confirmation_id:
-        raise ValueError("confirm_tag_id must not be empty")
-    if not confirmation_name:
-        raise ValueError("confirm_tag_name must not be empty")
-    if selector_tag_id and confirmation_id != selector_tag_id:
-        raise ValueError("confirm_tag_id must match tag_id")
 
     tag = await resolve_single_tag_selector(
         tag_id=selector_tag_id or None,
@@ -123,10 +90,6 @@ async def delete_tag(
     )
     resolved_tag_id = str(tag.get("tag_id") or "").strip()
     resolved_tag_name = str(tag.get("tag_name") or "").strip()
-    if confirmation_id != resolved_tag_id:
-        raise ValueError("confirm_tag_id must match the resolved tag_id")
-    if confirmation_name != resolved_tag_name:
-        raise ValueError("confirm_tag_name must match the resolved tag_name")
 
     response = await collector_delete(f"/tags/{quote(resolved_tag_id, safe='')}")
     return {
@@ -138,7 +101,6 @@ async def delete_tag(
         "meta": {
             "source": "tags/<tag_id>",
             "selector": "tag_id" if selector_tag_id else "tag_name",
-            "confirmation": ["confirm_tag_id", "confirm_tag_name"],
         },
     }
 
@@ -147,8 +109,6 @@ async def attach_tag_to_node(
     *,
     tag_id: str | None = None,
     tag_name: str | None = None,
-    confirm_tag_id: str | None = None,
-    confirm_tag_name: str | None = None,
     node_id: str | None = None,
     nodename: str | None = None,
     tag_attach_data: str | None = None,
@@ -163,11 +123,6 @@ async def attach_tag_to_node(
         tag_name=selector_tag_name or None,
         operation="attach tag to node",
         missing_message="attach tag to node requires tag_id or tag_name",
-    )
-    _verify_tag_confirmation(
-        tag=tag,
-        confirm_tag_id=confirm_tag_id,
-        confirm_tag_name=confirm_tag_name,
     )
     node = await resolve_node_reference(
         node_id=selector_node_id or None,
@@ -220,8 +175,6 @@ async def attach_tag_to_service(
     *,
     tag_id: str | None = None,
     tag_name: str | None = None,
-    confirm_tag_id: str | None = None,
-    confirm_tag_name: str | None = None,
     svc_id: str | None = None,
     svcname: str | None = None,
 ) -> dict[str, Any]:
@@ -235,11 +188,6 @@ async def attach_tag_to_service(
         tag_name=selector_tag_name or None,
         operation="attach tag to service",
         missing_message="attach tag to service requires tag_id or tag_name",
-    )
-    _verify_tag_confirmation(
-        tag=tag,
-        confirm_tag_id=confirm_tag_id,
-        confirm_tag_name=confirm_tag_name,
     )
     service = await resolve_service_reference(
         svc_id=selector_svc_id or None,
@@ -288,8 +236,6 @@ async def detach_tag_from_service(
     *,
     tag_id: str | None = None,
     tag_name: str | None = None,
-    confirm_tag_id: str | None = None,
-    confirm_tag_name: str | None = None,
     svc_id: str | None = None,
     svcname: str | None = None,
 ) -> dict[str, Any]:
@@ -303,11 +249,6 @@ async def detach_tag_from_service(
         tag_name=selector_tag_name or None,
         operation="detach tag from service",
         missing_message="detach tag from service requires tag_id or tag_name",
-    )
-    _verify_tag_confirmation(
-        tag=tag,
-        confirm_tag_id=confirm_tag_id,
-        confirm_tag_name=confirm_tag_name,
     )
     service = await resolve_service_reference(
         svc_id=selector_svc_id or None,
@@ -362,8 +303,6 @@ async def detach_tag_from_node(
     *,
     tag_id: str | None = None,
     tag_name: str | None = None,
-    confirm_tag_id: str | None = None,
-    confirm_tag_name: str | None = None,
     node_id: str | None = None,
     nodename: str | None = None,
 ) -> dict[str, Any]:
@@ -377,11 +316,6 @@ async def detach_tag_from_node(
         tag_name=selector_tag_name or None,
         operation="detach tag from node",
         missing_message="detach tag from node requires tag_id or tag_name",
-    )
-    _verify_tag_confirmation(
-        tag=tag,
-        confirm_tag_id=confirm_tag_id,
-        confirm_tag_name=confirm_tag_name,
     )
     node = await resolve_node_reference(
         node_id=selector_node_id or None,

@@ -54,11 +54,9 @@ def register_tags_tools(mcp: FastMCP) -> None:
         timeout=TOOL_TIMEOUT_SECONDS,
         name="create_tag",
         description=(
-            "Create one OpenSVC Collector tag. Before calling, ask the user "
-            "to repeat an exact confirmation phrase and include it in "
-            "request.confirmation.phrase. "
-            "Collector authorizes this request using the authenticated "
-            "caller's Basic Auth credentials."
+            "Create one OpenSVC Collector tag. Collector validates the submitted tag "
+            "properties and authorizes the request using the authenticated caller's "
+            "Basic Auth credentials."
         ),
         tags={"tags", "create", "write:tags"},
         annotations={
@@ -87,19 +85,10 @@ def register_tags_tools(mcp: FastMCP) -> None:
         timeout=TOOL_TIMEOUT_SECONDS,
         name="delete_tag",
         description=(
-            "Delete one OpenSVC Collector tag. Destructive and tag_id-only. "
-            "If the user gives a tag_name, first call get_tag to resolve exactly "
-            "one tag and read its tag_id and tag_name. Do not ask for a delete "
-            "confirmation before this resolution step. This also deletes "
-            "Collector attachments to nodes and services. Then ask the user to "
-            "repeat an exact phrase containing both resolved values, for example: "
-            "DELETE tag <tag_id> <tag_name>. When the latest user message "
-            "contains that phrase, call delete_tag with tag_id, confirm_tag_id, "
-            "confirm_tag_name, and request.confirmation.phrase. Do not pass "
-            "tag_name as an execution selector; use confirm_tag_name only for "
-            "correlation. "
-            "Collector authorizes this request using the authenticated "
-            "caller's Basic Auth credentials."
+            "Delete one OpenSVC Collector tag selected by its stable tag_id, including "
+            "its node and service attachments. Resolve a human-readable tag_name with "
+            "get_tag before calling this tool. Collector authorizes the request using "
+            "the authenticated caller's Basic Auth credentials."
         ),
         tags={"tags", "delete", "delete:tags"},
         annotations={
@@ -113,15 +102,13 @@ def register_tags_tools(mcp: FastMCP) -> None:
     async def delete_tag(
         request: Annotated[
             DeleteTagRequest,
-            Field(description="Tag deletion selector and explicit confirmation."),
+            Field(description="Tag deletion selector."),
         ],
     ) -> DeleteTagResponse:
-        """Delete an OpenSVC Collector tag after explicit id and name confirmation."""
+        """Delete an OpenSVC Collector tag."""
         response = await core_delete_tag(
             tag_id=request.tag_id,
             tag_name=None,
-            confirm_tag_id=request.confirm_tag_id,
-            confirm_tag_name=request.confirm_tag_name,
         )
         return DeleteTagResponse.model_validate(response)
 
@@ -129,20 +116,10 @@ def register_tags_tools(mcp: FastMCP) -> None:
         timeout=TOOL_TIMEOUT_SECONDS,
         name="attach_tag_to_node",
         description=(
-            "Attach one OpenSVC Collector tag to one node. The tag selector is "
-            "tag_id-only. If the user gives a tag_name, first call get_tag to "
-            "resolve exactly one tag and read its tag_id and tag_name. Do not "
-            "ask for confirmation before this tag resolution step. Select the "
-            "node by exact node_id or exact nodename; MCP resolves nodename to "
-            "a stable node_id and refuses missing or ambiguous matches. Then ask "
-            "the user to repeat an exact phrase containing the resolved tag and "
-            "node. When the latest user message contains that phrase, call "
-            "attach_tag_to_node with tag_id, confirm_tag_id, confirm_tag_name, "
-            "node selector fields, and request.confirmation.phrase. Do not pass "
-            "tag_name as an execution selector; use confirm_tag_name only for "
-            "correlation. "
-            "Collector authorizes this request using the authenticated "
-            "caller's Basic Auth credentials."
+            "Attach one tag selected by tag_id to one node selected by node_id or "
+            "nodename. MCP resolves selectors and refuses missing or ambiguous targets. "
+            "Collector authorizes the request using the authenticated caller's Basic "
+            "Auth credentials."
         ),
         tags={"tags", "nodes", "attach", "write:tags"},
         annotations={
@@ -159,12 +136,10 @@ def register_tags_tools(mcp: FastMCP) -> None:
             Field(description="Tag and node selectors for the attachment to create."),
         ],
     ) -> AttachTagToNodeResponse:
-        """Attach one OpenSVC Collector tag to one node after confirmation."""
+        """Attach one OpenSVC Collector tag to one node."""
         response = await core_attach_tag_to_node(
             tag_id=request.tag_id,
             tag_name=None,
-            confirm_tag_id=request.confirm_tag_id,
-            confirm_tag_name=request.confirm_tag_name,
             node_id=request.node_id,
             nodename=request.nodename,
             tag_attach_data=request.tag_attach_data,
@@ -175,20 +150,10 @@ def register_tags_tools(mcp: FastMCP) -> None:
         timeout=TOOL_TIMEOUT_SECONDS,
         name="attach_tag_to_service",
         description=(
-            "Attach one OpenSVC Collector tag to one service. The tag selector "
-            "is tag_id-only. If the user gives a tag_name, first call get_tag to "
-            "resolve exactly one tag and read its tag_id and tag_name. Do not "
-            "ask for confirmation before this tag resolution step. Select the "
-            "service by exact svc_id or exact svcname; MCP resolves svcname to "
-            "a stable svc_id and refuses missing or ambiguous matches. Then ask "
-            "the user to repeat an exact phrase containing the resolved tag and "
-            "service. When the latest user message contains that phrase, call "
-            "attach_tag_to_service with tag_id, confirm_tag_id, confirm_tag_name, "
-            "service selector fields, and request.confirmation.phrase. Do not "
-            "pass tag_name as an execution selector; use confirm_tag_name only "
-            "for correlation. "
-            "Collector authorizes this request using the authenticated "
-            "caller's Basic Auth credentials."
+            "Attach one tag selected by tag_id to one service selected by svc_id or "
+            "svcname. MCP resolves selectors and refuses missing or ambiguous targets. "
+            "Collector authorizes the request using the authenticated caller's Basic "
+            "Auth credentials."
         ),
         tags={"tags", "services", "attach", "write:tags"},
         annotations={
@@ -207,12 +172,10 @@ def register_tags_tools(mcp: FastMCP) -> None:
             ),
         ],
     ) -> AttachTagToServiceResponse:
-        """Attach one OpenSVC Collector tag to one service after confirmation."""
+        """Attach one OpenSVC Collector tag to one service."""
         response = await core_attach_tag_to_service(
             tag_id=request.tag_id,
             tag_name=None,
-            confirm_tag_id=request.confirm_tag_id,
-            confirm_tag_name=request.confirm_tag_name,
             svc_id=request.svc_id,
             svcname=request.svcname,
         )
@@ -222,21 +185,10 @@ def register_tags_tools(mcp: FastMCP) -> None:
         timeout=TOOL_TIMEOUT_SECONDS,
         name="detach_tag_from_node",
         description=(
-            "Detach one OpenSVC Collector tag from one node. The tag selector "
-            "is tag_id-only. If the user gives a tag_name, first call get_tag to "
-            "resolve exactly one tag and read its tag_id and tag_name. Do not "
-            "ask for confirmation before this tag resolution step. Select the "
-            "node by exact node_id or exact nodename; MCP resolves nodename to "
-            "a stable node_id and refuses missing or ambiguous matches. MCP "
-            "confirms the existing tag-node relation before deleting it in "
-            "Collector. Then ask the user to repeat an exact phrase containing "
-            "the resolved tag and node. When the latest user message contains "
-            "that phrase, call detach_tag_from_node with tag_id, confirm_tag_id, "
-            "confirm_tag_name, node selector fields, and request.confirmation."
-            "phrase. Do not pass tag_name as an execution selector; use "
-            "confirm_tag_name only for correlation. "
-            "Collector authorizes this request using the authenticated "
-            "caller's Basic Auth credentials."
+            "Detach one tag selected by tag_id from one node selected by node_id or "
+            "nodename. MCP resolves selectors and verifies that the relation exists. "
+            "Collector authorizes the request using the authenticated caller's Basic "
+            "Auth credentials."
         ),
         tags={"tags", "nodes", "detach", "write:tags"},
         annotations={
@@ -253,12 +205,10 @@ def register_tags_tools(mcp: FastMCP) -> None:
             Field(description="Tag and node selectors for the attachment to remove."),
         ],
     ) -> DetachTagFromNodeResponse:
-        """Detach one OpenSVC Collector tag from one node after confirmation."""
+        """Detach one OpenSVC Collector tag from one node."""
         response = await core_detach_tag_from_node(
             tag_id=request.tag_id,
             tag_name=None,
-            confirm_tag_id=request.confirm_tag_id,
-            confirm_tag_name=request.confirm_tag_name,
             node_id=request.node_id,
             nodename=request.nodename,
         )
@@ -268,21 +218,10 @@ def register_tags_tools(mcp: FastMCP) -> None:
         timeout=TOOL_TIMEOUT_SECONDS,
         name="detach_tag_from_service",
         description=(
-            "Detach one OpenSVC Collector tag from one service. The tag selector "
-            "is tag_id-only. If the user gives a tag_name, first call get_tag to "
-            "resolve exactly one tag and read its tag_id and tag_name. Do not "
-            "ask for confirmation before this tag resolution step. Select the "
-            "service by exact svc_id or exact svcname; MCP resolves svcname to "
-            "a stable svc_id and refuses missing or ambiguous matches. MCP "
-            "confirms the existing tag-service relation before deleting it in "
-            "Collector. Then ask the user to repeat an exact phrase containing "
-            "the resolved tag and service. When the latest user message contains "
-            "that phrase, call detach_tag_from_service with tag_id, "
-            "confirm_tag_id, confirm_tag_name, service selector fields, and "
-            "request.confirmation.phrase. Do not pass tag_name as an execution "
-            "selector; use confirm_tag_name only for correlation. "
-            "Collector authorizes this request using the authenticated "
-            "caller's Basic Auth credentials."
+            "Detach one tag selected by tag_id from one service selected by svc_id or "
+            "svcname. MCP resolves selectors and verifies that the relation exists. "
+            "Collector authorizes the request using the authenticated caller's Basic "
+            "Auth credentials."
         ),
         tags={"tags", "services", "detach", "write:tags"},
         annotations={
@@ -301,12 +240,10 @@ def register_tags_tools(mcp: FastMCP) -> None:
             ),
         ],
     ) -> DetachTagFromServiceResponse:
-        """Detach one OpenSVC Collector tag from one service after confirmation."""
+        """Detach one OpenSVC Collector tag from one service."""
         response = await core_detach_tag_from_service(
             tag_id=request.tag_id,
             tag_name=None,
-            confirm_tag_id=request.confirm_tag_id,
-            confirm_tag_name=request.confirm_tag_name,
             svc_id=request.svc_id,
             svcname=request.svcname,
         )

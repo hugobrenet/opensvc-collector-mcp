@@ -31,7 +31,6 @@ async def test_create_node_tool_passes_request_to_core(monkeypatch, mcp_client):
             "request": {
                 "nodename": "node-a",
                 "properties": {"loc_city": "Lab City"},
-                "confirmation": {"phrase": "CREATE node node-a loc_city Lab City"},
             }
         },
     )
@@ -66,9 +65,6 @@ async def test_delete_node_tool_passes_request_to_core(monkeypatch, mcp_client):
         {
             "request": {
                 "node_id": "node-a-id",
-                "confirm_node_id": "node-a-id",
-                "confirm_nodename": "node-a",
-                "confirmation": {"phrase": "DELETE node node-a-id node-a"},
             }
         },
     )
@@ -79,8 +75,6 @@ async def test_delete_node_tool_passes_request_to_core(monkeypatch, mcp_client):
         {
             "node_id": "node-a-id",
             "nodename": None,
-            "confirm_node_id": "node-a-id",
-            "confirm_nodename": "node-a",
         }
     ]
 
@@ -95,9 +89,6 @@ async def test_delete_node_tool_rejects_nodename_selector(monkeypatch, mcp_clien
             {
                 "request": {
                     "nodename": "node-a",
-                    "confirm_node_id": "node-a-id",
-                    "confirm_nodename": "node-a",
-                    "confirmation": {"phrase": "DELETE node node-a-id node-a"},
                 }
             },
         )
@@ -126,9 +117,6 @@ async def test_freeze_node_tool_passes_request_to_core(monkeypatch, mcp_client):
         {
             "request": {
                 "node_id": "node-a-id",
-                "confirm_node_id": "node-a-id",
-                "confirm_nodename": "node-a",
-                "confirmation": {"phrase": "FREEZE node node-a-id node-a"},
             }
         },
     )
@@ -139,8 +127,6 @@ async def test_freeze_node_tool_passes_request_to_core(monkeypatch, mcp_client):
         {
             "node_id": "node-a-id",
             "nodename": None,
-            "confirm_node_id": "node-a-id",
-            "confirm_nodename": "node-a",
         }
     ]
 
@@ -164,9 +150,6 @@ async def test_thaw_node_tool_passes_request_to_core(monkeypatch, mcp_client):
         {
             "request": {
                 "node_id": "node-a-id",
-                "confirm_node_id": "node-a-id",
-                "confirm_nodename": "node-a",
-                "confirmation": {"phrase": "THAW node node-a-id node-a"},
             }
         },
     )
@@ -177,118 +160,31 @@ async def test_thaw_node_tool_passes_request_to_core(monkeypatch, mcp_client):
         {
             "node_id": "node-a-id",
             "nodename": None,
-            "confirm_node_id": "node-a-id",
-            "confirm_nodename": "node-a",
         }
     ]
 
 
 @pytest.mark.parametrize(
-    ("tool_name", "core_attr", "action", "phrase"),
+    ("tool_name", "core_attr", "action"),
     [
-        ("run_node_checks", "core_run_node_checks", "checks", "RUN checks node node-a-id node-a"),
-        (
-            "collect_node_sysreport",
-            "core_collect_node_sysreport",
-            "sysreport",
-            "COLLECT sysreport node node-a-id node-a",
-        ),
-        (
-            "push_node_asset",
-            "core_push_node_asset",
-            "pushasset",
-            "PUSH asset node node-a-id node-a",
-        ),
-        (
-            "push_node_disks",
-            "core_push_node_disks",
-            "pushdisks",
-            "PUSH disks node node-a-id node-a",
-        ),
-        (
-            "push_node_packages",
-            "core_push_node_packages",
-            "pushpkg",
-            "PUSH packages node node-a-id node-a",
-        ),
-        (
-            "push_node_patches",
-            "core_push_node_patches",
-            "pushpatch",
-            "PUSH patches node node-a-id node-a",
-        ),
-        (
-            "push_node_stats",
-            "core_push_node_stats",
-            "pushstats",
-            "PUSH stats node node-a-id node-a",
-        ),
-        (
-            "pull_node_config",
-            "core_pull_node_config",
-            "pull",
-            "PULL config node node-a-id node-a",
-        ),
-        (
-            "push_node_config",
-            "core_push_node_config",
-            "push",
-            "PUSH config node node-a-id node-a",
-        ),
-        (
-            "update_node_compliance_modules",
-            "core_update_node_compliance_modules",
-            "updatecomp",
-            "UPDATE compliance modules node node-a-id node-a",
-        ),
-        (
-            "update_node_opensvc_agent",
-            "core_update_node_opensvc_agent",
-            "updatepkg",
-            "UPDATE opensvc agent node node-a-id node-a",
-        ),
-        (
-            "scan_node_scsi",
-            "core_scan_node_scsi",
-            "scanscsi",
-            "SCAN scsi node node-a-id node-a",
-        ),
-        (
-            "reboot_node",
-            "core_reboot_node",
-            "reboot",
-            "REBOOT node node-a-id node-a",
-        ),
-        (
-            "shutdown_node",
-            "core_shutdown_node",
-            "shutdown",
-            "SHUTDOWN node node-a-id node-a",
-        ),
-        (
-            "schedule_node_reboot",
-            "core_schedule_node_reboot",
-            "schedule_reboot",
-            "SCHEDULE reboot node node-a-id node-a",
-        ),
-        (
-            "unschedule_node_reboot",
-            "core_unschedule_node_reboot",
-            "unschedule_reboot",
-            "UNSCHEDULE reboot node node-a-id node-a",
-        ),
-        (
-            "rotate_node_root_password",
-            "core_rotate_node_root_password",
-            "rotate_root_pw",
-            "ROTATE root password node node-a-id node-a",
-        ),
-        (
-            "wake_node_on_lan",
-            "core_wake_node_on_lan",
-            "wol",
-            "WAKE node node-a-id node-a",
-        ),
+        ("run_node_checks", "core_run_node_checks", "checks"),
+        ("collect_node_sysreport", "core_collect_node_sysreport", "sysreport"),
+        ("push_node_asset", "core_push_node_asset", "pushasset"),
+        ("push_node_disks", "core_push_node_disks", "pushdisks"),
+        ("push_node_packages", "core_push_node_packages", "pushpkg"),
+        ("push_node_patches", "core_push_node_patches", "pushpatch"),
+        ("push_node_stats", "core_push_node_stats", "pushstats"),
+        ("pull_node_config", "core_pull_node_config", "pull"),
+        ("push_node_config", "core_push_node_config", "push"),
+        ("update_node_compliance_modules", "core_update_node_compliance_modules", "updatecomp"),
+        ("update_node_opensvc_agent", "core_update_node_opensvc_agent", "updatepkg"),
+        ("scan_node_scsi", "core_scan_node_scsi", "scanscsi"),
+        ("reboot_node", "core_reboot_node", "reboot"),
+        ("shutdown_node", "core_shutdown_node", "shutdown"),
+        ("schedule_node_reboot", "core_schedule_node_reboot", "schedule_reboot"),
+        ("unschedule_node_reboot", "core_unschedule_node_reboot", "unschedule_reboot"),
+        ("rotate_node_root_password", "core_rotate_node_root_password", "rotate_root_pw"),
+        ("wake_node_on_lan", "core_wake_node_on_lan", "wol"),
     ],
 )
 async def test_node_exec_action_tool_passes_request_to_core(
@@ -297,7 +193,6 @@ async def test_node_exec_action_tool_passes_request_to_core(
     tool_name,
     core_attr,
     action,
-    phrase,
 ):
     recorder = CoreRecorder(
         {
@@ -317,9 +212,6 @@ async def test_node_exec_action_tool_passes_request_to_core(
         {
             "request": {
                 "node_id": "node-a-id",
-                "confirm_node_id": "node-a-id",
-                "confirm_nodename": "node-a",
-                "confirmation": {"phrase": phrase},
             }
         },
     )
@@ -330,103 +222,33 @@ async def test_node_exec_action_tool_passes_request_to_core(
         {
             "node_id": "node-a-id",
             "nodename": None,
-            "confirm_node_id": "node-a-id",
-            "confirm_nodename": "node-a",
         }
     ]
 
 
 @pytest.mark.parametrize(
-    ("tool_name", "core_attr", "phrase"),
+    ("tool_name", "core_attr"),
     [
-        ("freeze_node", "core_freeze_node", "FREEZE node node-a-id node-a"),
-        ("thaw_node", "core_thaw_node", "THAW node node-a-id node-a"),
-        ("run_node_checks", "core_run_node_checks", "RUN checks node node-a-id node-a"),
-        (
-            "collect_node_sysreport",
-            "core_collect_node_sysreport",
-            "COLLECT sysreport node node-a-id node-a",
-        ),
-        (
-            "push_node_asset",
-            "core_push_node_asset",
-            "PUSH asset node node-a-id node-a",
-        ),
-        (
-            "push_node_disks",
-            "core_push_node_disks",
-            "PUSH disks node node-a-id node-a",
-        ),
-        (
-            "push_node_packages",
-            "core_push_node_packages",
-            "PUSH packages node node-a-id node-a",
-        ),
-        (
-            "push_node_patches",
-            "core_push_node_patches",
-            "PUSH patches node node-a-id node-a",
-        ),
-        (
-            "push_node_stats",
-            "core_push_node_stats",
-            "PUSH stats node node-a-id node-a",
-        ),
-        (
-            "pull_node_config",
-            "core_pull_node_config",
-            "PULL config node node-a-id node-a",
-        ),
-        (
-            "push_node_config",
-            "core_push_node_config",
-            "PUSH config node node-a-id node-a",
-        ),
-        (
-            "update_node_compliance_modules",
-            "core_update_node_compliance_modules",
-            "UPDATE compliance modules node node-a-id node-a",
-        ),
-        (
-            "update_node_opensvc_agent",
-            "core_update_node_opensvc_agent",
-            "UPDATE opensvc agent node node-a-id node-a",
-        ),
-        (
-            "scan_node_scsi",
-            "core_scan_node_scsi",
-            "SCAN scsi node node-a-id node-a",
-        ),
-        (
-            "reboot_node",
-            "core_reboot_node",
-            "REBOOT node node-a-id node-a",
-        ),
-        (
-            "shutdown_node",
-            "core_shutdown_node",
-            "SHUTDOWN node node-a-id node-a",
-        ),
-        (
-            "schedule_node_reboot",
-            "core_schedule_node_reboot",
-            "SCHEDULE reboot node node-a-id node-a",
-        ),
-        (
-            "unschedule_node_reboot",
-            "core_unschedule_node_reboot",
-            "UNSCHEDULE reboot node node-a-id node-a",
-        ),
-        (
-            "rotate_node_root_password",
-            "core_rotate_node_root_password",
-            "ROTATE root password node node-a-id node-a",
-        ),
-        (
-            "wake_node_on_lan",
-            "core_wake_node_on_lan",
-            "WAKE node node-a-id node-a",
-        ),
+        ("freeze_node", "core_freeze_node"),
+        ("thaw_node", "core_thaw_node"),
+        ("run_node_checks", "core_run_node_checks"),
+        ("collect_node_sysreport", "core_collect_node_sysreport"),
+        ("push_node_asset", "core_push_node_asset"),
+        ("push_node_disks", "core_push_node_disks"),
+        ("push_node_packages", "core_push_node_packages"),
+        ("push_node_patches", "core_push_node_patches"),
+        ("push_node_stats", "core_push_node_stats"),
+        ("pull_node_config", "core_pull_node_config"),
+        ("push_node_config", "core_push_node_config"),
+        ("update_node_compliance_modules", "core_update_node_compliance_modules"),
+        ("update_node_opensvc_agent", "core_update_node_opensvc_agent"),
+        ("scan_node_scsi", "core_scan_node_scsi"),
+        ("reboot_node", "core_reboot_node"),
+        ("shutdown_node", "core_shutdown_node"),
+        ("schedule_node_reboot", "core_schedule_node_reboot"),
+        ("unschedule_node_reboot", "core_unschedule_node_reboot"),
+        ("rotate_node_root_password", "core_rotate_node_root_password"),
+        ("wake_node_on_lan", "core_wake_node_on_lan"),
     ],
 )
 async def test_node_exec_action_tools_reject_nodename_selector(
@@ -434,7 +256,6 @@ async def test_node_exec_action_tools_reject_nodename_selector(
     mcp_client,
     tool_name,
     core_attr,
-    phrase,
 ):
     recorder = CoreRecorder({})
     monkeypatch.setattr(node_tools, core_attr, recorder)
@@ -445,9 +266,6 @@ async def test_node_exec_action_tools_reject_nodename_selector(
             {
                 "request": {
                     "nodename": "node-a",
-                    "confirm_node_id": "node-a-id",
-                    "confirm_nodename": "node-a",
-                    "confirmation": {"phrase": phrase},
                 }
             },
         )
@@ -473,12 +291,7 @@ async def test_update_node_properties_tool_passes_request_to_core(monkeypatch, m
         {
             "request": {
                 "node_id": "node-a-id",
-                "confirm_node_id": "node-a-id",
-                "confirm_nodename": "node-a",
                 "properties": {"loc_city": "Lab City"},
-                "confirmation": {
-                    "phrase": "UPDATE node node-a-id node-a loc_city Lab City"
-                },
             }
         },
     )
@@ -488,8 +301,6 @@ async def test_update_node_properties_tool_passes_request_to_core(monkeypatch, m
         {
             "node_id": "node-a-id",
             "nodename": None,
-            "confirm_node_id": "node-a-id",
-            "confirm_nodename": "node-a",
             "properties": {"loc_city": "Lab City"},
         }
     ]
@@ -508,12 +319,7 @@ async def test_update_node_properties_tool_rejects_nodename_selector(
             {
                 "request": {
                     "nodename": "node-a",
-                    "confirm_node_id": "node-a-id",
-                    "confirm_nodename": "node-a",
                     "properties": {"loc_city": "Lab City"},
-                    "confirmation": {
-                        "phrase": "UPDATE node node-a-id node-a loc_city Lab City"
-                    },
                 }
             },
         )
@@ -545,10 +351,7 @@ async def test_snooze_node_notifications_tool_passes_request_to_core(
         {
             "request": {
                 "node_id": "node-a-id",
-                "confirm_node_id": "node-a-id",
-                "confirm_nodename": "node-a",
                 "duration": "1h",
-                "confirmation": {"phrase": "SNOOZE node node-a-id node-a for 1h"},
             }
         },
     )
@@ -559,8 +362,6 @@ async def test_snooze_node_notifications_tool_passes_request_to_core(
         {
             "node_id": "node-a-id",
             "nodename": None,
-            "confirm_node_id": "node-a-id",
-            "confirm_nodename": "node-a",
             "duration": "1h",
         }
     ]
@@ -587,9 +388,6 @@ async def test_unsnooze_node_notifications_tool_passes_request_to_core(
         {
             "request": {
                 "node_id": "node-a-id",
-                "confirm_node_id": "node-a-id",
-                "confirm_nodename": "node-a",
-                "confirmation": {"phrase": "UNSNOOZE node node-a-id node-a"},
             }
         },
     )
@@ -599,26 +397,22 @@ async def test_unsnooze_node_notifications_tool_passes_request_to_core(
         {
             "node_id": "node-a-id",
             "nodename": None,
-            "confirm_node_id": "node-a-id",
-            "confirm_nodename": "node-a",
         }
     ]
 
 
 @pytest.mark.parametrize(
-    ("tool_name", "core_attr", "extra_fields", "phrase"),
+    ("tool_name", "core_attr", "extra_fields"),
     [
         (
             "snooze_node_notifications",
             "core_snooze_node_notifications",
             {"duration": "1h"},
-            "SNOOZE node node-a-id node-a for 1h",
         ),
         (
             "unsnooze_node_notifications",
             "core_unsnooze_node_notifications",
             {},
-            "UNSNOOZE node node-a-id node-a",
         ),
     ],
 )
@@ -628,7 +422,6 @@ async def test_node_notification_tools_reject_nodename_selector(
     tool_name,
     core_attr,
     extra_fields,
-    phrase,
 ):
     recorder = CoreRecorder({})
     monkeypatch.setattr(node_tools, core_attr, recorder)
@@ -639,9 +432,6 @@ async def test_node_notification_tools_reject_nodename_selector(
             {
                 "request": {
                     "nodename": "node-a",
-                    "confirm_node_id": "node-a-id",
-                    "confirm_nodename": "node-a",
-                    "confirmation": {"phrase": phrase},
                     **extra_fields,
                 }
             },

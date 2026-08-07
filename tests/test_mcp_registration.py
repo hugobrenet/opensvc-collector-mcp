@@ -314,31 +314,23 @@ async def test_delete_node_is_marked_as_destructive_write():
     assert tool.annotations.destructiveHint is True
 
 
-async def test_delete_node_schema_distinguishes_selector_from_confirmation():
+async def test_delete_node_schema_exposes_only_business_selector():
     tools = await build_mcp()._list_tools()
     tool = next(tool for tool in tools if tool.name == "delete_node")
 
-    assert "node_id-only" in tool.description
-    assert "first call get_node" in tool.description
-    assert "Do not ask for a delete confirmation before this resolution" in tool.description
-    assert "Do not pass nodename as an execution selector" in tool.description
+    assert "stable node_id" in tool.description
+    assert "get_node" in tool.description
 
     request_schema = tool.parameters["$defs"]["DeleteNodeRequest"]
     properties = request_schema["properties"]
     node_id_description = properties["node_id"]["description"]
-    confirm_nodename_description = properties["confirm_nodename"]["description"]
-    confirmation_description = properties["confirmation"]["description"]
     example = request_schema["examples"][0]
 
-    assert "Required execution selector" in node_id_description
-    assert "Never pass nodename as node_id" in node_id_description
-    assert "nodename" not in properties
-    assert "not a second selector" in confirm_nodename_description
-    assert "delete_node execution uses node_id only" in confirmation_description
+    assert "stable Collector node_id" in node_id_description
+    assert set(properties) == {"node_id"}
     assert "node_id" in request_schema["required"]
     assert example["node_id"] == "NODE-ID"
-    assert "nodename" not in example
-    assert example["confirm_nodename"] == "lab-node-01"
+    assert set(example) == {"node_id"}
 
 
 @pytest.mark.parametrize(
@@ -373,10 +365,6 @@ async def test_existing_node_state_changing_tools_are_node_id_only(name):
     tools = await build_mcp()._list_tools()
     tool = next(tool for tool in tools if tool.name == name)
 
-    assert "node_id-only" in tool.description
-    assert "first call get_node" in tool.description
-    assert "Do not pass nodename as an execution selector" in tool.description
-
     request_ref = tool.parameters["properties"]["request"]["$ref"]
     request_name = request_ref.removeprefix("#/$defs/")
     request_schema = tool.parameters["$defs"][request_name]
@@ -385,8 +373,7 @@ async def test_existing_node_state_changing_tools_are_node_id_only(name):
     assert "node_id" in request_schema["required"]
     assert "node_id" in properties
     assert "nodename" not in properties
-    assert "confirm_node_id" in properties
-    assert "confirm_nodename" in properties
+    assert all(not field.startswith("confirm") for field in properties)
 
 
 @pytest.mark.parametrize(
@@ -403,10 +390,6 @@ async def test_existing_tag_state_changing_tools_are_tag_id_only(name):
     tools = await build_mcp()._list_tools()
     tool = next(tool for tool in tools if tool.name == name)
 
-    assert "tag_id-only" in tool.description
-    assert "first call get_tag" in tool.description
-    assert "Do not pass tag_name as an execution selector" in tool.description
-
     request_ref = tool.parameters["properties"]["request"]["$ref"]
     request_name = request_ref.removeprefix("#/$defs/")
     request_schema = tool.parameters["$defs"][request_name]
@@ -415,8 +398,7 @@ async def test_existing_tag_state_changing_tools_are_tag_id_only(name):
     assert "tag_id" in request_schema["required"]
     assert "tag_id" in properties
     assert "tag_name" not in properties
-    assert "confirm_tag_id" in properties
-    assert "confirm_tag_name" in properties
+    assert all(not field.startswith("confirm") for field in properties)
 
 
 async def test_snooze_node_notifications_is_marked_as_non_destructive_write():
@@ -446,7 +428,7 @@ async def test_update_node_properties_is_marked_as_destructive_write():
     assert tool.annotations.destructiveHint is True
 
 
-async def test_state_changing_tools_require_confirmation_phrase_in_schema():
+async def test_state_changing_tools_expose_no_mcp_approval_fields():
     tools = await build_mcp()._list_tools()
     tools_by_name = {tool.name: tool for tool in tools}
 
@@ -486,12 +468,10 @@ async def test_state_changing_tools_require_confirmation_phrase_in_schema():
         schema = tools_by_name[name].parameters
         request_ref = schema["properties"]["request"]["$ref"]
         request_schema = schema["$defs"][request_ref.rsplit("/", 1)[-1]]
-        confirmation_ref = request_schema["properties"]["confirmation"]["$ref"]
-        confirmation_schema = schema["$defs"][confirmation_ref.rsplit("/", 1)[-1]]
-
-        assert "confirmation" in request_schema["required"]
-        assert confirmation_schema["properties"]["phrase"]["minLength"] == 1
-        assert "latest user message" in confirmation_schema["properties"]["phrase"]["description"]
+        assert all(
+            not field.startswith("confirm")
+            for field in request_schema["properties"]
+        )
 
 
 async def test_default_tool_listing_exposes_bm25_search_tools(mcp_client):

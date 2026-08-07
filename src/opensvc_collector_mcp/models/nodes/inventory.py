@@ -2,8 +2,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from opensvc_collector_mcp.models.common import ToolConfirmation
-from opensvc_collector_mcp.models.nodes._common import ConfirmedNodeIdRequest
+from opensvc_collector_mcp.models.nodes._common import NodeIdRequest
 
 
 class NodeFilterRequest(BaseModel):
@@ -151,15 +150,6 @@ class CreateNodeRequest(BaseModel):
         },
         examples=[{"asset_env": "PPR", "loc_city": "Lab City"}],
     )
-    confirmation: ToolConfirmation = Field(
-        description=(
-            "Required confirmation gate for this state-changing tool. Before "
-            "calling create_node, summarize the node payload, ask the user to "
-            "repeat a concise confirmation phrase verbatim, and set this field "
-            "only when that exact phrase appears in the latest user message."
-        ),
-    )
-
     @model_validator(mode="after")
     def normalize(self) -> "CreateNodeRequest":
         self.nodename = self.nodename.strip()
@@ -188,79 +178,8 @@ class CreateNodeResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class DeleteNodeRequest(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid",
-        json_schema_extra={
-            "examples": [
-                {
-                    "node_id": "NODE-ID",
-                    "confirm_node_id": "NODE-ID",
-                    "confirm_nodename": "lab-node-01",
-                    "confirmation": {
-                        "phrase": "DELETE node NODE-ID lab-node-01",
-                    },
-                }
-            ]
-        },
-    )
-
-    node_id: str = Field(
-        description=(
-            "Required execution selector for delete_node. Never pass nodename as "
-            "node_id. If the user provided only a nodename, first call get_node to "
-            "resolve exactly one Collector node_id, then call delete_node with "
-            "that resolved node_id. This selector must match confirm_node_id."
-        ),
-        min_length=1,
-        examples=["NODE-ID"],
-    )
-    confirm_node_id: str = Field(
-        description=(
-            "Correlation confirmation value read from the resolved node snapshot. "
-            "Required before deleting the node. This is not a second selector. "
-            "It must match the resolved node_id and, when node_id is used as the "
-            "execution selector, it must match node_id."
-        ),
-        min_length=1,
-        examples=["NODE-ID"],
-    )
-    confirm_nodename: str = Field(
-        description=(
-            "Correlation confirmation value read from the resolved node snapshot. "
-            "Required before deleting the node. This is not a second selector. "
-            "Use this field for the nodename that appears in the human "
-            "confirmation phrase."
-        ),
-        min_length=1,
-        examples=["lab-node-01"],
-    )
-    confirmation: ToolConfirmation = Field(
-        description=(
-            "Required confirmation gate for this destructive tool. Before calling "
-            "delete_node, resolve the target node with get_node when the user gave "
-            "a nodename, generate a concise phrase containing the exact resolved "
-            "node_id and nodename, ask the user to repeat it verbatim, and set "
-            "this field to that full phrase only when it appears in the latest "
-            "user message. The phrase must contain both values, but delete_node "
-            "execution uses node_id only."
-        ),
-    )
-
-    @model_validator(mode="after")
-    def normalize(self) -> "DeleteNodeRequest":
-        self.node_id = self.node_id.strip()
-        self.confirm_node_id = self.confirm_node_id.strip()
-        self.confirm_nodename = self.confirm_nodename.strip()
-        if not self.node_id:
-            raise ValueError("node_id must not be empty")
-        if not self.confirm_node_id:
-            raise ValueError("confirm_node_id must not be empty")
-        if not self.confirm_nodename:
-            raise ValueError("confirm_nodename must not be empty")
-        if self.confirm_node_id != self.node_id:
-            raise ValueError("confirm_node_id must match node_id")
-        return self
+class DeleteNodeRequest(NodeIdRequest):
+    pass
 
 
 class DeleteNodeResponse(BaseModel):
@@ -274,7 +193,7 @@ class DeleteNodeResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class UpdateNodePropertiesRequest(ConfirmedNodeIdRequest):
+class UpdateNodePropertiesRequest(NodeIdRequest):
     properties: dict[str, Any] = Field(
         description=(
             "Node properties to update. The core layer accepts the properties "
@@ -290,19 +209,6 @@ class UpdateNodePropertiesRequest(ConfirmedNodeIdRequest):
         },
         examples=[{"asset_env": "PPR", "loc_city": "Lab City"}],
     )
-    confirmation: ToolConfirmation = Field(
-        description=(
-            "Required confirmation gate for this state-changing tool. Before "
-            "calling update_node_properties, resolve the target node with "
-            "get_node when the user gave a nodename, summarize the exact "
-            "resolved node_id, nodename, and property changes, ask the user to "
-            "repeat a concise confirmation phrase verbatim, and set this field "
-            "only when that exact phrase appears in the latest user message. "
-            "The phrase must contain both node values, but execution uses "
-            "node_id only."
-        ),
-    )
-
     @model_validator(mode="after")
     def normalize(self) -> "UpdateNodePropertiesRequest":
         self.properties = {
@@ -330,7 +236,7 @@ class UpdateNodePropertiesResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class FreezeNodeRequest(ConfirmedNodeIdRequest):
+class FreezeNodeRequest(NodeIdRequest):
     pass
 
 
@@ -346,7 +252,7 @@ class FreezeNodeResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class ThawNodeRequest(ConfirmedNodeIdRequest):
+class ThawNodeRequest(NodeIdRequest):
     pass
 
 
@@ -362,7 +268,7 @@ class ThawNodeResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class RunNodeChecksRequest(ConfirmedNodeIdRequest):
+class RunNodeChecksRequest(NodeIdRequest):
     pass
 
 
@@ -378,7 +284,7 @@ class RunNodeChecksResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class CollectNodeSysreportRequest(ConfirmedNodeIdRequest):
+class CollectNodeSysreportRequest(NodeIdRequest):
     pass
 
 
@@ -394,7 +300,7 @@ class CollectNodeSysreportResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class PushNodeAssetRequest(ConfirmedNodeIdRequest):
+class PushNodeAssetRequest(NodeIdRequest):
     pass
 
 
@@ -410,7 +316,7 @@ class PushNodeAssetResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class PushNodeDisksRequest(ConfirmedNodeIdRequest):
+class PushNodeDisksRequest(NodeIdRequest):
     pass
 
 
@@ -418,7 +324,7 @@ class PushNodeDisksResponse(PushNodeAssetResponse):
     pass
 
 
-class PushNodePackagesRequest(ConfirmedNodeIdRequest):
+class PushNodePackagesRequest(NodeIdRequest):
     pass
 
 
@@ -426,7 +332,7 @@ class PushNodePackagesResponse(PushNodeAssetResponse):
     pass
 
 
-class PushNodePatchesRequest(ConfirmedNodeIdRequest):
+class PushNodePatchesRequest(NodeIdRequest):
     pass
 
 
@@ -434,7 +340,7 @@ class PushNodePatchesResponse(PushNodeAssetResponse):
     pass
 
 
-class PushNodeStatsRequest(ConfirmedNodeIdRequest):
+class PushNodeStatsRequest(NodeIdRequest):
     pass
 
 
@@ -442,7 +348,7 @@ class PushNodeStatsResponse(PushNodeAssetResponse):
     pass
 
 
-class PullNodeConfigRequest(ConfirmedNodeIdRequest):
+class PullNodeConfigRequest(NodeIdRequest):
     pass
 
 
@@ -450,7 +356,7 @@ class PullNodeConfigResponse(PushNodeAssetResponse):
     pass
 
 
-class PushNodeConfigRequest(ConfirmedNodeIdRequest):
+class PushNodeConfigRequest(NodeIdRequest):
     pass
 
 
@@ -458,7 +364,7 @@ class PushNodeConfigResponse(PushNodeAssetResponse):
     pass
 
 
-class UpdateNodeComplianceModulesRequest(ConfirmedNodeIdRequest):
+class UpdateNodeComplianceModulesRequest(NodeIdRequest):
     pass
 
 
@@ -466,7 +372,7 @@ class UpdateNodeComplianceModulesResponse(PushNodeAssetResponse):
     pass
 
 
-class UpdateNodeOpensvcAgentRequest(ConfirmedNodeIdRequest):
+class UpdateNodeOpensvcAgentRequest(NodeIdRequest):
     pass
 
 
@@ -474,7 +380,7 @@ class UpdateNodeOpensvcAgentResponse(PushNodeAssetResponse):
     pass
 
 
-class ScanNodeScsiRequest(ConfirmedNodeIdRequest):
+class ScanNodeScsiRequest(NodeIdRequest):
     pass
 
 
@@ -482,7 +388,7 @@ class ScanNodeScsiResponse(PushNodeAssetResponse):
     pass
 
 
-class RebootNodeRequest(ConfirmedNodeIdRequest):
+class RebootNodeRequest(NodeIdRequest):
     pass
 
 
@@ -490,7 +396,7 @@ class RebootNodeResponse(PushNodeAssetResponse):
     pass
 
 
-class ShutdownNodeRequest(ConfirmedNodeIdRequest):
+class ShutdownNodeRequest(NodeIdRequest):
     pass
 
 
@@ -498,7 +404,7 @@ class ShutdownNodeResponse(PushNodeAssetResponse):
     pass
 
 
-class ScheduleNodeRebootRequest(ConfirmedNodeIdRequest):
+class ScheduleNodeRebootRequest(NodeIdRequest):
     pass
 
 
@@ -506,7 +412,7 @@ class ScheduleNodeRebootResponse(PushNodeAssetResponse):
     pass
 
 
-class UnscheduleNodeRebootRequest(ConfirmedNodeIdRequest):
+class UnscheduleNodeRebootRequest(NodeIdRequest):
     pass
 
 
@@ -514,7 +420,7 @@ class UnscheduleNodeRebootResponse(PushNodeAssetResponse):
     pass
 
 
-class RotateNodeRootPasswordRequest(ConfirmedNodeIdRequest):
+class RotateNodeRootPasswordRequest(NodeIdRequest):
     pass
 
 
@@ -522,7 +428,7 @@ class RotateNodeRootPasswordResponse(PushNodeAssetResponse):
     pass
 
 
-class WakeNodeOnLanRequest(ConfirmedNodeIdRequest):
+class WakeNodeOnLanRequest(NodeIdRequest):
     pass
 
 
@@ -530,7 +436,7 @@ class WakeNodeOnLanResponse(PushNodeAssetResponse):
     pass
 
 
-class SnoozeNodeNotificationsRequest(ConfirmedNodeIdRequest):
+class SnoozeNodeNotificationsRequest(NodeIdRequest):
     duration: str = Field(
         description=(
             "Collector duration string to snooze node notifications, for example "
@@ -539,18 +445,6 @@ class SnoozeNodeNotificationsRequest(ConfirmedNodeIdRequest):
         min_length=1,
         examples=["1h"],
     )
-    confirmation: ToolConfirmation = Field(
-        description=(
-            "Required confirmation gate for this state-changing tool. Before "
-            "calling snooze_node_notifications, resolve the target node with "
-            "get_node when the user gave a nodename, generate a concise phrase "
-            "containing the exact resolved node_id, nodename, and duration, ask "
-            "the user to repeat it verbatim, and set this field to that full "
-            "phrase only when it appears in the latest user message. The phrase "
-            "must contain both node values, but execution uses node_id only."
-        ),
-    )
-
     @model_validator(mode="after")
     def normalize(self) -> "SnoozeNodeNotificationsRequest":
         self.duration = self.duration.strip()
@@ -571,18 +465,8 @@ class SnoozeNodeNotificationsResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class UnsnoozeNodeNotificationsRequest(ConfirmedNodeIdRequest):
-    confirmation: ToolConfirmation = Field(
-        description=(
-            "Required confirmation gate for this state-changing tool. Before "
-            "calling unsnooze_node_notifications, resolve the target node with "
-            "get_node when the user gave a nodename, generate a concise phrase "
-            "containing the exact resolved node_id and nodename, ask the user to "
-            "repeat it verbatim, and set this field to that full phrase only "
-            "when it appears in the latest user message. The phrase must contain "
-            "both values, but execution uses node_id only."
-        ),
-    )
+class UnsnoozeNodeNotificationsRequest(NodeIdRequest):
+    pass
 
 
 class UnsnoozeNodeNotificationsResponse(BaseModel):

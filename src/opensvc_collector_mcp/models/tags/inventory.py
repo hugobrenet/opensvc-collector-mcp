@@ -2,9 +2,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from opensvc_collector_mcp.models.common import ToolConfirmation
 from opensvc_collector_mcp.models.tags._common import (
-    ConfirmedTagIdRequest,
+    TagIdRequest,
     TagSelector,
 )
 
@@ -247,15 +246,6 @@ class CreateTagRequest(BaseModel):
         default=None,
         description="Optional Collector tag exclusion value.",
     )
-    confirmation: ToolConfirmation = Field(
-        description=(
-            "Required confirmation gate for this state-changing tool. Before "
-            "calling create_tag, summarize the exact tag to create, ask the "
-            "user to repeat a concise confirmation phrase verbatim, and set this "
-            "field only when that exact phrase appears in the latest user message."
-        ),
-    )
-
     @model_validator(mode="after")
     def normalize(self) -> "CreateTagRequest":
         self.tag_name = self.tag_name.strip()
@@ -272,18 +262,8 @@ class CreateTagResponse(TagRowsResponse):
     )
 
 
-class DeleteTagRequest(ConfirmedTagIdRequest):
-    confirmation: ToolConfirmation = Field(
-        description=(
-            "Required confirmation gate for this destructive tool. Before calling "
-            "delete_tag, resolve the target tag with get_tag when the user gave "
-            "a tag_name, generate a concise phrase containing the exact resolved "
-            "tag_id and tag_name, ask the user to repeat it verbatim, and set "
-            "this field to that full phrase only when it appears in the latest "
-            "user message. The phrase must contain both values, but delete_tag "
-            "execution uses tag_id only."
-        ),
-    )
+class DeleteTagRequest(TagIdRequest):
+    pass
 
 
 class DeleteTagResponse(BaseModel):
@@ -297,7 +277,7 @@ class DeleteTagResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class AttachTagToNodeRequest(ConfirmedTagIdRequest):
+class AttachTagToNodeRequest(TagIdRequest):
     node_id: str | None = Field(
         default=None,
         description=(
@@ -319,18 +299,6 @@ class AttachTagToNodeRequest(ConfirmedTagIdRequest):
         default=None,
         description="Optional raw attach data passed to Collector as tag_attach_data.",
     )
-    confirmation: ToolConfirmation = Field(
-        description=(
-            "Required confirmation gate for this state-changing tool. Before "
-            "calling attach_tag_to_node, resolve the target tag with get_tag "
-            "when the user gave a tag_name, resolve the target node, summarize "
-            "the exact attachment to create, ask the user to repeat a concise "
-            "confirmation phrase containing the resolved tag_id and tag_name "
-            "verbatim, and set this field only when that exact phrase appears "
-            "in the latest user message. Tag execution uses tag_id only."
-        ),
-    )
-
     @model_validator(mode="after")
     def normalize_attach_selectors(self) -> "AttachTagToNodeRequest":
         self.node_id = self.node_id.strip() if self.node_id else None
@@ -355,7 +323,7 @@ class AttachTagToNodeResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class AttachTagToServiceRequest(ConfirmedTagIdRequest):
+class AttachTagToServiceRequest(TagIdRequest):
     svc_id: str | None = Field(
         default=None,
         description=(
@@ -373,18 +341,6 @@ class AttachTagToServiceRequest(ConfirmedTagIdRequest):
         ),
         examples=["svc/app/test"],
     )
-    confirmation: ToolConfirmation = Field(
-        description=(
-            "Required confirmation gate for this state-changing tool. Before "
-            "calling attach_tag_to_service, resolve the target tag with get_tag "
-            "when the user gave a tag_name, resolve the target service, "
-            "summarize the exact attachment to create, ask the user to repeat "
-            "a concise confirmation phrase containing the resolved tag_id and "
-            "tag_name verbatim, and set this field only when that exact phrase "
-            "appears in the latest user message. Tag execution uses tag_id only."
-        ),
-    )
-
     @model_validator(mode="after")
     def normalize_attach_service_selectors(self) -> "AttachTagToServiceRequest":
         self.svc_id = self.svc_id.strip() if self.svc_id else None
@@ -408,7 +364,7 @@ class AttachTagToServiceResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class DetachTagFromServiceRequest(ConfirmedTagIdRequest):
+class DetachTagFromServiceRequest(TagIdRequest):
     svc_id: str | None = Field(
         default=None,
         description=(
@@ -426,18 +382,6 @@ class DetachTagFromServiceRequest(ConfirmedTagIdRequest):
         ),
         examples=["svc/app/test"],
     )
-    confirmation: ToolConfirmation = Field(
-        description=(
-            "Required confirmation gate for this destructive relation tool. Before "
-            "calling detach_tag_from_service, resolve the target tag with get_tag "
-            "when the user gave a tag_name, resolve the target service, "
-            "summarize the exact attachment to remove, ask the user to repeat "
-            "a concise confirmation phrase containing the resolved tag_id and "
-            "tag_name verbatim, and set this field only when that exact phrase "
-            "appears in the latest user message. Tag execution uses tag_id only."
-        ),
-    )
-
     @model_validator(mode="after")
     def normalize_detach_service_selectors(self) -> "DetachTagFromServiceRequest":
         self.svc_id = self.svc_id.strip() if self.svc_id else None
@@ -462,7 +406,7 @@ class DetachTagFromServiceResponse(BaseModel):
     meta: dict[str, Any] = Field(default_factory=dict)
 
 
-class DetachTagFromNodeRequest(ConfirmedTagIdRequest):
+class DetachTagFromNodeRequest(TagIdRequest):
     node_id: str | None = Field(
         default=None,
         description=(
@@ -480,18 +424,6 @@ class DetachTagFromNodeRequest(ConfirmedTagIdRequest):
         ),
         examples=["lab-node-01"],
     )
-    confirmation: ToolConfirmation = Field(
-        description=(
-            "Required confirmation gate for this destructive relation tool. Before "
-            "calling detach_tag_from_node, resolve the target tag with get_tag "
-            "when the user gave a tag_name, resolve the target node, summarize "
-            "the exact attachment to remove, ask the user to repeat a concise "
-            "confirmation phrase containing the resolved tag_id and tag_name "
-            "verbatim, and set this field only when that exact phrase appears "
-            "in the latest user message. Tag execution uses tag_id only."
-        ),
-    )
-
     @model_validator(mode="after")
     def normalize_detach_selectors(self) -> "DetachTagFromNodeRequest":
         self.node_id = self.node_id.strip() if self.node_id else None

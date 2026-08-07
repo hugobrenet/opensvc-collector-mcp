@@ -6,7 +6,9 @@
   <img src="docs/assets/opensvc-collector-mcp-hero.svg" alt="OpenSVC Collector MCP architecture animation" width="100%">
 </p>
 
-`opensvc-collector-mcp` is a FastMCP server that exposes OpenSVC Collector data as MCP tools, so LLM clients can inspect infrastructure inventory, service state, and operational history through a controlled HTTP interface.
+`opensvc-collector-mcp` is a FastMCP server that exposes OpenSVC Collector data
+as MCP tools to a dedicated agent harness. Direct standalone MCP-client usage is
+not a supported deployment mode.
 
 ## OpenSVC References
 
@@ -28,6 +30,8 @@ context, refer to the official resources:
   - `tools/` for MCP tool definitions
   - `core/` for Collector workflows and business logic
   - `models/` for typed request and response contracts
+- harness-only operation: the external harness owns tool proposal, user
+  approval, execution coordination, and interaction audit
 
 ## Why It Exists
 
@@ -42,7 +46,11 @@ This repository is focused on:
 - pagination-safe Collector reads
 - separation between MCP surface and Collector-specific logic
 
-## Run Locally
+## Development Runtime
+
+Run the MCP server only as a backend of the dedicated harness. Do not expose the
+MCP endpoint to standalone clients. In production, network isolation must make
+the endpoint reachable only by the harness in the Collector namespace.
 
 Export the Collector API base URL and optional MCP port:
 
@@ -51,7 +59,8 @@ export OPENSVC_API_BASE_URL=https://your-collector-host/init/rest/api
 export MCP_PORT=8011
 ```
 
-For local ad hoc runs, these values can be sourced from a shell-only file:
+For harness integration development, these values can be sourced from a
+shell-only file:
 
 ```bash
 set -a
@@ -118,7 +127,7 @@ those credentials against the Collector before executing tools.
 
 Business and security audit is intentionally outside this server. A dedicated
 external harness is responsible for interaction audit, request correlation,
-confirmation evidence, and tool outcomes.
+approval evidence, and tool outcomes.
 
 In the Collector shared network namespace, do not point `OPENSVC_API_BASE_URL`
 to `127.0.0.1:8001`: that port is the uWSGI socket behind nginx, not an HTTP
@@ -134,12 +143,10 @@ BM25 tool search is enabled by default to avoid sending the full tool catalog to
 The full tool catalog remains registered and callable. The number of returned search results is defined by the `MCP_TOOL_SEARCH_MAX_RESULTS` constant in `config.py`; the current value is `10`.
 
 Search results include each matched tool's description, input schema, output
-schema, annotations, and FastMCP tags. State-changing tools declare a required
-`request.confirmation.phrase` field in their input schema. The assistant must
-resolve and summarize the intended change, ask the user to repeat a concise
-confirmation phrase verbatim in a new message, and only then call the tool with
-that exact phrase. The gateway verifies this generic field before forwarding the
-proxied `call_tool`; MCP keeps the field mandatory for write/delete schemas.
+schema, annotations, and FastMCP tags. State-changing tools expose only business
+parameters. The harness uses effect tags and annotations to separate proposal,
+user approval, and execution before forwarding the final business arguments to
+`call_tool`.
 
 ## Tool Documentation
 
@@ -165,7 +172,7 @@ The current tool surface covers:
 - cluster node membership
 - compliance modulesets, rulesets, status, logs, usage, candidates, publications, and responsibles
 - user inventory, counts, user detail lookup, primary group lookup, and attached group lookup
-- tag inventory, tag detail, tagged nodes, tagged services, and confirmed tag changes
+- tag inventory, tag detail, tagged nodes, tagged services, and tag changes
 - application inventory, nodes, services, responsibles, publications, quotas, and responsibility check
 - storage array inventory, diskgroups, quotas, proxies, targets, and counts
 

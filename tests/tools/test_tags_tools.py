@@ -32,9 +32,6 @@ async def test_delete_tag_tool_passes_request_to_core(monkeypatch, mcp_client):
         {
             "request": {
                 "tag_id": "tag-1",
-                "confirm_tag_id": "tag-1",
-                "confirm_tag_name": "mcp-test-tag",
-                "confirmation": {"phrase": "DELETE tag tag-1 mcp-test-tag"},
             }
         },
     )
@@ -45,8 +42,6 @@ async def test_delete_tag_tool_passes_request_to_core(monkeypatch, mcp_client):
         {
             "tag_id": "tag-1",
             "tag_name": None,
-            "confirm_tag_id": "tag-1",
-            "confirm_tag_name": "mcp-test-tag",
         }
     ]
 
@@ -61,9 +56,6 @@ async def test_delete_tag_tool_rejects_tag_name_selector(monkeypatch, mcp_client
             {
                 "request": {
                     "tag_name": "mcp-test-tag",
-                    "confirm_tag_id": "tag-1",
-                    "confirm_tag_name": "mcp-test-tag",
-                    "confirmation": {"phrase": "DELETE tag tag-1 mcp-test-tag"},
                 }
             }
         )
@@ -95,7 +87,6 @@ async def test_create_tag_tool_passes_request_to_core(monkeypatch, mcp_client):
             "request": {
                 "tag_name": "mcp-test-tag",
                 "tag_data": "created by test",
-                "confirmation": {"phrase": "CREATE tag mcp-test-tag"},
             }
         },
     )
@@ -132,12 +123,9 @@ async def test_attach_tag_to_node_tool_passes_request_to_core(monkeypatch, mcp_c
         {
             "request": {
                 "tag_id": "tag-1",
-                "confirm_tag_id": "tag-1",
-                "confirm_tag_name": "mcp-test-tag",
                 "node_id": "node-1",
                 "nodename": "lab-node-01",
                 "tag_attach_data": "scope=lab",
-                "confirmation": {"phrase": "ATTACH tag tag-1 mcp-test-tag to node node-1 lab-node-01"},
             }
         },
     )
@@ -148,8 +136,6 @@ async def test_attach_tag_to_node_tool_passes_request_to_core(monkeypatch, mcp_c
         {
             "tag_id": "tag-1",
             "tag_name": None,
-            "confirm_tag_id": "tag-1",
-            "confirm_tag_name": "mcp-test-tag",
             "node_id": "node-1",
             "nodename": "lab-node-01",
             "tag_attach_data": "scope=lab",
@@ -178,13 +164,8 @@ async def test_attach_tag_to_service_tool_passes_request_to_core(monkeypatch, mc
         {
             "request": {
                 "tag_id": "tag-1",
-                "confirm_tag_id": "tag-1",
-                "confirm_tag_name": "mcp-test-tag",
                 "svc_id": "svc-1",
                 "svcname": "svc/app/test",
-                "confirmation": {
-                    "phrase": "ATTACH tag tag-1 mcp-test-tag to service svc-1 svc/app/test"
-                },
             }
         },
     )
@@ -195,8 +176,6 @@ async def test_attach_tag_to_service_tool_passes_request_to_core(monkeypatch, mc
         {
             "tag_id": "tag-1",
             "tag_name": None,
-            "confirm_tag_id": "tag-1",
-            "confirm_tag_name": "mcp-test-tag",
             "svc_id": "svc-1",
             "svcname": "svc/app/test",
         }
@@ -225,13 +204,8 @@ async def test_detach_tag_from_service_tool_passes_request_to_core(monkeypatch, 
         {
             "request": {
                 "tag_id": "tag-1",
-                "confirm_tag_id": "tag-1",
-                "confirm_tag_name": "mcp-test-tag",
                 "svc_id": "svc-1",
                 "svcname": "svc/app/test",
-                "confirmation": {
-                    "phrase": "DETACH tag tag-1 mcp-test-tag from service svc-1 svc/app/test"
-                },
             }
         },
     )
@@ -242,8 +216,6 @@ async def test_detach_tag_from_service_tool_passes_request_to_core(monkeypatch, 
         {
             "tag_id": "tag-1",
             "tag_name": None,
-            "confirm_tag_id": "tag-1",
-            "confirm_tag_name": "mcp-test-tag",
             "svc_id": "svc-1",
             "svcname": "svc/app/test",
         }
@@ -272,11 +244,8 @@ async def test_detach_tag_from_node_tool_passes_request_to_core(monkeypatch, mcp
         {
             "request": {
                 "tag_id": "tag-1",
-                "confirm_tag_id": "tag-1",
-                "confirm_tag_name": "mcp-test-tag",
                 "node_id": "node-1",
                 "nodename": "lab-node-01",
-                "confirmation": {"phrase": "DETACH tag tag-1 mcp-test-tag from node node-1 lab-node-01"},
             }
         },
     )
@@ -287,8 +256,6 @@ async def test_detach_tag_from_node_tool_passes_request_to_core(monkeypatch, mcp
         {
             "tag_id": "tag-1",
             "tag_name": None,
-            "confirm_tag_id": "tag-1",
-            "confirm_tag_name": "mcp-test-tag",
             "node_id": "node-1",
             "nodename": "lab-node-01",
         }
@@ -296,32 +263,12 @@ async def test_detach_tag_from_node_tool_passes_request_to_core(monkeypatch, mcp
 
 
 @pytest.mark.parametrize(
-    ("tool_name", "core_attr", "target_fields", "phrase"),
+    ("tool_name", "core_attr", "target_fields"),
     [
-        (
-            "attach_tag_to_node",
-            "core_attach_tag_to_node",
-            {"node_id": "node-1", "nodename": "lab-node-01"},
-            "ATTACH tag tag-1 mcp-test-tag to node node-1 lab-node-01",
-        ),
-        (
-            "attach_tag_to_service",
-            "core_attach_tag_to_service",
-            {"svc_id": "svc-1", "svcname": "svc/app/test"},
-            "ATTACH tag tag-1 mcp-test-tag to service svc-1 svc/app/test",
-        ),
-        (
-            "detach_tag_from_node",
-            "core_detach_tag_from_node",
-            {"node_id": "node-1", "nodename": "lab-node-01"},
-            "DETACH tag tag-1 mcp-test-tag from node node-1 lab-node-01",
-        ),
-        (
-            "detach_tag_from_service",
-            "core_detach_tag_from_service",
-            {"svc_id": "svc-1", "svcname": "svc/app/test"},
-            "DETACH tag tag-1 mcp-test-tag from service svc-1 svc/app/test",
-        ),
+        ("attach_tag_to_node", "core_attach_tag_to_node", {"node_id": "node-1", "nodename": "lab-node-01"}),
+        ("attach_tag_to_service", "core_attach_tag_to_service", {"svc_id": "svc-1", "svcname": "svc/app/test"}),
+        ("detach_tag_from_node", "core_detach_tag_from_node", {"node_id": "node-1", "nodename": "lab-node-01"}),
+        ("detach_tag_from_service", "core_detach_tag_from_service", {"svc_id": "svc-1", "svcname": "svc/app/test"}),
     ],
 )
 async def test_tag_relation_tools_reject_tag_name_selector(
@@ -330,7 +277,6 @@ async def test_tag_relation_tools_reject_tag_name_selector(
     tool_name,
     core_attr,
     target_fields,
-    phrase,
 ):
     recorder = CoreRecorder({})
     monkeypatch.setattr(tag_tools, core_attr, recorder)
@@ -341,9 +287,6 @@ async def test_tag_relation_tools_reject_tag_name_selector(
             {
                 "request": {
                     "tag_name": "mcp-test-tag",
-                    "confirm_tag_id": "tag-1",
-                    "confirm_tag_name": "mcp-test-tag",
-                    "confirmation": {"phrase": phrase},
                     **target_fields,
                 }
             },

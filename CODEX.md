@@ -36,13 +36,13 @@ Local project notes for working on `opensvc-collector-mcp`.
   `delete:tags`, and `exec:nodes`, support discovery, documentation, external
   orchestration, and contract tests. They must never be used by MCP to authorize
   a tool call.
-- State-changing tools must include the shared Pydantic field
-  `request.confirmation.phrase` using `models/common.py::ToolConfirmation`. The
-  assistant generates this phrase after resolving/summarizing the target action,
-  asks the user to repeat it verbatim in a new message, and only then calls the
-  tool with that exact phrase. This field is part of the MCP input schema so
-  `search_tools` exposes it to the LLM. The field is a gateway/LLM safety gate;
-  core functions should keep receiving only business arguments.
+- The MCP server is a harness-only backend. Direct standalone MCP-client use is
+  unsupported, and production network policy must expose `/mcp` only to the
+  dedicated harness.
+- The harness owns tool proposal, user approval, execution coordination, and
+  interaction audit. MCP tools expose business arguments only. Do not add
+  approval phrases, evidence fields, or duplicated correlation fields to tool
+  request models.
 - MCP HTTP requests are protected by a native FastMCP Basic Auth middleware.
   Clients must send `Authorization: Basic ...`; the server validates those
   credentials against the Collector `GET /users/self` endpoint before handling
@@ -55,7 +55,7 @@ Local project notes for working on `opensvc-collector-mcp`.
   filtered by Collector grants; Collector evaluates authorization only when a
   discovered tool calls its API.
 - MCP deliberately does not implement business or security audit. A dedicated
-  external harness owns interaction audit, request correlation, confirmation
+  external harness owns interaction audit, request correlation, approval
   evidence, and outcome recording. MCP keeps only framework/runtime logs.
 - Collector user credentials are not loaded by the MCP server from `.env`.
   Validated Basic Auth credentials are stored in request context and reused by
@@ -117,10 +117,6 @@ Current package layout:
   app-domain Pydantic contracts
 - `src/opensvc_collector_mcp/models/arrays/`
   array-domain Pydantic contracts
-- `src/opensvc_collector_mcp/models/common.py`
-  shared Pydantic contracts used across domains, including
-  `ToolConfirmation` for state-changing tool input schemas
-
 Current MCP node tool surface:
 
 - `create_node`
@@ -312,126 +308,88 @@ Tool implementation standard:
 - Prefer descriptions that help an MCP client choose the tool correctly, not just descriptions of the Python implementation
 - Treat this as the default standard for all future tools in this repository
 
-State-changing confirmation contract:
+Harness-only execution and approval boundary:
 
-- Every MCP tool that creates, updates, deletes, executes, or otherwise changes
-  Collector state must expose a required `request.confirmation.phrase` field
-  using `models/common.py::ToolConfirmation`.
-- This is a schema-level MCP contract. Because it is in the Pydantic input
-  schema, `search_tools` returns it to the LLM together with the selected tool
-  metadata.
-- The MCP schema only requires a non-empty phrase. It intentionally does not
-  hard-code a semantic phrase, node id, tag id, or other object-specific token.
-  The LLM prompt and tool descriptions tell the assistant to generate a precise
-  phrase after resolving and summarizing the target action.
-- Gateway enforces the generic chat safety gate: when the proxied `call_tool`
-  payload contains `request.confirmation.phrase`, the phrase must appear
-  verbatim in the latest user message before the gateway forwards the call to
-  MCP.
-- Tool descriptions for state-changing tools must tell the assistant to ask the
-  user to repeat the exact phrase before calling the tool. Include stable
-  identifiers in the suggested phrase when available, for example `node_id`
-  plus `nodename` for node deletion.
-- Core functions should receive only business arguments. Do not pass
-  `confirmation` into `core/` or Collector REST payloads; it is a gateway/LLM
-  safety guard at the MCP boundary.
-- Current state-changing tools using this contract:
-  `create_tag`, `delete_tag`, `attach_tag_to_node`, `attach_tag_to_service`, `detach_tag_from_node`, `detach_tag_from_service`, `create_node`, `delete_node`, `freeze_node`, `thaw_node`, `run_node_checks`, `collect_node_sysreport`, `push_node_asset`, `push_node_disks`, `push_node_packages`, `push_node_patches`, `push_node_stats`, `pull_node_config`, `push_node_config`, `update_node_compliance_modules`, `update_node_opensvc_agent`, `scan_node_scsi`, `reboot_node`, `shutdown_node`, `schedule_node_reboot`, `unschedule_node_reboot`, `rotate_node_root_password`, `wake_node_on_lan`, `update_node_properties`, `snooze_node_notifications`, and `unsnooze_node_notifications`.
-- When adding another state-changing tool, update:
-  `tests/test_mcp_registration.py`, the domain tool tests, tool docs under
-  `docs/tools/`, and the tool description/annotations.
+- MCP must be used only through the dedicated harness. Do not document or
+  support direct standalone MCP-client execution.
+- The harness separates tool proposal from execution. It presents the proposed
+  tool name and business arguments, obtains the required user approval according
+  to harness policy, and only then forwards the call.
+- Proposal context, approval evidence, interaction audit, and outcome recording
+  belong to the harness. They must not be represented in MCP request schemas or
+  persisted by MCP.
+- MCP tools expose only business parameters. Never add generic approval phrases,
+  duplicated correlation values, or chat-message evidence fields.
+- Effect tags and MCP annotations are stable metadata for harness risk policy,
+  discovery, documentation, and contract tests. They are not local
+  authorization controls.
+- MCP remains responsible for typed input validation, deterministic target
+  resolution, exact-id checks, existence checks, relation checks, safe request
+  construction, and sanitized errors.
+- Collector remains the sole authorization authority. Each Collector request
+  uses the validated request-scoped Basic Auth credentials.
+- When adding a state-changing tool, update
+  `tests/test_mcp_registration.py`, domain core/tool tests, tool docs under
+  `docs/tools/`, effect tags, and annotations.
 
-Delete tool selector and confirmation standard:
+State-changing tool schema standard:
 
-- Destructive delete tools must execute the Collector DELETE with a stable
-  Collector identifier whenever the domain has one, for example `node_id` or
-  `tag_id`. If the user gives a human-readable name, the assistant must first
-  resolve it with a read-only tool/helper, refuse zero or multiple matches, and
-  only then ask for confirmation. Do not expose ambiguous `id_or_name` string
-  fields for destructive tools.
-- `delete_node` is intentionally stricter than the generic selector pattern:
-  the final confirmed tool call is `node_id` only. Its schema does not expose
-  `nodename` as an execution selector. If the user asks to delete `node00008`,
-  first call `get_node`, read `node_id` and `nodename`, ask the user to repeat
-  `DELETE node <node_id> <nodename>`, then call `delete_node` with
-  `node_id=<resolved node_id>`, `confirm_node_id=<resolved node_id>`,
-  `confirm_nodename=<resolved nodename>`, and `confirmation.phrase=<verbatim
-  latest user phrase>`. Never call `delete_node` with `nodename`, and never use
-  a nodename value as `node_id`.
-- Human-readable attributes such as `nodename`, tag name, username, app name, or
-  service path are correlation attributes. Use them for resolution, target
-  summaries, and explicit confirmation. Do not treat a correlation attribute as a
-  second selector just because it appears in the confirmation phrase.
-- If the user asks to delete by name, the assistant should first resolve the name
-  with read/search tools when possible. If zero or multiple candidates are found,
-  do not delete; ask for clarification or present the candidate ids. If exactly
-  one candidate is found, summarize it and ask for explicit confirmation
-  including both the stable id and the human-readable correlation attribute.
-- Delete request models should use explicit selector fields such as `node_id` /
-  `nodename` or `tag_id` / `tag_name`, plus explicit confirmation/correlation
-  fields such as `confirm_node_id`, `confirm_nodename`, `confirm_tag_id`, or
-  `confirm_tag_name`. The selector fields choose the object to operate on; the
-  confirmation fields prove the user confirmed the resolved snapshot. Avoid a
-  generic field named only `id` when users may confuse it with a name.
-- Delete core logic should resolve or re-read the target immediately before the
-  DELETE call, execute the DELETE with the stable id, then verify the supplied
-  confirmation fields match the resolved snapshot. Reject on mismatch to catch
-  stale LLM context, renamed objects, or user copy/paste errors.
-- If a Collector endpoint only supports deletion by name and no stable id exists,
-  document that exception in the tool docs and keep a stricter guard: exact
-  prior read resolution, exact confirmation phrase, and explicit correlation
-  field matched against the resolved object.
-- The confirmation phrase should include the stable id and correlation attribute
-  whenever both exist. Example for node deletion:
-  `DELETE node <node_id> <nodename>`. This full phrase is copied into
-  `confirmation.phrase`; it does not mean both `node_id` and `nodename` selector
-  fields should be filled.
+- Request models contain only values needed to perform the business operation.
+  Examples include `node_id`, `tag_id`, writable properties, duration, or the
+  two sides of a relation.
+- Existing-object operations should prefer stable Collector ids at the public
+  MCP boundary. A harness or agent can use read-only tools to resolve a
+  human-readable name before proposing the mutation.
+- Core functions may accept additional business selectors for internal reuse,
+  but public wrappers should expose the narrowest unambiguous contract.
+- Technical implementation details, approval state, gateway state, audit state,
+  and duplicate correlation values do not belong in Pydantic tool inputs.
+- Keep exactly one effect classification tag on every tool: `read`,
+  `write:<domain>`, `delete:<domain>`, or `exec:<domain>`.
+- Keep MCP annotations accurate, especially `readOnlyHint`,
+  `idempotentHint`, and `destructiveHint`.
+
+Delete tool selector standard:
+
+- Destructive tools execute Collector DELETE requests with stable identifiers
+  whenever the domain provides them, for example `node_id` or `tag_id`.
+- Public delete schemas must not expose ambiguous `id_or_name` strings.
+  Resolve a user-facing name with a read-only tool first, reject zero or
+  multiple matches, and pass the resolved stable id.
+- Core delete logic must re-read or resolve the exact target immediately before
+  DELETE and reject unknown, ambiguous, or non-exact identifiers.
+- Human-readable attributes remain useful in read responses and harness
+  summaries, but they are not duplicated in the final delete payload unless the
+  Collector operation itself requires them.
+- If a Collector endpoint supports deletion only by name, document the
+  exception, require exact prior resolution, and keep the core target check
+  immediately before mutation.
 
 State-changing tool class standards:
 
-- All state-changing classes share the same baseline: explicit effect tag,
-  `request.confirmation.phrase`, clear MCP annotations, sanitized errors, and
-  Collector as final authority.
-- `POST create` tools create new Collector objects. They do not need a mandatory
-  pre-check for object existence; let Collector return the conflict/error and
-  propagate it cleanly. The assistant should still summarize the object to
-  create and ask for confirmation before calling the tool. Use names naturally
-  for new objects when the object does not have a stable id yet.
-- `PUT/PATCH/POST update` tools modify existing Collector objects. Prefer stable
-  ids as selectors when the Collector endpoint supports them. If the Collector
-  endpoint requires a name selector, document the exception, resolve/summarize
-  the target first, and include the human-readable selector in confirmation.
-  Update request models should expose only writable fields, not arbitrary raw
-  payloads.
-- `DELETE` tools follow the stricter delete standard above: stable id selector
-  when available, human-readable correlation attribute, pre-delete snapshot,
-  exact confirmation fields, and no ambiguous `id_or_name` selector.
-- `attach/detach` tools are state-changing relation updates. Resolve both sides
-  before execution, for example source id/name and target id/name. The request
-  model should expose exact selectors for both sides and core code should execute
-  Collector calls with resolved stable ids whenever available. Non-destructive
-  relation updates require `confirmation.phrase`; destructive or sensitive
-  relation updates may add stronger `confirm_*` fields for the resolved snapshot.
-  Do not silently batch relation changes unless the tool name and schema are
-  explicitly batch-oriented.
-- `rename` tools are logical updates and should be treated as sensitive. Prefer
-  a real Collector rename/update endpoint. Do not synthesize rename as
-  create/copy/reattach/delete unless the tool is explicitly designed for that
-  migration, all required state-changing tools exist, every affected object is
-  summarized, and the user confirms the full plan. Check destination conflicts
-  only when it is needed for target disambiguation or user clarity; Collector
-  remains final authority for conflicts.
-- `exec` tools trigger runtime or operational actions through Collector, for
-  example service start/stop/restart/switch, node actions, compliance runs,
-  provisioning, scheduler actions, or any endpoint that asks an OpenSVC agent or
-  backend worker to do operational work. They must use dedicated `exec:<domain>`
-  effect tags, explicit target resolution, confirmation with stable identifiers
-  when available, and no implicit batch scope. Add dry-run/preview support when
-  Collector exposes it.
-- Do not claim a state-changing operation is executable just because a user asks
-  for it. The assistant must select real MCP tools returned by `search_tools`;
-  if the needed tool class is missing, answer that the operation is unsupported
-  by the current MCP surface and offer read-only analysis.
+- All state-changing tools need a clear effect tag, accurate MCP annotations,
+  sanitized errors, business-only request models, and Collector as final
+  authority.
+- `POST create` tools expose the new object's business fields. Add a local
+  existence check only when Collector behavior makes it necessary, such as
+  `create_node`, whose endpoint otherwise behaves like an upsert.
+- `PUT/PATCH/POST update` tools expose stable target identifiers and explicit
+  writable fields. Do not expose arbitrary transport or control payloads.
+- `DELETE` tools follow the stable-id and immediate target-resolution standard
+  above.
+- `attach/detach` tools expose the business selectors for both relation sides.
+  Core resolves both sides to stable ids and verifies relation existence before
+  destructive detach calls. Do not silently batch relation changes unless the
+  tool name and schema are explicitly batch-oriented.
+- `rename` tools are logical updates and should use a real Collector
+  rename/update endpoint. Do not synthesize rename as
+  create/copy/reattach/delete unless the tool explicitly models that migration.
+- `exec` tools trigger runtime or operational actions. They must use dedicated
+  `exec:<domain>` tags, explicit target resolution, narrow scope, and no
+  implicit batch behavior. Add dry-run or preview support when Collector exposes
+  it.
+- Do not claim a state-changing operation is executable merely because a user
+  requests it. The operation must exist in the registered MCP tool catalog.
 
 Async implementation standard:
 
@@ -562,7 +520,7 @@ Collector authorization standard:
   authorization.
 - Effect tags such as `read`, `write:<domain>`, `delete:<domain>`, and
   `exec:<domain>` are stable classification metadata for discovery,
-  documentation, external orchestration, confirmation rules, and contract
+  documentation, external orchestration, harness policy, and contract
   tests. They are not security controls.
 - Treat Collector handlers as the source of truth for request behavior and
   payloads, but do not duplicate their authorization policy in MCP.
@@ -572,7 +530,7 @@ Audit responsibility:
 - MCP does not own business/security audit and must not add an audit middleware,
   audit event model, or persistent audit sink.
 - A dedicated external harness is responsible for interaction audit, request
-  correlation, confirmation evidence, tool arguments, and outcomes.
+  correlation, approval evidence, tool arguments, and outcomes.
 - MCP and framework runtime logs must never include passwords, Authorization
   headers, API keys, or raw sensitive payloads.
 
@@ -580,13 +538,12 @@ Safety rules for the first write/action wave:
 
 - Do not start with `delete` or unrestricted `exec` tools.
 - Prefer one narrow, reversible domain first, with tests for effect tags,
-  confirmation behavior, request construction, and Collector endpoint rejection.
+  business request construction, and Collector endpoint rejection.
 - Destructive tools must require explicit destructive tags such as
-  `delete:<domain>` and should add dry-run or confirmation conventions before
-  live execution. The tag delete tool uses `delete:tags`, exposes `tag_id` only
-  at execution time, requires prior `get_tag` resolution when the user gives a
-  tag name, requires `confirm_tag_id` plus `confirm_tag_name`, and matches both
-  against the resolved Collector tag before calling `DELETE /tags/<tag_id>`.
+  `delete:<domain>` and should add dry-run support when Collector exposes it.
+  The tag delete tool uses `delete:tags`, exposes `tag_id` only at execution
+  time, and resolves that exact id immediately before calling
+  `DELETE /tags/<tag_id>`.
 - `CollectorBasicAuthMiddleware` validates `Authorization: Basic ...` against
   Collector `GET /users/self`. FastMCP filters the `authorization` header by
   default, so keep `get_http_headers(include={"authorization"})` when reading
@@ -639,21 +596,29 @@ Node tool design decisions:
 - Do not add wrapper tools like `get_nodes_by_status`,
   `get_nodes_by_env`, `get_nodes_by_location`, or `get_nodes_by_app`
   unless they add domain-specific logic beyond filtering.
-- `delete_node` is `node_id` only at execution time. If the user provides a nodename, the assistant must first resolve it with `get_node`; only after a single node snapshot is resolved should it ask for the exact confirmation phrase containing both resolved `node_id` and `nodename`. The final `delete_node` payload must include `node_id`, matching `confirm_node_id`, `confirm_nodename`, and `confirmation.phrase`; it must not include `nodename`. Core still deletes through `DELETE /nodes/<resolved node_id>` and verifies confirmation fields before sending DELETE.
-- Mark node deletion with MCP `destructiveHint=true` and `delete:nodes`: Collector cascades node deletion to related runtime and inventory rows.
-- `create_node` uses `POST /nodes` with explicit `nodename` and optional `properties`. It requires only `request.confirmation.phrase` as the safety gate, but first checks exact `nodename` absence because Collector otherwise behaves like an upsert. Its request schema must reject `node_id` and `nodename` inside `properties`; Collector can otherwise treat submitted ids/names as updates to existing nodes. Collector remains the authority for defaults, read-only fields, and payload validation.
-- `update_node_properties` is `node_id` only at the MCP boundary. If the user provides a nodename, first resolve it with `get_node`; the final payload includes `node_id`, matching `confirm_node_id`, `confirm_nodename`, `properties`, and `confirmation.phrase`. The core resolves the node_id to the current nodename immediately before calling Collector because the Collector endpoint remains `POST /nodes/<nodename>`. The MCP request rejects `node_id` and `nodename` inside `properties`; use a dedicated rename flow later if renaming is needed.
-- Mark node property updates with MCP `destructiveHint=true`: they are write operations on an existing node and can overwrite existing Collector values.
-- Node write/exec tools that operate on an existing node should expose
-  `node_id` only at the MCP boundary when the Collector operation can execute
-  with `node_id`. If the user provides a nodename, the assistant must first
-  resolve it with `get_node`, read `node_id` and `nodename`, ask for a phrase
-  containing both values, then call the tool with `node_id`, matching
-  `confirm_node_id`, `confirm_nodename`, and `confirmation.phrase`. Core helpers
-  may stay compatible with `nodename` for internal reuse, but MCP wrappers should
-  pass `nodename=None` for migrated tools.
-- `snooze_node_notifications` and `unsnooze_node_notifications` use `POST /nodes/<node_id>/snooze`, require `write:nodes`, require `node_id`, `confirm_node_id`, `confirm_nodename`, and `confirmation.phrase`, and are marked non-destructive writes.
-- `list_nodes` lists rows and handles exact filters, Collector search, pagination, and bounded `nodename_contains` lookup.
+- `delete_node` exposes only `node_id`. Resolve a nodename with `get_node`
+  before proposing the delete. Core resolves the exact id immediately before
+  `DELETE /nodes/<node_id>`.
+- Mark node deletion with `destructiveHint=true` and `delete:nodes`;
+  Collector cascades node deletion to related runtime and inventory rows.
+- `create_node` exposes `nodename` and optional `properties`. It checks exact
+  nodename absence because Collector otherwise behaves like an upsert. Reject
+  `node_id` and `nodename` inside `properties`.
+- `update_node_properties` exposes only `node_id` and `properties`. Core
+  resolves the current nodename immediately before calling
+  `POST /nodes/<nodename>`. Reject `node_id` and `nodename` inside
+  `properties`.
+- Mark node property updates with `destructiveHint=true`: they can overwrite
+  existing Collector values.
+- Existing-node write and exec tools expose only `node_id` plus operation-
+  specific business values. Core helpers may accept `nodename` for internal
+  reuse, while public MCP wrappers pass `nodename=None`.
+- `snooze_node_notifications` exposes `node_id` and `duration`.
+  `unsnooze_node_notifications` exposes only `node_id`. Both use
+  `POST /nodes/<node_id>/snooze`, carry `write:nodes`, and are marked as
+  non-destructive writes.
+- `list_nodes` handles exact filters, Collector search, pagination, and bounded
+  `nodename_contains` lookup.
 - `count_nodes` returns one optimized count using Collector `meta.total`.
 - `get_nodes_inventory_stats` returns distributions and possible values.
 - `get_node` returns raw full node detail.
@@ -662,166 +627,71 @@ Node tool design decisions:
 
 Node state-changing tool TODO list:
 
-- General rule for every item below: before implementation, re-check the
-  current Collector handler in `collector/init/models/rest/api_nodes.py`,
-  `collector/init/models/rest/api_tags.py`, and `api_handlers.py`; verify the
-  applicable state-changing rule from this `CODEX.md`; add
-  `request.confirmation.phrase`; add one effect tag; add core/tool/schema tests; add
-  docs under `docs/tools/nodes.md` or `docs/tools/tags.md` depending on the
-  public tool domain.
+- General rule: re-check the current Collector handler before implementation,
+  expose only business parameters, add exactly one effect tag, keep annotations
+  accurate, add core/tool/schema tests, and update domain documentation.
 - [x] `snooze_node_notifications`
-  - Collector API: `POST /nodes/<id>/snooze` with `duration`.
-  - Classification: `POST update` on node metadata, not runtime exec.
-  - Effect tag: `write:nodes`; Collector authorizes the endpoint.
-  - Selector/confirmation: MCP schema is `node_id` only. If the user gives a
-    nodename, first resolve it with `get_node`; then call with `node_id`,
-    matching `confirm_node_id`, `confirm_nodename`, and `confirmation.phrase`.
-  - Request shape: explicit duration string; Collector validates duration through `convert_duration()`.
-  - Response: includes the resolved node snapshot, returned Collector response, duration, and selector metadata.
+  - `POST /nodes/<id>/snooze` with a Collector duration string.
+  - Public schema: `node_id`, `duration`.
+  - Effect tag: `write:nodes`; `destructiveHint=false`.
 - [x] `unsnooze_node_notifications`
-  - Collector API: `POST /nodes/<id>/snooze` without `duration`.
-  - Separate tool from snooze so omission of `duration` cannot silently invert the operation.
-  - Same effect tag and selector/confirmation as `snooze_node_notifications`.
+  - `POST /nodes/<id>/snooze` without a duration.
+  - Public schema: `node_id`.
+  - Separate from snooze so omitting duration cannot silently invert intent.
 - [x] `attach_tag_to_node`
-  - Collector API: `POST /tags/<tag_id>/nodes/<node_id>`; the tool deliberately
-    avoids bulk `POST /tags/nodes` for a single explicit relation.
-  - Classification: non-destructive `attach` relation update.
-  - Effect tag: `write:tags`, because the Collector route lives in the tags API.
-    Keep exactly one effect tag on the tool; `nodes` remains a domain tag.
-  - Selector/confirmation: public MCP schema is `tag_id` only on the tag side.
-    If the user gives a `tag_name`, first resolve it with `get_tag`; then call
-    with `tag_id`, matching `confirm_tag_id`, `confirm_tag_name`, and
-    `confirmation.phrase`. Do not pass `tag_name` as an execution selector. The
-    node side still accepts `node_id`, exact `nodename`, or both; core resolves
-    both sides to stable ids, refuses missing or ambiguous names, and verifies
-    confirmation/id correlation before posting.
-  - Optional payload: typed `tag_attach_data`, passed to Collector only when
-    provided.
-  - No implicit batch attach. Add a separate batch tool later only if it has an
-    explicit batch schema and confirmation summary.
+  - `POST /tags/<tag_id>/nodes/<node_id>`.
+  - Public tag selector: `tag_id`; node selectors are `node_id`,
+    `nodename`, or both.
+  - Core resolves both objects to stable ids and refuses missing, ambiguous, or
+    inconsistent selectors.
+  - Optional business value: `tag_attach_data`.
 - [x] `attach_tag_to_service`
-  - Collector API: `POST /tags/<tag_id>/services/<svc_id>`; the tool deliberately
-    avoids bulk `POST /tags/services` for a single explicit relation.
-  - Classification: non-destructive `attach` relation update.
-  - Effect tag matches `attach_tag_to_node`: `write:tags`, because the Collector
-    route lives in the tags API.
-  - Selector/confirmation: public MCP schema is `tag_id` only on the tag side.
-    If the user gives a `tag_name`, first resolve it with `get_tag`; then call
-    with `tag_id`, matching `confirm_tag_id`, `confirm_tag_name`, and
-    `confirmation.phrase`. Do not pass `tag_name` as an execution selector. The
-    service side still accepts `svc_id`, exact `svcname`, or both; core resolves
-    both sides to stable ids, refuses missing or ambiguous names, and verifies
-    confirmation/id correlation before posting.
-  - No implicit batch attach. Add a separate batch tool later only if it has an
-    explicit batch schema and confirmation summary.
+  - `POST /tags/<tag_id>/services/<svc_id>`.
+  - Public tag selector: `tag_id`; service selectors are `svc_id`,
+    `svcname`, or both.
+  - Core resolves both objects to stable ids.
 - [x] `detach_tag_from_node`
-  - Collector API: `DELETE /tags/<tag_id>/nodes/<node_id>`.
-  - Classification: destructive relation update, not deletion of the tag or
-    node object.
-  - Effect tag matches `attach_tag_to_node`: `write:tags`, because the Collector
-    route lives in the tags API.
-  - Selector/confirmation: public MCP schema is `tag_id` only on the tag side.
-    If the user gives a `tag_name`, first resolve it with `get_tag`; then call
-    with `tag_id`, matching `confirm_tag_id`, `confirm_tag_name`, and
-    `confirmation.phrase`. Do not pass `tag_name` as an execution selector. The
-    node side still accepts `node_id`, exact `nodename`, or both; core resolves
-    both sides to stable ids, verifies confirmation/id correlation, re-reads the
-    current tag-node relation through `GET /tags/<tag_id>/nodes` filtered by
-    `node_id`, refuses missing or ambiguous relations, and executes DELETE with
-    resolved `tag_id` and `node_id`.
+  - `DELETE /tags/<tag_id>/nodes/<node_id>`.
+  - Same business selectors as attach.
+  - Core re-reads and validates the exact relation before DELETE.
 - [x] `detach_tag_from_service`
-  - Collector API: `DELETE /tags/<tag_id>/services/<svc_id>`.
-  - Classification: destructive relation update, not deletion of the tag or
-    service object.
-  - Effect tag matches `attach_tag_to_service`: `write:tags`, because the
-    Collector route lives in the tags API.
-  - Selector/confirmation: public MCP schema is `tag_id` only on the tag side.
-    If the user gives a `tag_name`, first resolve it with `get_tag`; then call
-    with `tag_id`, matching `confirm_tag_id`, `confirm_tag_name`, and
-    `confirmation.phrase`. Do not pass `tag_name` as an execution selector. The
-    service side still accepts `svc_id`, exact `svcname`, or both; core resolves
-    both sides to stable ids, verifies confirmation/id correlation, re-reads the
-    current tag-service relation through `GET /tags/<tag_id>/services` filtered
-    by `svc_id`, refuses missing or ambiguous relations, and executes DELETE
-    with resolved `tag_id` and `svc_id`.
+  - `DELETE /tags/<tag_id>/services/<svc_id>`.
+  - Same business selectors as attach.
+  - Core re-reads and validates the exact relation before DELETE.
 - [x] `create_node`
-  - Collector API: `POST /nodes`.
-  - MCP first checks exact `nodename` absence with `/nodes` before calling
-    `POST /nodes`, because Collector otherwise behaves like an upsert. Collector
-    remains the final authority for defaults and payload validation.
-  - Effect tag: `write:nodes`; Collector authorizes the endpoint.
-  - Confirmation: `request.confirmation.phrase` only; no delete-style
-    `confirm_*` fields.
-  - Request model: explicit `nodename`, optional `properties`; MCP refuses
-    existing nodenames and lets Collector validate other non-delete errors such
-    as read-only fields.
+  - `POST /nodes` after checking exact nodename absence.
+  - Public schema: `nodename`, optional `properties`.
+  - Effect tag: `write:nodes`; Collector remains final authority for defaults
+    and payload validation.
 - [ ] Node compliance attach/detach tools
-  - Collector APIs: `POST/DELETE /nodes/<id>/compliance/modulesets/<id>` and
+  - Collector APIs:
+    `POST/DELETE /nodes/<id>/compliance/modulesets/<id>` and
     `/nodes/<id>/compliance/rulesets/<id>`.
   - Defer to the compliance domain unless there is a strong node UX reason.
-    These relations influence what the OpenSVC agent checks/fixes later, so
-    treat them as more sensitive than simple inventory metadata.
-  - Likely effect tag: `write:compliance`, not plain `write:nodes`; confirm the
-    route domain before implementation. Collector remains the authorization
-    authority.
-- [ ] Node-only `/actions` tools
+  - Likely effect tag: `write:compliance`; verify route ownership first.
+- [ ] Additional node-only `/actions` tools
   - Collector API: `PUT /actions` with `node_id=<node_id>` and one action.
-  - Completed node action tools are not kept in this TODO list. Current completed
-    `/actions` node tools: `freeze_node`, `thaw_node`, `run_node_checks`,
+  - Reuse `_enqueue_node_action()` for simple node-only `exec:nodes`
+    actions unless extra business payload or another effect domain is required.
+  - Each public tool must be narrow, named after one Collector action, and
+    expose `node_id` plus only action-specific business parameters.
+  - Completed actions:
+    `freeze_node`, `thaw_node`, `run_node_checks`,
     `collect_node_sysreport`, `push_node_asset`, `push_node_disks`,
     `push_node_packages`, `push_node_patches`, `push_node_stats`,
-    `pull_node_config`, `push_node_config`, `update_node_compliance_modules`,
-    `update_node_opensvc_agent`, `scan_node_scsi`, `reboot_node`, `shutdown_node`,
+    `pull_node_config`, `push_node_config`,
+    `update_node_compliance_modules`, `update_node_opensvc_agent`,
+    `scan_node_scsi`, `reboot_node`, `shutdown_node`,
     `schedule_node_reboot`, `unschedule_node_reboot`,
-    `rotate_node_root_password`, `wake_node_on_lan`.
-  - Use the existing core helper `_enqueue_confirmed_node_action()` for simple
-    node-only `exec:nodes` actions unless the action requires extra payload or a
-    different effect domain.
-  - Shared rule: each tool must be narrow and named after one Collector action,
-    expose `node_id` only in the public MCP schema, require `confirm_node_id`,
-    `confirm_nodename`, and `confirmation.phrase`, and enqueue with the resolved
-    `node_id` only. If the user gives a nodename, first resolve it with
-    `get_node`; do not expose `nodename` as a tool execution selector.
-  - Do not mix service-instance actions here. Actions requiring `svc_id` belong
-    to service-domain tools even when they also take `node_id`.
-
-  Lower-risk remaining first pass:
-  - [x] `push_node_disks` -> action `pushdisks`
-  - [x] `push_node_stats` -> action `pushstats`
-  - [x] `pull_node_config` -> action `pull`
-  - [x] `push_node_config` -> action `push`
-
-  Medium-risk package/compliance-data refresh actions:
-  - [x] `push_node_packages` -> action `pushpkg`
-  - [x] `push_node_patches` -> action `pushpatch`
-  - [x] `update_node_compliance_modules` -> action `updatecomp`
-  - [x] `update_node_opensvc_agent` -> action `updatepkg`
-  - [x] `scan_node_scsi` -> action `scanscsi`
-
-  Checkpoint before high-impact actions:
-  - [ ] Re-read Collector `api_action_queue.py` and
-    `action_menu/action_menu.py` for exact request behavior and command effects.
-  - [ ] Decide if high-impact tools need stronger UX than a simple confirmation
-    phrase, for example an explicit danger summary or dedicated confirmation
-    wording.
-  - [ ] Confirm naming and descriptions with the user before implementation.
-  - [ ] Live-test one lower-risk node action end to end before adding reboot,
-    shutdown, password rotation, or wake-on-LAN tools.
-
-  High-impact actions, deferred until after the checkpoint:
-  - [x] `reboot_node` -> action `reboot`
-  - [x] `shutdown_node` -> action `shutdown`
-  - [x] `schedule_node_reboot` -> action `schedule_reboot`
-  - [x] `unschedule_node_reboot` -> action `unschedule_reboot`
-  - [x] `rotate_node_root_password` -> action `rotate_root_pw`
-  - [x] `wake_node_on_lan` -> action `wol`
+    `rotate_node_root_password`, and `wake_node_on_lan`.
+  - Do not mix service-instance actions into node-only tools.
+  - Re-check Collector action handlers and command effects before adding another
+    high-impact action. The harness owns any stronger approval UX.
 - [ ] Node compliance exec tools
   - Collector API: `PUT /actions` with `node_id=<node_id>`, action
     `compliance_check` or `compliance_fix`, and `module`, `moduleset`, or
     `ruleset`.
-  - Classification: `exec:compliance`, not plain `exec:nodes`, because the
-    operation belongs to the compliance execution domain. Collector authorizes
-    the endpoint.
+  - Classification: `exec:compliance`, not `exec:nodes`.
   - Defer to the compliance domain unless there is a strong node UX reason.
 
 Generic node filters:

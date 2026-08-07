@@ -1,315 +1,159 @@
 # Tag Tools
 
-This document describes the OpenSVC Collector MCP tools for tag inventory.
+The tag domain exposes typed Collector tag inventory and relation tools.
+Collector remains the final authority for payload validation, endpoint
+authorization, and object scope.
 
-Tag business logic lives under `src/opensvc_collector_mcp/core/tags/`.
-Tag Pydantic models live under `src/opensvc_collector_mcp/models/tags/`.
-MCP tool definitions live in `src/opensvc_collector_mcp/tools/tags.py`.
+This MCP server is supported only behind the dedicated harness. The harness owns
+proposal, user approval, execution coordination, and audit. MCP schemas expose
+business parameters only; tool tags and annotations remain descriptive metadata
+for harness policy and discovery.
 
-## Tools
+## State-changing tool contract
 
-
+Tag mutations accept the stable Collector `tag_id` at the MCP boundary. Resolve
+a human-readable `tag_name` first with the read-only `get_tag` tool. Core
+logic resolves all supplied object selectors, refuses missing or ambiguous
+matches, and uses stable ids for Collector writes.
 
 ### `create_tag`
 
-Creates one OpenSVC Collector tag through `POST /tags`. This is a write tool
-and uses the `write:tags` effect tag. Collector authorizes the request using the
-authenticated Basic Auth credentials. The MCP `create` tag is descriptive for
-discovery only. It accepts `tag_name` and optional `tag_data` and `tag_exclude`
-fields. Because it changes Collector state, the request requires
-`confirmation.phrase`: the
-assistant must summarize the tag creation, ask the user to repeat a concise
-phrase verbatim, and set `confirmation.phrase` only after that phrase appears in
-the latest user message.
+Creates a tag with `POST /tags`.
 
-Example:
+Business input:
+
+- `tag_name` (required)
+- `tag_data` (optional)
+- `tag_exclude` (optional)
 
 ```json
 {
   "request": {
     "tag_name": "mcp-test-tag",
-    "tag_data": "created by mcp",
-    "confirmation": {
-      "phrase": "CREATE tag mcp-test-tag"
-    }
+    "tag_data": "created by mcp"
   }
 }
 ```
 
-Output fields:
-
-```text
-meta
-data
-info
-```
+Tags: `tags`, `create`, `write:tags`.
+Annotation: `destructiveHint=false`.
 
 ### `delete_tag`
 
-Deletes one OpenSVC Collector tag through `DELETE /tags/<tag_id>`. This is a
-destructive tool and uses the `delete:tags` effect tag. Collector authorizes the
-request using the authenticated Basic Auth credentials. The MCP `delete` tag is
-descriptive for discovery only. Collector also removes the tag attachments to
-nodes and services.
-
-The deletion selector is `tag_id` only. Never pass `tag_name` as the execution
-selector. If the user provides only a human-readable tag name, first call
-`get_tag` with that exact `tag_name`; MCP resolves it with an exact `/tags`
-filter and refuses zero or duplicate matches. Read the resolved `tag_id` and
-`tag_name` from that snapshot before asking for confirmation. The `delete_tag`
-request requires `confirm_tag_id` to match `tag_id` and `confirm_tag_name` to
-match the resolved `tag_name`; the DELETE call is not sent if either
-confirmation does not match. Because this is destructive, the assistant must
-generate a concise confirmation phrase containing the exact resolved `tag_id`
-and `tag_name`, ask the user to repeat it verbatim in a new message, and set
-`confirmation.phrase` only after that exact phrase appears in the latest user
-message. The gateway blocks the proxied `call_tool` before MCP execution if the
-phrase is missing from that latest message.
-
-Example:
+Deletes one tag with `DELETE /tags/<tag_id>`. Collector also removes its node
+and service attachments. The MCP request contains only `tag_id`.
 
 ```json
 {
   "request": {
-    "tag_id": "tag-1",
-    "confirm_tag_id": "tag-1",
-    "confirm_tag_name": "mcp-test-tag",
-    "confirmation": {
-      "phrase": "DELETE tag tag-1 mcp-test-tag"
-    }
+    "tag_id": "TAG-ID"
   }
 }
 ```
 
-Output fields:
+Core resolves an exact tag snapshot immediately before deletion. Collector
+authorizes the operation using the authenticated caller's credentials.
 
-```text
-tag_id
-tag_name
-tag
-deleted
-collector_response
-meta
-```
+Tags: `tags`, `delete`, `delete:tags`.
+Annotation: `destructiveHint=true`.
 
 ### `attach_tag_to_node`
 
-Attaches one OpenSVC Collector tag to one node through
-`POST /tags/<tag_id>/nodes/<node_id>`. This is a state-changing,
-non-destructive relation update and uses the `write:tags` effect tag. Collector
-authorizes the request using the authenticated Basic Auth credentials.
+Attaches one tag to one node through
+`POST /tags/<tag_id>/nodes/<node_id>`.
 
-The tag selector is `tag_id` only. If the user provides a `tag_name`, first call
-`get_tag` to resolve exactly one tag and read its `tag_id` and `tag_name`. Do
-not ask for confirmation before this tag resolution step. The request requires
-`confirm_tag_id` and `confirm_tag_name` to match the resolved tag snapshot. For
-the node, provide `node_id`, `nodename`, or both. MCP resolves node names with
-exact Collector filters, refuses missing or ambiguous matches, verifies
-`id + name` correlation when both are provided, and then calls Collector with
-the resolved stable IDs. Do not pass `tag_name` as an execution selector.
+Business input:
 
-Because this changes Collector state, the request requires
-`confirmation.phrase`: the assistant must summarize the exact tag/node
-attachment, ask the user to repeat a concise phrase verbatim, and set
-`confirmation.phrase` only after that phrase appears in the latest user message.
-`tag_attach_data` can be provided when Collector-side attach metadata is needed.
-
-Example:
+- `tag_id`
+- `node_id`, `nodename`, or both correlated selectors
+- optional `tag_attach_data`
 
 ```json
 {
   "request": {
-    "tag_id": "tag-1",
-    "confirm_tag_id": "tag-1",
-    "confirm_tag_name": "mcp-test-tag",
-    "node_id": "node-1",
-    "nodename": "lab-node-01",
-    "tag_attach_data": "scope=lab",
-    "confirmation": {
-      "phrase": "ATTACH tag tag-1 mcp-test-tag to node node-1 lab-node-01"
-    }
+    "tag_id": "TAG-ID",
+    "node_id": "NODE-ID",
+    "tag_attach_data": "scope=lab"
   }
 }
 ```
 
-Output fields:
-
-```text
-tag_id
-tag_name
-tag
-node_id
-nodename
-node
-attached
-tag_attach_data
-collector_response
-meta
-```
+Core resolves both objects to stable ids and refuses ambiguous or inconsistent
+selectors. Tags: `tags`, `nodes`, `attach`, `write:tags`.
+Annotation: `destructiveHint=false`.
 
 ### `attach_tag_to_service`
 
-Attaches one OpenSVC Collector tag to one service through
-`POST /tags/<tag_id>/services/<svc_id>`. This is a state-changing,
-non-destructive relation update and uses the `write:tags` effect tag. Collector
-authorizes the request using the authenticated Basic Auth credentials.
+Attaches one tag to one service through
+`POST /tags/<tag_id>/services/<svc_id>`.
 
-The tag selector is `tag_id` only. If the user provides a `tag_name`, first call
-`get_tag` to resolve exactly one tag and read its `tag_id` and `tag_name`. Do
-not ask for confirmation before this tag resolution step. The request requires
-`confirm_tag_id` and `confirm_tag_name` to match the resolved tag snapshot. For
-the service, provide `svc_id`, `svcname`, or both. MCP resolves service names
-with exact Collector filters, refuses missing or ambiguous matches, verifies
-`id + name` correlation when both are provided, and then calls Collector with
-the resolved stable IDs. Do not pass `tag_name` as an execution selector.
+Business input:
 
-Because this changes Collector state, the request requires
-`confirmation.phrase`: the assistant must summarize the exact tag/service
-attachment, ask the user to repeat a concise phrase verbatim, and set
-`confirmation.phrase` only after that phrase appears in the latest user message.
-
-Example:
+- `tag_id`
+- `svc_id`, `svcname`, or both correlated selectors
 
 ```json
 {
   "request": {
-    "tag_id": "tag-1",
-    "confirm_tag_id": "tag-1",
-    "confirm_tag_name": "mcp-test-tag",
-    "svc_id": "svc-1",
-    "svcname": "svc/app/test",
-    "confirmation": {
-      "phrase": "ATTACH tag tag-1 mcp-test-tag to service svc-1 svc/app/test"
-    }
+    "tag_id": "TAG-ID",
+    "svc_id": "SERVICE-ID"
   }
 }
 ```
 
-Output fields:
-
-```text
-tag_id
-tag_name
-tag
-svc_id
-svcname
-service
-attached
-collector_response
-meta
-```
-
+Core resolves both objects to stable ids and refuses ambiguous or inconsistent
+selectors. Tags: `tags`, `services`, `attach`, `write:tags`.
+Annotation: `destructiveHint=false`.
 
 ### `detach_tag_from_node`
 
-Detaches one OpenSVC Collector tag from one node through
-`DELETE /tags/<tag_id>/nodes/<node_id>`. This is a destructive relation update:
-it removes only the tag-node attachment, not the tag object or the node object.
-It uses the `write:tags` effect tag. Collector authorizes the request using the
-authenticated Basic Auth credentials.
+Detaches one tag-node relation through
+`DELETE /tags/<tag_id>/nodes/<node_id>`.
 
-The tag selector is `tag_id` only. If the user provides a `tag_name`, first call
-`get_tag` to resolve exactly one tag and read its `tag_id` and `tag_name`. Do
-not ask for confirmation before this tag resolution step. The request requires
-`confirm_tag_id` and `confirm_tag_name` to match the resolved tag snapshot. For
-the node, provide `node_id`, `nodename`, or both. MCP resolves node names with
-exact Collector filters, refuses missing or ambiguous matches, verifies
-`id + name` correlation when both are provided, confirms the current tag-node
-relation, and then calls Collector with the resolved stable IDs. Do not pass
-`tag_name` as an execution selector.
+Business input:
 
-Because this changes Collector state, the request requires
-`confirmation.phrase`: the assistant must summarize the exact tag/node
-attachment to remove, ask the user to repeat a concise phrase verbatim, and set
-`confirmation.phrase` only after that phrase appears in the latest user message.
+- `tag_id`
+- `node_id`, `nodename`, or both correlated selectors
 
-Example:
+Before DELETE, MCP verifies that exactly one matching relation currently exists.
 
 ```json
 {
   "request": {
-    "tag_id": "tag-1",
-    "confirm_tag_id": "tag-1",
-    "confirm_tag_name": "mcp-test-tag",
-    "node_id": "node-1",
-    "nodename": "lab-node-01",
-    "confirmation": {
-      "phrase": "DETACH tag tag-1 mcp-test-tag from node node-1 lab-node-01"
-    }
+    "tag_id": "TAG-ID",
+    "node_id": "NODE-ID"
   }
 }
 ```
 
-Output fields:
-
-```text
-tag_id
-tag_name
-tag
-node_id
-nodename
-node
-relation
-detached
-collector_response
-meta
-```
+Tags: `tags`, `nodes`, `detach`, `write:tags`.
+Annotation: `destructiveHint=true`.
 
 ### `detach_tag_from_service`
 
-Detaches one OpenSVC Collector tag from one service through
-`DELETE /tags/<tag_id>/services/<svc_id>`. This is a destructive relation
-update: it removes only the tag-service attachment, not the tag object or the
-service object. It uses the `write:tags` effect tag. Collector authorizes the
-request using the authenticated Basic Auth credentials.
+Detaches one tag-service relation through
+`DELETE /tags/<tag_id>/services/<svc_id>`.
 
-The tag selector is `tag_id` only. If the user provides a `tag_name`, first call
-`get_tag` to resolve exactly one tag and read its `tag_id` and `tag_name`. Do
-not ask for confirmation before this tag resolution step. The request requires
-`confirm_tag_id` and `confirm_tag_name` to match the resolved tag snapshot. For
-the service, provide `svc_id`, `svcname`, or both. MCP resolves service names
-with exact Collector filters, refuses missing or ambiguous matches, verifies
-`id + name` correlation when both are provided, confirms the current tag-service
-relation, and then calls Collector with the resolved stable IDs. Do not pass
-`tag_name` as an execution selector.
+Business input:
 
-Because this changes Collector state, the request requires
-`confirmation.phrase`: the assistant must summarize the exact tag/service
-attachment to remove, ask the user to repeat a concise phrase verbatim, and set
-`confirmation.phrase` only after that phrase appears in the latest user message.
+- `tag_id`
+- `svc_id`, `svcname`, or both correlated selectors
 
-Example:
+Before DELETE, MCP verifies that exactly one matching relation currently exists.
 
 ```json
 {
   "request": {
-    "tag_id": "tag-1",
-    "confirm_tag_id": "tag-1",
-    "confirm_tag_name": "mcp-test-tag",
-    "svc_id": "svc-1",
-    "svcname": "svc/app/test",
-    "confirmation": {
-      "phrase": "DETACH tag tag-1 mcp-test-tag from service svc-1 svc/app/test"
-    }
+    "tag_id": "TAG-ID",
+    "svc_id": "SERVICE-ID"
   }
 }
 ```
 
-Output fields:
+Tags: `tags`, `services`, `detach`, `write:tags`.
+Annotation: `destructiveHint=true`.
 
-```text
-tag_id
-tag_name
-tag
-svc_id
-svcname
-service
-relation
-detached
-collector_response
-meta
-```
-
+## Read-only tools
 
 ### `count_tags`
 

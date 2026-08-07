@@ -1,7 +1,7 @@
 """Pydantic contracts for tag tools."""
 
 from ._common import (
-    ConfirmedTagIdRequest,
+    TagIdRequest,
     TagSelector,
 )
 
@@ -45,7 +45,7 @@ __all__ = [
     "CountTagsResponse",
     "CreateTagRequest",
     "CreateTagResponse",
-    "ConfirmedTagIdRequest",
+    "TagIdRequest",
     "DeleteTagRequest",
     "DeleteTagResponse",
     "DetachTagFromNodeRequest",

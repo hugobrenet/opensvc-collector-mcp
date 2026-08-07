@@ -3,7 +3,7 @@ from typing import Any
 
 
 def clean_value(value: Any) -> str:
-    """Return a stripped string value for selector and confirmation checks."""
+    """Return a stripped string value for selector checks."""
     return str(value).strip() if value is not None else ""
 
 

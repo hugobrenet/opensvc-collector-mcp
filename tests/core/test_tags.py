@@ -80,7 +80,7 @@ async def test_create_tag_rejects_empty_tag_name(monkeypatch):
     assert recorder.calls == []
 
 
-async def test_delete_tag_snapshots_confirms_and_deletes_by_tag_id(monkeypatch):
+async def test_delete_tag_snapshots_and_deletes_by_tag_id(monkeypatch):
     get_recorder = CollectorGetByPathRecorder(
         {
             "/tags/tag-1": {
@@ -100,8 +100,6 @@ async def test_delete_tag_snapshots_confirms_and_deletes_by_tag_id(monkeypatch):
 
     response = await inventory.delete_tag(
         tag_id=" tag-1 ",
-        confirm_tag_id="tag-1",
-        confirm_tag_name=" mcp-test-tag ",
     )
 
     assert response["deleted"] is True
@@ -120,7 +118,7 @@ async def test_delete_tag_snapshots_confirms_and_deletes_by_tag_id(monkeypatch):
     ]
 
 
-async def test_delete_tag_resolves_tag_name_confirms_and_deletes_by_tag_id(monkeypatch):
+async def test_delete_tag_resolves_tag_name_and_deletes_by_tag_id(monkeypatch):
     get_recorder = CollectorGetByPathRecorder(
         {
             "/tags": {
@@ -140,8 +138,6 @@ async def test_delete_tag_resolves_tag_name_confirms_and_deletes_by_tag_id(monke
 
     response = await inventory.delete_tag(
         tag_name=" mcp-test-tag ",
-        confirm_tag_id="tag-1",
-        confirm_tag_name=" mcp-test-tag ",
     )
 
     assert response["deleted"] is True
@@ -155,46 +151,6 @@ async def test_delete_tag_resolves_tag_name_confirms_and_deletes_by_tag_id(monke
     assert delete_recorder.calls == [
         {"path": "/tags/tag-1", "data": None, "params": None}
     ]
-
-
-async def test_delete_tag_rejects_confirmation_id_mismatch_before_lookup(monkeypatch):
-    get_recorder = CollectorGetByPathRecorder({})
-    delete_recorder = CollectorDeleteRecorder({"meta": {}, "data": []})
-    monkeypatch.setattr(tag_common, "collector_get", get_recorder)
-    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
-
-    with pytest.raises(ValueError, match="confirm_tag_id must match tag_id"):
-        await inventory.delete_tag(
-            tag_id="tag-1",
-            confirm_tag_id="other-tag",
-            confirm_tag_name="mcp-test-tag",
-        )
-
-    assert get_recorder.calls == []
-    assert delete_recorder.calls == []
-
-
-async def test_delete_tag_rejects_confirmation_name_mismatch_before_delete(monkeypatch):
-    get_recorder = CollectorGetByPathRecorder(
-        {
-            "/tags/tag-1": {
-                "data": [{"tag_id": "tag-1", "tag_name": "mcp-test-tag"}],
-            },
-        }
-    )
-    delete_recorder = CollectorDeleteRecorder({"meta": {}, "data": []})
-    monkeypatch.setattr(tag_common, "collector_get", get_recorder)
-    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
-
-    with pytest.raises(ValueError, match="confirm_tag_name must match"):
-        await inventory.delete_tag(
-            tag_id="tag-1",
-            confirm_tag_id="tag-1",
-            confirm_tag_name="wrong-tag",
-        )
-
-    assert [call["path"] for call in get_recorder.calls] == ["/tags/tag-1"]
-    assert delete_recorder.calls == []
 
 
 async def test_delete_tag_quotes_tag_id_path(monkeypatch):
@@ -211,8 +167,6 @@ async def test_delete_tag_quotes_tag_id_path(monkeypatch):
 
     response = await inventory.delete_tag(
         tag_id=" tag/1 ",
-        confirm_tag_id="tag/1",
-        confirm_tag_name="mcp-test-tag",
     )
 
     assert response["tag_id"] == "tag/1"
@@ -245,8 +199,6 @@ async def test_delete_tag_rejects_ambiguous_tag_id_snapshot(monkeypatch):
     with pytest.raises(ValueError, match="tag_id resolved to multiple tags"):
         await inventory.delete_tag(
             tag_id="tag-1",
-            confirm_tag_id="tag-1",
-            confirm_tag_name="mcp-test-tag",
         )
 
     assert delete_recorder.calls == []
@@ -270,8 +222,6 @@ async def test_delete_tag_rejects_ambiguous_tag_name_before_delete(monkeypatch):
     with pytest.raises(ValueError, match="tag_name is ambiguous: mcp-test-tag"):
         await inventory.delete_tag(
             tag_name="mcp-test-tag",
-            confirm_tag_id="tag-1",
-            confirm_tag_name="mcp-test-tag",
         )
 
     assert delete_recorder.calls == []
@@ -292,8 +242,6 @@ async def test_delete_tag_rejects_tag_name_passed_as_tag_id(monkeypatch):
     with pytest.raises(ValueError, match="tag_id selector did not resolve to the exact tag_id"):
         await inventory.delete_tag(
             tag_id="mcp-test-tag",
-            confirm_tag_id="mcp-test-tag",
-            confirm_tag_name="mcp-test-tag",
         )
 
     assert get_recorder.calls[0]["path"] == "/tags/mcp-test-tag"

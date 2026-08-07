@@ -268,20 +268,9 @@ async def update_node_properties(
     properties: dict[str, Any] | None = None,
     *,
     node_id: str | None = None,
-    confirm_node_id: str,
-    confirm_nodename: str,
 ) -> dict[str, Any]:
     selector_node_id = node_id.strip() if node_id else ""
     selector_nodename = nodename.strip() if nodename else ""
-    confirmation_id = confirm_node_id.strip() if confirm_node_id else ""
-    confirmation_name = confirm_nodename.strip() if confirm_nodename else ""
-
-    if not confirmation_id:
-        raise ValueError("confirm_node_id must not be empty")
-    if not confirmation_name:
-        raise ValueError("confirm_nodename must not be empty")
-    if selector_node_id and confirmation_id != selector_node_id:
-        raise ValueError("confirm_node_id must match node_id")
 
     node = await resolve_single_node_selector(
         node_id=selector_node_id or None,
@@ -291,10 +280,6 @@ async def update_node_properties(
     )
     resolved_node_id = str(node.get("node_id") or "").strip()
     resolved_nodename = str(node.get("nodename") or "").strip()
-    if confirmation_id != resolved_node_id:
-        raise ValueError("confirm_node_id must match the resolved node_id")
-    if confirmation_name != resolved_nodename:
-        raise ValueError("confirm_nodename must match the resolved nodename")
 
     payload = _normalized_node_write_payload(properties or {})
     response = await collector_post(
@@ -310,7 +295,6 @@ async def update_node_properties(
             "selector": "node_id" if selector_node_id else "nodename",
             "resolved_node_id": resolved_node_id,
             "node": node,
-            "confirmation": ["confirm_node_id", "confirm_nodename"],
             "allowed_properties": sorted(NODE_UPDATE_ALLOWED_PROPERTIES),
         },
     }
@@ -320,20 +304,9 @@ async def delete_node(
     *,
     node_id: str | None = None,
     nodename: str | None = None,
-    confirm_node_id: str,
-    confirm_nodename: str,
 ) -> dict[str, Any]:
     selector_node_id = node_id.strip() if node_id else ""
     selector_nodename = nodename.strip() if nodename else ""
-    confirmation_id = confirm_node_id.strip() if confirm_node_id else ""
-    confirmation_name = confirm_nodename.strip() if confirm_nodename else ""
-
-    if not confirmation_id:
-        raise ValueError("confirm_node_id must not be empty")
-    if not confirmation_name:
-        raise ValueError("confirm_nodename must not be empty")
-    if selector_node_id and confirmation_id != selector_node_id:
-        raise ValueError("confirm_node_id must match node_id")
 
     node = await resolve_single_node_selector(
         node_id=selector_node_id or None,
@@ -343,10 +316,6 @@ async def delete_node(
     )
     resolved_node_id = str(node.get("node_id") or "").strip()
     resolved_nodename = str(node.get("nodename") or "").strip()
-    if confirmation_id != resolved_node_id:
-        raise ValueError("confirm_node_id must match the resolved node_id")
-    if confirmation_name != resolved_nodename:
-        raise ValueError("confirm_nodename must match the resolved nodename")
 
     response = await collector_delete(f"/nodes/{quote(resolved_node_id, safe='')}")
     return {
@@ -358,31 +327,19 @@ async def delete_node(
         "meta": {
             "source": "nodes/<node_id>",
             "selector": "node_id" if selector_node_id else "nodename",
-            "confirmation": ["confirm_node_id", "confirm_nodename"],
         },
     }
 
 
-async def _enqueue_confirmed_node_action(
+async def _enqueue_node_action(
     *,
     action: str,
     operation: str,
     node_id: str | None = None,
     nodename: str | None = None,
-    confirm_node_id: str,
-    confirm_nodename: str,
 ) -> dict[str, Any]:
     selector_node_id = node_id.strip() if node_id else ""
     selector_nodename = nodename.strip() if nodename else ""
-    confirmation_id = confirm_node_id.strip() if confirm_node_id else ""
-    confirmation_name = confirm_nodename.strip() if confirm_nodename else ""
-
-    if not confirmation_id:
-        raise ValueError("confirm_node_id must not be empty")
-    if not confirmation_name:
-        raise ValueError("confirm_nodename must not be empty")
-    if selector_node_id and confirmation_id != selector_node_id:
-        raise ValueError("confirm_node_id must match node_id")
 
     node = await resolve_single_node_selector(
         node_id=selector_node_id or None,
@@ -392,10 +349,6 @@ async def _enqueue_confirmed_node_action(
     )
     resolved_node_id = str(node.get("node_id") or "").strip()
     resolved_nodename = str(node.get("nodename") or "").strip()
-    if confirmation_id != resolved_node_id:
-        raise ValueError("confirm_node_id must match the resolved node_id")
-    if confirmation_name != resolved_nodename:
-        raise ValueError("confirm_nodename must match the resolved nodename")
 
     payload = {"node_id": resolved_node_id, "action": action}
     response = await collector_put("/actions", data=payload)
@@ -409,7 +362,6 @@ async def _enqueue_confirmed_node_action(
         "meta": {
             "source": "actions",
             "selector": "node_id" if selector_node_id else "nodename",
-            "confirmation": ["confirm_node_id", "confirm_nodename"],
             "exec_tag": "exec:nodes",
         },
     }
@@ -419,16 +371,12 @@ async def freeze_node(
     *,
     node_id: str | None = None,
     nodename: str | None = None,
-    confirm_node_id: str,
-    confirm_nodename: str,
 ) -> dict[str, Any]:
-    return await _enqueue_confirmed_node_action(
+    return await _enqueue_node_action(
         action="freeze",
         operation="freeze node",
         node_id=node_id,
         nodename=nodename,
-        confirm_node_id=confirm_node_id,
-        confirm_nodename=confirm_nodename,
     )
 
 
@@ -436,16 +384,12 @@ async def thaw_node(
     *,
     node_id: str | None = None,
     nodename: str | None = None,
-    confirm_node_id: str,
-    confirm_nodename: str,
 ) -> dict[str, Any]:
-    return await _enqueue_confirmed_node_action(
+    return await _enqueue_node_action(
         action="thaw",
         operation="thaw node",
         node_id=node_id,
         nodename=nodename,
-        confirm_node_id=confirm_node_id,
-        confirm_nodename=confirm_nodename,
     )
 
 
@@ -453,16 +397,12 @@ async def run_node_checks(
     *,
     node_id: str | None = None,
     nodename: str | None = None,
-    confirm_node_id: str,
-    confirm_nodename: str,
 ) -> dict[str, Any]:
-    return await _enqueue_confirmed_node_action(
+    return await _enqueue_node_action(
         action="checks",
         operation="run node checks",
         node_id=node_id,
         nodename=nodename,
-        confirm_node_id=confirm_node_id,
-        confirm_nodename=confirm_nodename,
     )
 
 
@@ -470,16 +410,12 @@ async def collect_node_sysreport(
     *,
     node_id: str | None = None,
     nodename: str | None = None,
-    confirm_node_id: str,
-    confirm_nodename: str,
 ) -> dict[str, Any]:
-    return await _enqueue_confirmed_node_action(
+    return await _enqueue_node_action(
         action="sysreport",
         operation="collect node sysreport",
         node_id=node_id,
         nodename=nodename,
-        confirm_node_id=confirm_node_id,
-        confirm_nodename=confirm_nodename,
     )
 
 
@@ -487,16 +423,12 @@ async def push_node_asset(
     *,
     node_id: str | None = None,
     nodename: str | None = None,
-    confirm_node_id: str,
-    confirm_nodename: str,
 ) -> dict[str, Any]:
-    return await _enqueue_confirmed_node_action(
+    return await _enqueue_node_action(
         action="pushasset",
         operation="push node asset",
         node_id=node_id,
         nodename=nodename,
-        confirm_node_id=confirm_node_id,
-        confirm_nodename=confirm_nodename,
     )
 
 
@@ -504,16 +436,12 @@ async def push_node_disks(
     *,
     node_id: str | None = None,
     nodename: str | None = None,
-    confirm_node_id: str,
-    confirm_nodename: str,
 ) -> dict[str, Any]:
-    return await _enqueue_confirmed_node_action(
+    return await _enqueue_node_action(
         action="pushdisks",
         operation="push node disks",
         node_id=node_id,
         nodename=nodename,
-        confirm_node_id=confirm_node_id,
-        confirm_nodename=confirm_nodename,
     )
 
 
@@ -521,16 +449,12 @@ async def push_node_packages(
     *,
     node_id: str | None = None,
     nodename: str | None = None,
-    confirm_node_id: str,
-    confirm_nodename: str,
 ) -> dict[str, Any]:
-    return await _enqueue_confirmed_node_action(
+    return await _enqueue_node_action(
         action="pushpkg",
         operation="push node packages",
         node_id=node_id,
         nodename=nodename,
-        confirm_node_id=confirm_node_id,
-        confirm_nodename=confirm_nodename,
     )
 
 
@@ -538,16 +462,12 @@ async def push_node_patches(
     *,
     node_id: str | None = None,
     nodename: str | None = None,
-    confirm_node_id: str,
-    confirm_nodename: str,
 ) -> dict[str, Any]:
-    return await _enqueue_confirmed_node_action(
+    return await _enqueue_node_action(
         action="pushpatch",
         operation="push node patches",
         node_id=node_id,
         nodename=nodename,
-        confirm_node_id=confirm_node_id,
-        confirm_nodename=confirm_nodename,
     )
 
 
@@ -555,16 +475,12 @@ async def push_node_stats(
     *,
     node_id: str | None = None,
     nodename: str | None = None,
-    confirm_node_id: str,
-    confirm_nodename: str,
 ) -> dict[str, Any]:
-    return await _enqueue_confirmed_node_action(
+    return await _enqueue_node_action(
         action="pushstats",
         operation="push node stats",
         node_id=node_id,
         nodename=nodename,
-        confirm_node_id=confirm_node_id,
-        confirm_nodename=confirm_nodename,
     )
 
 
@@ -572,16 +488,12 @@ async def pull_node_config(
     *,
     node_id: str | None = None,
     nodename: str | None = None,
-    confirm_node_id: str,
-    confirm_nodename: str,
 ) -> dict[str, Any]:
-    return await _enqueue_confirmed_node_action(
+    return await _enqueue_node_action(
         action="pull",
         operation="pull node config",
         node_id=node_id,
         nodename=nodename,
-        confirm_node_id=confirm_node_id,
-        confirm_nodename=confirm_nodename,
     )
 
 
@@ -589,16 +501,12 @@ async def push_node_config(
     *,
     node_id: str | None = None,
     nodename: str | None = None,
-    confirm_node_id: str,
-    confirm_nodename: str,
 ) -> dict[str, Any]:
-    return await _enqueue_confirmed_node_action(
+    return await _enqueue_node_action(
         action="push",
         operation="push node config",
         node_id=node_id,
         nodename=nodename,
-        confirm_node_id=confirm_node_id,
-        confirm_nodename=confirm_nodename,
     )
 
 
@@ -606,16 +514,12 @@ async def update_node_compliance_modules(
     *,
     node_id: str | None = None,
     nodename: str | None = None,
-    confirm_node_id: str,
-    confirm_nodename: str,
 ) -> dict[str, Any]:
-    return await _enqueue_confirmed_node_action(
+    return await _enqueue_node_action(
         action="updatecomp",
         operation="update node compliance modules",
         node_id=node_id,
         nodename=nodename,
-        confirm_node_id=confirm_node_id,
-        confirm_nodename=confirm_nodename,
     )
 
 
@@ -623,16 +527,12 @@ async def update_node_opensvc_agent(
     *,
     node_id: str | None = None,
     nodename: str | None = None,
-    confirm_node_id: str,
-    confirm_nodename: str,
 ) -> dict[str, Any]:
-    return await _enqueue_confirmed_node_action(
+    return await _enqueue_node_action(
         action="updatepkg",
         operation="update node opensvc agent",
         node_id=node_id,
         nodename=nodename,
-        confirm_node_id=confirm_node_id,
-        confirm_nodename=confirm_nodename,
     )
 
 
@@ -640,16 +540,12 @@ async def scan_node_scsi(
     *,
     node_id: str | None = None,
     nodename: str | None = None,
-    confirm_node_id: str,
-    confirm_nodename: str,
 ) -> dict[str, Any]:
-    return await _enqueue_confirmed_node_action(
+    return await _enqueue_node_action(
         action="scanscsi",
         operation="scan node scsi",
         node_id=node_id,
         nodename=nodename,
-        confirm_node_id=confirm_node_id,
-        confirm_nodename=confirm_nodename,
     )
 
 
@@ -657,16 +553,12 @@ async def reboot_node(
     *,
     node_id: str | None = None,
     nodename: str | None = None,
-    confirm_node_id: str,
-    confirm_nodename: str,
 ) -> dict[str, Any]:
-    return await _enqueue_confirmed_node_action(
+    return await _enqueue_node_action(
         action="reboot",
         operation="reboot node",
         node_id=node_id,
         nodename=nodename,
-        confirm_node_id=confirm_node_id,
-        confirm_nodename=confirm_nodename,
     )
 
 
@@ -674,16 +566,12 @@ async def shutdown_node(
     *,
     node_id: str | None = None,
     nodename: str | None = None,
-    confirm_node_id: str,
-    confirm_nodename: str,
 ) -> dict[str, Any]:
-    return await _enqueue_confirmed_node_action(
+    return await _enqueue_node_action(
         action="shutdown",
         operation="shutdown node",
         node_id=node_id,
         nodename=nodename,
-        confirm_node_id=confirm_node_id,
-        confirm_nodename=confirm_nodename,
     )
 
 
@@ -691,16 +579,12 @@ async def schedule_node_reboot(
     *,
     node_id: str | None = None,
     nodename: str | None = None,
-    confirm_node_id: str,
-    confirm_nodename: str,
 ) -> dict[str, Any]:
-    return await _enqueue_confirmed_node_action(
+    return await _enqueue_node_action(
         action="schedule_reboot",
         operation="schedule node reboot",
         node_id=node_id,
         nodename=nodename,
-        confirm_node_id=confirm_node_id,
-        confirm_nodename=confirm_nodename,
     )
 
 
@@ -708,16 +592,12 @@ async def unschedule_node_reboot(
     *,
     node_id: str | None = None,
     nodename: str | None = None,
-    confirm_node_id: str,
-    confirm_nodename: str,
 ) -> dict[str, Any]:
-    return await _enqueue_confirmed_node_action(
+    return await _enqueue_node_action(
         action="unschedule_reboot",
         operation="unschedule node reboot",
         node_id=node_id,
         nodename=nodename,
-        confirm_node_id=confirm_node_id,
-        confirm_nodename=confirm_nodename,
     )
 
 
@@ -725,16 +605,12 @@ async def rotate_node_root_password(
     *,
     node_id: str | None = None,
     nodename: str | None = None,
-    confirm_node_id: str,
-    confirm_nodename: str,
 ) -> dict[str, Any]:
-    return await _enqueue_confirmed_node_action(
+    return await _enqueue_node_action(
         action="rotate_root_pw",
         operation="rotate node root password",
         node_id=node_id,
         nodename=nodename,
-        confirm_node_id=confirm_node_id,
-        confirm_nodename=confirm_nodename,
     )
 
 
@@ -742,16 +618,12 @@ async def wake_node_on_lan(
     *,
     node_id: str | None = None,
     nodename: str | None = None,
-    confirm_node_id: str,
-    confirm_nodename: str,
 ) -> dict[str, Any]:
-    return await _enqueue_confirmed_node_action(
+    return await _enqueue_node_action(
         action="wol",
         operation="wake node on lan",
         node_id=node_id,
         nodename=nodename,
-        confirm_node_id=confirm_node_id,
-        confirm_nodename=confirm_nodename,
     )
 
 
@@ -759,23 +631,13 @@ async def snooze_node_notifications(
     *,
     node_id: str | None = None,
     nodename: str | None = None,
-    confirm_node_id: str,
-    confirm_nodename: str,
     duration: str,
 ) -> dict[str, Any]:
     selector_node_id = node_id.strip() if node_id else ""
     selector_nodename = nodename.strip() if nodename else ""
-    confirmation_id = confirm_node_id.strip() if confirm_node_id else ""
-    confirmation_name = confirm_nodename.strip() if confirm_nodename else ""
     duration = duration.strip() if duration else ""
     if not duration:
         raise ValueError("duration must not be empty")
-    if not confirmation_id:
-        raise ValueError("confirm_node_id must not be empty")
-    if not confirmation_name:
-        raise ValueError("confirm_nodename must not be empty")
-    if selector_node_id and confirmation_id != selector_node_id:
-        raise ValueError("confirm_node_id must match node_id")
 
     node = await resolve_single_node_selector(
         node_id=selector_node_id or None,
@@ -785,10 +647,6 @@ async def snooze_node_notifications(
     )
     resolved_node_id = str(node.get("node_id") or "").strip()
     resolved_nodename = str(node.get("nodename") or "").strip()
-    if confirmation_id != resolved_node_id:
-        raise ValueError("confirm_node_id must match the resolved node_id")
-    if confirmation_name != resolved_nodename:
-        raise ValueError("confirm_nodename must match the resolved nodename")
 
     response = await collector_post(
         f"/nodes/{quote(resolved_node_id, safe='')}/snooze",
@@ -804,7 +662,6 @@ async def snooze_node_notifications(
         "meta": {
             "source": "nodes/<node_id>/snooze",
             "selector": "node_id" if selector_node_id else "nodename",
-            "confirmation": ["confirm_node_id", "confirm_nodename"],
         },
     }
 
@@ -813,20 +670,9 @@ async def unsnooze_node_notifications(
     *,
     node_id: str | None = None,
     nodename: str | None = None,
-    confirm_node_id: str,
-    confirm_nodename: str,
 ) -> dict[str, Any]:
     selector_node_id = node_id.strip() if node_id else ""
     selector_nodename = nodename.strip() if nodename else ""
-    confirmation_id = confirm_node_id.strip() if confirm_node_id else ""
-    confirmation_name = confirm_nodename.strip() if confirm_nodename else ""
-
-    if not confirmation_id:
-        raise ValueError("confirm_node_id must not be empty")
-    if not confirmation_name:
-        raise ValueError("confirm_nodename must not be empty")
-    if selector_node_id and confirmation_id != selector_node_id:
-        raise ValueError("confirm_node_id must match node_id")
 
     node = await resolve_single_node_selector(
         node_id=selector_node_id or None,
@@ -836,10 +682,6 @@ async def unsnooze_node_notifications(
     )
     resolved_node_id = str(node.get("node_id") or "").strip()
     resolved_nodename = str(node.get("nodename") or "").strip()
-    if confirmation_id != resolved_node_id:
-        raise ValueError("confirm_node_id must match the resolved node_id")
-    if confirmation_name != resolved_nodename:
-        raise ValueError("confirm_nodename must match the resolved nodename")
 
     response = await collector_post(f"/nodes/{quote(resolved_node_id, safe='')}/snooze")
     return {
@@ -851,7 +693,6 @@ async def unsnooze_node_notifications(
         "meta": {
             "source": "nodes/<node_id>/snooze",
             "selector": "node_id" if selector_node_id else "nodename",
-            "confirmation": ["confirm_node_id", "confirm_nodename"],
         },
     }
 

@@ -47,7 +47,7 @@ async def test_get_node_uses_node_detail_endpoint(monkeypatch, collector_mock_fa
     assert collector.calls[0].params is None
 
 
-async def test_delete_node_snapshots_confirms_and_deletes_by_node_id(
+async def test_delete_node_snapshots_and_deletes_by_node_id(
     monkeypatch,
     collector_mock_factory,
 ):
@@ -71,8 +71,6 @@ async def test_delete_node_snapshots_confirms_and_deletes_by_node_id(
 
     response = await inventory.delete_node(
         node_id=" node/id ",
-        confirm_node_id="node/id",
-        confirm_nodename=" node-a ",
     )
 
     assert response["deleted"] is True
@@ -89,7 +87,7 @@ async def test_delete_node_snapshots_confirms_and_deletes_by_node_id(
     ]
 
 
-async def test_delete_node_resolves_nodename_confirms_and_deletes_by_node_id(
+async def test_delete_node_resolves_nodename_and_deletes_by_node_id(
     monkeypatch,
     collector_mock_factory,
 ):
@@ -113,8 +111,6 @@ async def test_delete_node_resolves_nodename_confirms_and_deletes_by_node_id(
 
     response = await inventory.delete_node(
         nodename=" node-a ",
-        confirm_node_id="node/id",
-        confirm_nodename=" node-a ",
     )
 
     assert response["deleted"] is True
@@ -128,48 +124,6 @@ async def test_delete_node_resolves_nodename_confirms_and_deletes_by_node_id(
     assert delete_recorder.calls == [
         {"path": "/nodes/node%2Fid", "data": None, "params": None}
     ]
-
-
-async def test_delete_node_rejects_confirmation_id_mismatch_before_lookup(
-    monkeypatch,
-    collector_mock_factory,
-):
-    collector = collector_mock_factory([])
-    delete_recorder = CollectorDeleteRecorder({"info": "node deleted"})
-    monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
-
-    with pytest.raises(ValueError, match="confirm_node_id must match node_id"):
-        await inventory.delete_node(
-            node_id="node-a-id",
-            confirm_node_id="other-node-id",
-            confirm_nodename="node-a",
-        )
-
-    assert collector.calls == []
-    assert delete_recorder.calls == []
-
-
-async def test_delete_node_rejects_confirmation_name_mismatch_before_delete(
-    monkeypatch,
-    collector_mock_factory,
-):
-    collector = collector_mock_factory(
-        [{"meta": {}, "data": [{"node_id": "node-a-id", "nodename": "node-a"}]}]
-    )
-    delete_recorder = CollectorDeleteRecorder({"info": "node deleted"})
-    monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
-
-    with pytest.raises(ValueError, match="confirm_nodename must match"):
-        await inventory.delete_node(
-            node_id="node-a-id",
-            confirm_node_id="node-a-id",
-            confirm_nodename="node-b",
-        )
-
-    assert len(collector.calls) == 1
-    assert delete_recorder.calls == []
 
 
 async def test_delete_node_rejects_ambiguous_node_id_snapshot(
@@ -194,8 +148,6 @@ async def test_delete_node_rejects_ambiguous_node_id_snapshot(
     with pytest.raises(ValueError, match="node_id resolved to multiple nodes"):
         await inventory.delete_node(
             node_id="node-a-id",
-            confirm_node_id="node-a-id",
-            confirm_nodename="node-a",
         )
 
     assert delete_recorder.calls == []
@@ -223,8 +175,6 @@ async def test_delete_node_rejects_ambiguous_nodename_before_delete(
     with pytest.raises(ValueError, match="nodename is ambiguous: node-a"):
         await inventory.delete_node(
             nodename="node-a",
-            confirm_node_id="node-a-id",
-            confirm_nodename="node-a",
         )
 
     assert delete_recorder.calls == []
@@ -254,15 +204,13 @@ async def test_delete_node_rejects_nodename_passed_as_node_id(
     with pytest.raises(ValueError, match="node_id selector did not resolve to the exact node_id"):
         await inventory.delete_node(
             node_id="node-a",
-            confirm_node_id="node-a",
-            confirm_nodename="node-a",
         )
 
     assert collector.calls[0].path == "/nodes/node-a"
     assert delete_recorder.calls == []
 
 
-async def test_freeze_node_resolves_nodename_confirms_and_enqueues_action(
+async def test_freeze_node_resolves_nodename_and_enqueues_action(
     monkeypatch,
     collector_mock_factory,
 ):
@@ -287,8 +235,6 @@ async def test_freeze_node_resolves_nodename_confirms_and_enqueues_action(
 
     response = await inventory.freeze_node(
         nodename=" node-a ",
-        confirm_node_id="node/id",
-        confirm_nodename=" node-a ",
     )
 
     assert response["queued"] is True
@@ -309,7 +255,7 @@ async def test_freeze_node_resolves_nodename_confirms_and_enqueues_action(
     ]
 
 
-async def test_freeze_node_resolves_node_id_confirms_and_enqueues_action(
+async def test_freeze_node_resolves_node_id_and_enqueues_action(
     monkeypatch,
     collector_mock_factory,
 ):
@@ -333,8 +279,6 @@ async def test_freeze_node_resolves_node_id_confirms_and_enqueues_action(
 
     response = await inventory.freeze_node(
         node_id=" node/id ",
-        confirm_node_id="node/id",
-        confirm_nodename="node-a",
     )
 
     assert response["node_id"] == "node/id"
@@ -347,33 +291,6 @@ async def test_freeze_node_resolves_node_id_confirms_and_enqueues_action(
             "params": None,
         }
     ]
-
-
-async def test_freeze_node_rejects_confirmation_mismatch_before_enqueue(
-    monkeypatch,
-    collector_mock_factory,
-):
-    collector = collector_mock_factory(
-        [
-            {
-                "meta": {},
-                "data": [{"node_id": "node-a-id", "nodename": "node-a"}],
-            }
-        ]
-    )
-    put_recorder = CollectorPutRecorder({"info": "action queued"})
-    monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_put", put_recorder)
-
-    with pytest.raises(ValueError, match="confirm_nodename must match"):
-        await inventory.freeze_node(
-            node_id="node-a-id",
-            confirm_node_id="node-a-id",
-            confirm_nodename="node-b",
-        )
-
-    assert len(collector.calls) == 1
-    assert put_recorder.calls == []
 
 
 async def test_freeze_node_requires_exactly_one_selector(
@@ -389,15 +306,13 @@ async def test_freeze_node_requires_exactly_one_selector(
         await inventory.freeze_node(
             node_id="node-a-id",
             nodename="node-a",
-            confirm_node_id="node-a-id",
-            confirm_nodename="node-a",
         )
 
     assert collector.calls == []
     assert put_recorder.calls == []
 
 
-async def test_thaw_node_resolves_nodename_confirms_and_enqueues_action(
+async def test_thaw_node_resolves_nodename_and_enqueues_action(
     monkeypatch,
     collector_mock_factory,
 ):
@@ -422,8 +337,6 @@ async def test_thaw_node_resolves_nodename_confirms_and_enqueues_action(
 
     response = await inventory.thaw_node(
         nodename=" node-a ",
-        confirm_node_id="node/id",
-        confirm_nodename=" node-a ",
     )
 
     assert response["queued"] is True
@@ -457,8 +370,6 @@ async def test_thaw_node_requires_exactly_one_selector(
         await inventory.thaw_node(
             node_id="node-a-id",
             nodename="node-a",
-            confirm_node_id="node-a-id",
-            confirm_nodename="node-a",
         )
 
     assert collector.calls == []
@@ -488,7 +399,7 @@ async def test_thaw_node_requires_exactly_one_selector(
         ("wake_node_on_lan", "wol"),
     ],
 )
-async def test_node_exec_action_resolves_nodename_confirms_and_enqueues_action(
+async def test_node_exec_action_resolves_nodename_and_enqueues_action(
     monkeypatch,
     collector_mock_factory,
     function_name,
@@ -516,8 +427,6 @@ async def test_node_exec_action_resolves_nodename_confirms_and_enqueues_action(
     function = getattr(inventory, function_name)
     response = await function(
         nodename=" node-a ",
-        confirm_node_id="node/id",
-        confirm_nodename=" node-a ",
     )
 
     assert response["queued"] is True
@@ -551,8 +460,6 @@ async def test_run_node_checks_requires_exactly_one_selector(
         await inventory.run_node_checks(
             node_id="node-a-id",
             nodename="node-a",
-            confirm_node_id="node-a-id",
-            confirm_nodename="node-a",
         )
 
     assert collector.calls == []
@@ -584,8 +491,6 @@ async def test_snooze_node_notifications_resolves_nodename_then_posts_node_id(
 
     response = await inventory.snooze_node_notifications(
         nodename=" node-a ",
-        confirm_node_id="node/id",
-        confirm_nodename=" node-a ",
         duration=" 1h ",
     )
 
@@ -629,9 +534,7 @@ async def test_unsnooze_node_notifications_resolves_node_id_then_posts_without_d
     monkeypatch.setattr(node_common, "collector_get", collector.get)
     monkeypatch.setattr(inventory, "collector_post", recorder)
 
-    response = await inventory.unsnooze_node_notifications(
-        node_id=" node/id ", confirm_node_id="node/id", confirm_nodename="node-a"
-    )
+    response = await inventory.unsnooze_node_notifications(node_id=" node/id ")
 
     assert response["node_id"] == "node/id"
     assert response["nodename"] == "node-a"
@@ -665,8 +568,6 @@ async def test_snooze_node_notifications_rejects_ambiguous_nodename(
     with pytest.raises(ValueError, match="nodename is ambiguous: node-a"):
         await inventory.snooze_node_notifications(
             nodename="node-a",
-            confirm_node_id="node-a-id",
-            confirm_nodename="node-a",
             duration="1h",
         )
 
@@ -692,53 +593,8 @@ async def test_snooze_node_notifications_requires_exactly_one_selector(
 
     with pytest.raises(ValueError, match="requires exactly one node selector"):
         await inventory.snooze_node_notifications(
-            confirm_node_id="node-a-id",
-            confirm_nodename="node-a",
             duration="1h",
             **kwargs,
-        )
-
-    assert collector.calls == []
-    assert recorder.calls == []
-
-
-async def test_snooze_node_notifications_rejects_confirmation_mismatch_before_post(
-    monkeypatch,
-    collector_mock_factory,
-):
-    collector = collector_mock_factory(
-        [{"meta": {}, "data": [{"node_id": "node-a-id", "nodename": "node-a"}]}]
-    )
-    recorder = CollectorPostRecorder({"info": "snoozed"})
-    monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_post", recorder)
-
-    with pytest.raises(ValueError, match="confirm_nodename must match"):
-        await inventory.snooze_node_notifications(
-            node_id="node-a-id",
-            confirm_node_id="node-a-id",
-            confirm_nodename="node-b",
-            duration="1h",
-        )
-
-    assert len(collector.calls) == 1
-    assert recorder.calls == []
-
-
-async def test_unsnooze_node_notifications_rejects_confirmation_id_mismatch_before_lookup(
-    monkeypatch,
-    collector_mock_factory,
-):
-    collector = collector_mock_factory([])
-    recorder = CollectorPostRecorder({"info": "unsnoozed"})
-    monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_post", recorder)
-
-    with pytest.raises(ValueError, match="confirm_node_id must match node_id"):
-        await inventory.unsnooze_node_notifications(
-            node_id="node-a-id",
-            confirm_node_id="other-node-id",
-            confirm_nodename="node-a",
         )
 
     assert collector.calls == []
@@ -858,7 +714,7 @@ async def test_create_node_rejects_reserved_properties_before_post(
     assert recorder.calls == []
 
 
-async def test_update_node_properties_resolves_nodename_confirms_and_posts_allowlisted_fields(
+async def test_update_node_properties_resolves_nodename_and_posts_allowlisted_fields(
     monkeypatch,
     collector_mock_factory,
 ):
@@ -886,8 +742,6 @@ async def test_update_node_properties_resolves_nodename_confirms_and_posts_allow
             " loc_city ": "Lab City",
             "team_support": "Lab Support",
         },
-        confirm_node_id="node/id",
-        confirm_nodename=" node/a ",
     )
 
     assert response["nodename"] == "node/a"
@@ -938,8 +792,6 @@ async def test_update_node_properties_resolves_node_id_then_posts_to_nodename(
 
     response = await inventory.update_node_properties(
         node_id=" node/id ",
-        confirm_node_id="node/id",
-        confirm_nodename=" node-a ",
         properties={" loc_city ": "Lab City"},
     )
 
@@ -960,52 +812,6 @@ async def test_update_node_properties_resolves_node_id_then_posts_to_nodename(
     ]
 
 
-async def test_update_node_properties_rejects_confirmation_id_mismatch_before_lookup(
-    monkeypatch,
-    collector_mock_factory,
-):
-    collector = collector_mock_factory([])
-    recorder = CollectorPostRecorder({"info": "node updated"})
-    monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_post", recorder)
-
-    with pytest.raises(ValueError, match="confirm_node_id must match node_id"):
-        await inventory.update_node_properties(
-            node_id="node-a-id",
-            confirm_node_id="other-node-id",
-            confirm_nodename="node-a",
-            properties={"loc_city": "Lab City"},
-        )
-
-    assert collector.calls == []
-    assert recorder.calls == []
-
-
-
-async def test_update_node_properties_rejects_confirmation_name_mismatch_after_lookup(
-    monkeypatch,
-    collector_mock_factory,
-):
-    collector = collector_mock_factory(
-        [{"meta": {}, "data": [{"node_id": "node-a-id", "nodename": "node-a"}]}]
-    )
-    recorder = CollectorPostRecorder({"info": "node updated"})
-    monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_post", recorder)
-
-    with pytest.raises(ValueError, match="confirm_nodename must match"):
-        await inventory.update_node_properties(
-            node_id="node-a-id",
-            confirm_node_id="node-a-id",
-            confirm_nodename="node-b",
-            properties={"loc_city": "Lab City"},
-        )
-
-    assert len(collector.calls) == 1
-    assert recorder.calls == []
-
-
-
 async def test_update_node_properties_rejects_empty_payload(
     monkeypatch,
     collector_mock_factory,
@@ -1021,8 +827,6 @@ async def test_update_node_properties_rejects_empty_payload(
         await inventory.update_node_properties(
             "node-a",
             {},
-            confirm_node_id="node-a-id",
-            confirm_nodename="node-a",
         )
 
     assert len(collector.calls) == 1
@@ -1043,8 +847,6 @@ async def test_update_node_properties_accepts_writable_nodename(
     response = await inventory.update_node_properties(
         "node-a",
         {"nodename": "node-b"},
-        confirm_node_id="node-a-id",
-        confirm_nodename="node-a",
     )
 
     assert response["updated_properties"] == {"nodename": "node-b"}
@@ -1068,8 +870,6 @@ async def test_update_node_properties_rejects_readonly_fields(
         await inventory.update_node_properties(
             "node-a",
             {"node_env": "PPR"},
-            confirm_node_id="node-a-id",
-            confirm_nodename="node-a",
         )
 
     assert len(collector.calls) == 1
