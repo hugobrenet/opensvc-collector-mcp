@@ -13,10 +13,11 @@ MCP tool definitions live in `src/opensvc_collector_mcp/tools/tags.py`.
 ### `create_tag`
 
 Creates one OpenSVC Collector tag through `POST /tags`. This is a write tool
-and requires `write:tags`, authorized for Collector `TagManager` or `Manager`
-users by MCP RBAC. The MCP `create` tag is descriptive for discovery only. It
-accepts `tag_name` and optional `tag_data` and `tag_exclude` fields. Because
-it changes Collector state, the request requires `confirmation.phrase`: the
+and uses the `write:tags` effect tag. Collector authorizes the request using the
+authenticated Basic Auth credentials. The MCP `create` tag is descriptive for
+discovery only. It accepts `tag_name` and optional `tag_data` and `tag_exclude`
+fields. Because it changes Collector state, the request requires
+`confirmation.phrase`: the
 assistant must summarize the tag creation, ask the user to repeat a concise
 phrase verbatim, and set `confirmation.phrase` only after that phrase appears in
 the latest user message.
@@ -46,10 +47,10 @@ info
 ### `delete_tag`
 
 Deletes one OpenSVC Collector tag through `DELETE /tags/<tag_id>`. This is a
-destructive tool and requires `delete:tags`, authorized for Collector
-`TagManager` or `Manager` users by MCP RBAC. The MCP `delete` tag is descriptive
-for discovery only. Collector also removes the tag attachments to nodes and
-services.
+destructive tool and uses the `delete:tags` effect tag. Collector authorizes the
+request using the authenticated Basic Auth credentials. The MCP `delete` tag is
+descriptive for discovery only. Collector also removes the tag attachments to
+nodes and services.
 
 The deletion selector is `tag_id` only. Never pass `tag_name` as the execution
 selector. If the user provides only a human-readable tag name, first call
@@ -95,8 +96,8 @@ meta
 
 Attaches one OpenSVC Collector tag to one node through
 `POST /tags/<tag_id>/nodes/<node_id>`. This is a state-changing,
-non-destructive relation update and requires `write:tags`, authorized for
-Collector `TagManager` or `Manager` users by MCP RBAC.
+non-destructive relation update and uses the `write:tags` effect tag. Collector
+authorizes the request using the authenticated Basic Auth credentials.
 
 The tag selector is `tag_id` only. If the user provides a `tag_name`, first call
 `get_tag` to resolve exactly one tag and read its `tag_id` and `tag_name`. Do
@@ -150,8 +151,8 @@ meta
 
 Attaches one OpenSVC Collector tag to one service through
 `POST /tags/<tag_id>/services/<svc_id>`. This is a state-changing,
-non-destructive relation update and requires `write:tags`, authorized for
-Collector `TagManager` or `Manager` users by MCP RBAC.
+non-destructive relation update and uses the `write:tags` effect tag. Collector
+authorizes the request using the authenticated Basic Auth credentials.
 
 The tag selector is `tag_id` only. If the user provides a `tag_name`, first call
 `get_tag` to resolve exactly one tag and read its `tag_id` and `tag_name`. Do
@@ -204,8 +205,8 @@ meta
 Detaches one OpenSVC Collector tag from one node through
 `DELETE /tags/<tag_id>/nodes/<node_id>`. This is a destructive relation update:
 it removes only the tag-node attachment, not the tag object or the node object.
-It requires `write:tags`, authorized for Collector `TagManager` or `Manager`
-users by MCP RBAC, because the Collector route lives in the tags API.
+It uses the `write:tags` effect tag. Collector authorizes the request using the
+authenticated Basic Auth credentials.
 
 The tag selector is `tag_id` only. If the user provides a `tag_name`, first call
 `get_tag` to resolve exactly one tag and read its `tag_id` and `tag_name`. Do
@@ -259,9 +260,8 @@ meta
 Detaches one OpenSVC Collector tag from one service through
 `DELETE /tags/<tag_id>/services/<svc_id>`. This is a destructive relation
 update: it removes only the tag-service attachment, not the tag object or the
-service object. It requires `write:tags`, authorized for Collector `TagManager`
-or `Manager` users by MCP RBAC, because the Collector route lives in the tags
-API.
+service object. It uses the `write:tags` effect tag. Collector authorizes the
+request using the authenticated Basic Auth credentials.
 
 The tag selector is `tag_id` only. If the user provides a `tag_name`, first call
 `get_tag` to resolve exactly one tag and read its `tag_id` and `tag_name`. Do

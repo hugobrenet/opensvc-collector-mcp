@@ -22,7 +22,8 @@ context, refer to the official resources:
 - MCP server built with `FastMCP` and served over HTTP with `uvicorn`
 - custom health route: `/health`
 - typed Pydantic input and output models for MCP tools
-- OpenSVC Collector tool surface for nodes, services, clusters, compliance, users, tags, apps, arrays, and disks, with write tools gated by Collector RBAC
+- OpenSVC Collector tool surface for nodes, services, clusters, compliance,
+  users, tags, apps, arrays, and disks, with authorization enforced by Collector
 - architecture split between:
   - `tools/` for MCP tool definitions
   - `core/` for Collector workflows and business logic
@@ -37,7 +38,7 @@ This repository is focused on:
 - clear tool contracts for MCP clients
 - predictable environment-based configuration
 - BM25 tool discovery for large MCP catalogs
-- safe Collector access patterns with RBAC-gated write operations
+- safe Collector access patterns using request-scoped caller credentials
 - pagination-safe Collector reads
 - separation between MCP surface and Collector-specific logic
 
@@ -60,7 +61,9 @@ set +a
 
 Collector credentials are not loaded by the MCP server from `.env`. MCP clients
 must send an `Authorization: Basic ...` header; the server validates those
-credentials against the Collector before handling MCP requests.
+credentials against the Collector before handling MCP requests. Every tool then
+reuses the same credentials for Collector API calls. Collector alone evaluates
+the caller's grants and object scope.
 
 Activate the local virtualenv and start the server:
 
@@ -158,11 +161,14 @@ The current tool surface covers:
 - cluster node membership
 - compliance modulesets, rulesets, status, logs, usage, candidates, publications, and responsibles
 - user inventory, counts, user detail lookup, primary group lookup, and attached group lookup
-- tag inventory, tag detail, tagged nodes, tagged services, and RBAC-gated tag creation
+- tag inventory, tag detail, tagged nodes, tagged services, and confirmed tag changes
 - application inventory, nodes, services, responsibles, publications, quotas, and responsibility check
 - storage array inventory, diskgroups, quotas, proxies, targets, and counts
 
-Most tools are read-only against OpenSVC Collector. Write tools are introduced incrementally and must be protected by MCP RBAC tags and Collector privilege groups.
+Most tools are read-only against OpenSVC Collector. Tags such as `read`,
+`write:nodes`, `delete:tags`, and `exec:nodes` classify tool effects for
+discovery, audit, and testing; they are not authorization rules. Collector
+authorizes every API request using the authenticated caller's credentials.
 
 ## Development
 

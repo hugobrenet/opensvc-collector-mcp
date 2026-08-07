@@ -26,7 +26,6 @@ __all__ = [
     "collector_put",
     "collector_put_with_credentials",
     "get_collector_credentials",
-    "get_collector_group_roles",
     "reset_collector_credentials",
     "set_collector_credentials",
     "validate_collector_credentials",
@@ -208,23 +207,6 @@ async def validate_collector_credentials(
             return False
         raise
     return True
-
-
-async def get_collector_group_roles() -> set[str]:
-    response = await collector_get_all(
-        "/users/self/groups",
-        params={"props": "role,privilege"},
-        page_size=1000,
-        max_items=5000,
-    )
-    roles: set[str] = set()
-    for group in response.get("data", []):
-        if not isinstance(group, dict):
-            continue
-        role = group.get("role")
-        if isinstance(role, str) and role:
-            roles.add(role)
-    return roles
 
 
 async def collector_get_all(

@@ -144,6 +144,23 @@ EXPECTED_TOOL_NAMES = {
     "update_node_properties",
 }
 
+EFFECT_TAG_PREFIXES = (
+    "write:",
+    "delete:",
+    "exec:",
+    "operate:",
+    "push:",
+    "upload:",
+)
+
+
+def _effect_tags(tags: set[str]) -> set[str]:
+    return {
+        tag
+        for tag in tags
+        if tag == "read" or tag.startswith(EFFECT_TAG_PREFIXES)
+    }
+
 
 async def test_all_expected_tools_are_registered_in_underlying_catalog():
     tools = await build_mcp()._list_tools()
@@ -151,6 +168,17 @@ async def test_all_expected_tools_are_registered_in_underlying_catalog():
 
     assert tool_names == EXPECTED_TOOL_NAMES
     assert len(tool_names) == len(tools)
+
+
+async def test_all_registered_tools_keep_one_effect_classification_tag():
+    tools = await build_mcp(require_basic_auth=False)._list_tools()
+    invalid = {
+        tool.name: sorted(_effect_tags(set(tool.tags or set())))
+        for tool in tools
+        if len(_effect_tags(set(tool.tags or set()))) != 1
+    }
+
+    assert invalid == {}
 
 
 async def test_attach_tag_to_node_is_marked_as_non_destructive_write():

@@ -184,23 +184,6 @@ async def test_collector_delete_with_credentials_uses_generic_request(monkeypatc
     assert calls[2] == ("raise_for_status",)
 
 
-async def test_get_collector_group_roles_returns_group_roles(monkeypatch):
-    async def fake_collector_get_all(path, params=None, page_size=1000, max_items=200000):
-        return {
-            "data": [
-                {"id": 1, "role": "Everybody", "privilege": "F"},
-                {"id": 2, "role": "Manager", "privilege": "T"},
-                {"id": 3, "privilege": "F"},
-            ]
-        }
-
-    monkeypatch.setattr(client, "collector_get_all", fake_collector_get_all)
-
-    roles = await client.get_collector_group_roles()
-
-    assert roles == {"Everybody", "Manager"}
-
-
 async def test_collector_get_requires_request_context_credentials():
     try:
         await client.collector_get("/nodes")

@@ -31,9 +31,10 @@ Local project notes for working on `opensvc-collector-mcp`.
   `/health`
 - BM25 tool search is always enabled. `tools/list` exposes `search_tools` and
   `call_tool`, while the full catalog remains registered and callable.
-- Non-RBAC action tags such as `create` and `delete` are descriptive discovery
-  tags only. RBAC continues to use explicit authorization tags such as
-  `write:tags` and `delete:tags`.
+- Tool tags are descriptive metadata only. Domain/action tags such as `nodes`,
+  `create`, and `delete`, and effect tags such as `read`, `write:tags`,
+  `delete:tags`, and `exec:nodes`, support discovery, audit, documentation, and
+  contract tests. They must never be used by MCP to authorize a tool call.
 - State-changing tools must include the shared Pydantic field
   `request.confirmation.phrase` using `models/common.py::ToolConfirmation`. The
   assistant generates this phrase after resolving/summarizing the target action,
@@ -45,14 +46,16 @@ Local project notes for working on `opensvc-collector-mcp`.
   Clients must send `Authorization: Basic ...`; the server validates those
   credentials against the Collector `GET /users/self` endpoint before handling
   the MCP request.
-- MCP tool execution is also protected by `CollectorToolAuthorizationMiddleware`
-  when Basic Auth is enabled. The middleware authorizes both direct tool calls
-  and proxied `call_tool` targets from a deny-by-default tag-to-Collector-group
-  policy in `auth/rbac.py`. Read tools use `read -> Everybody or Manager`;
-  tag write/delete tools use `write:tags` or `delete:tags` -> `TagManager` or `Manager`.
-- `search_tools` remains public after authentication. BM25 discovery is not
-  filtered yet, by design, so clients can report "tool exists but is
-  unauthorized" instead of incorrectly reporting "no tool exists".
+- Collector is the sole authorization authority. Every tool reuses the validated
+  request-scoped Basic Auth credentials for Collector API calls, and Collector
+  decides whether the authenticated user may execute the endpoint. MCP does not
+  load Collector groups or map tool tags to grants.
+- `CollectorToolAuthorizationMiddleware` is temporarily retained for Audit V1
+  compatibility and proxied `call_tool` correlation. Despite its legacy name,
+  it is pass-through and never authorizes or denies from tool tags.
+- `search_tools` remains available after authentication. BM25 discovery is not
+  filtered by Collector grants; Collector evaluates authorization only when a
+  discovered tool calls its API.
 - MCP tool calls emit structured JSON audit logs on stdout/stderr through the
   `opensvc_collector_mcp.audit` logger. Audit V1 is intentionally log-based,
   not database-persisted.
@@ -72,11 +75,9 @@ Current package layout:
   request-scoped Collector Basic Auth credential context
 - `src/opensvc_collector_mcp/auth/basic.py`
   FastMCP middleware for Collector Basic Auth validation
-- `src/opensvc_collector_mcp/auth/rbac.py`
-  pure RBAC policy helpers for MCP tool authorization
 - `src/opensvc_collector_mcp/auth/middleware.py`
-  FastMCP tool authorization middleware and tool argument validation error
-  enrichment
+  temporary Audit V1 pass-through middleware and tool argument validation error
+  enrichment; it does not authorize tool execution
 - `src/opensvc_collector_mcp/tools/`
   FastMCP tool definitions
 - `src/opensvc_collector_mcp/core/`
@@ -393,7 +394,7 @@ Delete tool selector and confirmation standard:
 
 State-changing tool class standards:
 
-- All state-changing classes share the same baseline: explicit RBAC tag,
+- All state-changing classes share the same baseline: explicit effect tag,
   `request.confirmation.phrase`, clear MCP annotations, structured audit,
   sanitized errors, and Collector as final authority.
 - `POST create` tools create new Collector objects. They do not need a mandatory
@@ -429,8 +430,8 @@ State-changing tool class standards:
   example service start/stop/restart/switch, node actions, compliance runs,
   provisioning, scheduler actions, or any endpoint that asks an OpenSVC agent or
   backend worker to do operational work. They must use dedicated `exec:<domain>`
-  RBAC tags, explicit target resolution, confirmation with stable identifiers
-  when available, no implicit batch scope, and audit for accepted, denied,
+  effect tags, explicit target resolution, confirmation with stable identifiers
+  when available, no implicit batch scope, and audit for accepted,
   Collector-rejected, and failed executions. Add dry-run/preview support when
   Collector exposes it.
 - Do not claim a state-changing operation is executable just because a user asks
@@ -556,107 +557,44 @@ Error and production-readiness notes:
   with the correct payload after a single error. Keep the enrichment scoped to
   `call[tool_name]` validation errors so internal Pydantic validation failures
   are not misreported as client argument errors.
-- `CollectorToolAuthorizationMiddleware` is the execution-time RBAC guard for
-  the MCP tool surface. It returns a structured `Unauthorized tool` error
-  containing the denial reason, required tag, required groups, authorization
-  tags, tool tags, and current Collector groups.
-- The generic RBAC policy is deny-by-default: missing authorization tags,
-  unknown authorization tags, mixed authorization tags, and missing Collector
-  groups are refused before tool execution. Read tools use
-  `read -> Everybody or Manager`; tag write/delete tools use
-  `write:tags` or `delete:tags` -> `TagManager or Manager`.
+- `CollectorToolAuthorizationMiddleware` currently preserves Audit V1 and
+  `call_tool` target correlation only. It is pass-through: it does not inspect
+  Collector groups, require particular effect tags, or deny tool execution.
+- Audit V1 keeps its existing JSON schema until the dedicated audit refactor.
+  Its RBAC-era fields are neutral: `decision=allowed` means MCP forwarded the
+  call, `reason=authorization_delegated_to_collector`, `required_tag=null`,
+  `required_groups=[]`, and `user_groups=null`.
 
-Future write/action RBAC chantier:
+Collector authorization standard:
 
-- Public OpenSVC docs do not currently provide enough detail on Collector
-  privilege groups. Treat the Collector code as the source of truth, especially
-  `collector/init/models/auth.py::check_privilege()` and REST handlers under
-  `collector/init/models/rest/`.
-- Collector authorization model observed in code:
-  - `auth_group.role` is the group/privilege name.
-  - `auth_group.privilege` distinguishes privilege groups from organizational
-    groups.
-  - `Manager` is the global override in `check_privilege()`.
-  - `primary_group` is for task assignment/message routing, not authorization.
-  - `Everybody` is an organizational/publication group, not a write privilege.
-- Before adding any MCP tool backed by Collector `POST`, `PUT`, `DELETE`, or
-  action/exec endpoints, keep using the explicit policy table mapping MCP tags
-  to Collector privilege groups. Deny by default for unknown tags, missing tags,
-  or mixed destructive intent.
-- Keep Collector REST as the final object/data-level authority. MCP RBAC should
-  decide whether a tool class may be attempted; Collector still enforces the
-  actual endpoint permissions and object scope.
-
-Proposed MCP tags and Collector groups:
-
-```text
-read                         -> authenticated user; current gate is Everybody or Manager
-write:nodes                  -> NodeManager
-delete:nodes                 -> NodeManager plus explicit destructive guard
-exec:nodes                   -> NodeExec
-write:apps                   -> AppManager
-write:users                  -> UserManager
-write:users:self             -> SelfManager or UserManager, and target user is current user
-write:users:primary_group:self -> SelfManager or UserManager, and target user is current user
-write:groups                 -> GroupManager
-write:privilege_groups       -> Manager
-write:compliance             -> CompManager
-exec:compliance              -> CompExec
-write:checks                 -> CheckManager
-exec:checks                  -> CheckExec
-write:context_checks         -> ContextCheckManager
-write:storage                -> StorageManager
-write:networks               -> NetworkManager
-write:tags                   -> TagManager
-delete:tags                  -> TagManager plus explicit destructive confirmation
-write:dns                    -> DnsManager
-operate:dns                  -> DnsOperator
-write:reports                -> ReportsManager
-write:charts                 -> ChartsManager
-write:forms                  -> FormsManager
-write:provisioning_templates -> ProvisioningManager
-write:docker_registries      -> DockerRegistriesManager
-push:docker_registries       -> DockerRegistriesPusher
-write:alerts                 -> AlertsManager
-write:obsolescence           -> ObsManager
-upload:safe                  -> SafeUploader
-write:scheduler              -> Manager
-write:sysreport              -> Manager
-write:replication            -> ReplicationManager
-write:quotas                 -> QuotaManager
-```
-
-SelfManager notes:
-
-- `SelfManager` is relevant but contextual. It should never authorize generic
-  `write:users` operations by itself.
-- Use `SelfManager` only for self-scoped tools where the MCP request target is
-  proven to be the authenticated Collector user. Resolve the current user from
-  `/users/self` and compare against the requested user id/email or require the
-  request model to use `self`.
-- Known Collector behavior: modifying another user requires `UserManager`;
-  modifying the current user allows `UserManager` or `SelfManager`. The same
-  pattern exists for setting/unsetting the current user primary group.
-- Self-scoped MCP tools should have distinct names and tags, for example
-  `update_my_user_profile` with `write:users:self`, instead of overloading a
-  generic admin tool.
+- `CollectorBasicAuthMiddleware` must continue validating credentials with
+  `GET /users/self` before MCP request handling.
+- Every Collector API call must reuse those request-scoped credentials.
+- Collector is the only authorization authority for endpoint grants and object
+  scope. Do not add local group lookups, grant tables, or tag-based preflight
+  authorization.
+- Effect tags such as `read`, `write:<domain>`, `delete:<domain>`, and
+  `exec:<domain>` are stable classification metadata for discovery, audit,
+  documentation, confirmation rules, and contract tests. They are not security
+  controls.
+- Treat Collector handlers as the source of truth for request behavior and
+  payloads, but do not duplicate their authorization policy in MCP.
 
 Safety rules for the first write/action wave:
 
 - Do not start with `delete` or unrestricted `exec` tools.
-- Prefer one narrow, reversible domain first, with tests for allowed, denied,
-  Manager override, unknown tag, and Collector endpoint rejection.
+- Prefer one narrow, reversible domain first, with tests for effect tags,
+  confirmation behavior, request construction, and Collector endpoint rejection.
 - Destructive tools must require explicit destructive tags such as
   `delete:<domain>` and should add dry-run or confirmation conventions before
   live execution. The tag delete tool uses `delete:tags`, exposes `tag_id` only
   at execution time, requires prior `get_tag` resolution when the user gives a
   tag name, requires `confirm_tag_id` plus `confirm_tag_name`, and matches both
   against the resolved Collector tag before calling `DELETE /tags/<tag_id>`.
-- Audit is mandatory for write/delete/exec attempts, including allowed, denied,
+- Audit is mandatory for write/delete/exec attempts, including successful,
   Collector-rejected, and execution-error cases. Include request id, user,
-  client tool, target tool, target object identifiers, required privileges,
-  user groups, status, duration, and sanitized error details.
-- Audit V1 logs one `mcp.tool_call` event for allowed, denied, and error cases.
+  client tool, target tool, status, duration, and sanitized error details.
+- Audit V1 logs one `mcp.tool_call` event for success and error cases.
   Current event fields:
   - `request_id`
   - `user`
@@ -676,7 +614,6 @@ Safety rules for the first write/action wave:
   API keys, and no raw sensitive payloads.
 - Audit V1 was validated from Docker/OpenSVC logs for:
   - successful `call_tool` target execution.
-  - RBAC denied target execution.
   - target tool execution error with sanitized root error type/message.
 - `CollectorBasicAuthMiddleware` validates `Authorization: Basic ...` against
   Collector `GET /users/self`. FastMCP filters the `authorization` header by
@@ -757,13 +694,13 @@ Node state-changing tool TODO list:
   current Collector handler in `collector/init/models/rest/api_nodes.py`,
   `collector/init/models/rest/api_tags.py`, and `api_handlers.py`; verify the
   applicable state-changing rule from this `CODEX.md`; add
-  `request.confirmation.phrase`; add RBAC tags; add core/tool/schema tests; add
+  `request.confirmation.phrase`; add one effect tag; add core/tool/schema tests; add
   docs under `docs/tools/nodes.md` or `docs/tools/tags.md` depending on the
   public tool domain.
 - [x] `snooze_node_notifications`
   - Collector API: `POST /nodes/<id>/snooze` with `duration`.
   - Classification: `POST update` on node metadata, not runtime exec.
-  - RBAC: `write:nodes` (`NodeManager` or `Manager`).
+  - Effect tag: `write:nodes`; Collector authorizes the endpoint.
   - Selector/confirmation: MCP schema is `node_id` only. If the user gives a
     nodename, first resolve it with `get_node`; then call with `node_id`,
     matching `confirm_node_id`, `confirm_nodename`, and `confirmation.phrase`.
@@ -772,14 +709,13 @@ Node state-changing tool TODO list:
 - [x] `unsnooze_node_notifications`
   - Collector API: `POST /nodes/<id>/snooze` without `duration`.
   - Separate tool from snooze so omission of `duration` cannot silently invert the operation.
-  - Same RBAC and selector/confirmation as `snooze_node_notifications`.
+  - Same effect tag and selector/confirmation as `snooze_node_notifications`.
 - [x] `attach_tag_to_node`
   - Collector API: `POST /tags/<tag_id>/nodes/<node_id>`; the tool deliberately
     avoids bulk `POST /tags/nodes` for a single explicit relation.
   - Classification: non-destructive `attach` relation update.
-  - RBAC: `write:tags` (`TagManager` or `Manager`) because the Collector route
-    lives in the tags API. Do not mix `write:tags` and `write:nodes` on one tool
-    because RBAC denies mixed auth tags.
+  - Effect tag: `write:tags`, because the Collector route lives in the tags API.
+    Keep exactly one effect tag on the tool; `nodes` remains a domain tag.
   - Selector/confirmation: public MCP schema is `tag_id` only on the tag side.
     If the user gives a `tag_name`, first resolve it with `get_tag`; then call
     with `tag_id`, matching `confirm_tag_id`, `confirm_tag_name`, and
@@ -795,8 +731,8 @@ Node state-changing tool TODO list:
   - Collector API: `POST /tags/<tag_id>/services/<svc_id>`; the tool deliberately
     avoids bulk `POST /tags/services` for a single explicit relation.
   - Classification: non-destructive `attach` relation update.
-  - RBAC matches `attach_tag_to_node`: `write:tags` (`TagManager` or `Manager`)
-    because the Collector route lives in the tags API.
+  - Effect tag matches `attach_tag_to_node`: `write:tags`, because the Collector
+    route lives in the tags API.
   - Selector/confirmation: public MCP schema is `tag_id` only on the tag side.
     If the user gives a `tag_name`, first resolve it with `get_tag`; then call
     with `tag_id`, matching `confirm_tag_id`, `confirm_tag_name`, and
@@ -810,8 +746,8 @@ Node state-changing tool TODO list:
   - Collector API: `DELETE /tags/<tag_id>/nodes/<node_id>`.
   - Classification: destructive relation update, not deletion of the tag or
     node object.
-  - RBAC matches `attach_tag_to_node`: `write:tags` (`TagManager` or `Manager`)
-    because the Collector route lives in the tags API.
+  - Effect tag matches `attach_tag_to_node`: `write:tags`, because the Collector
+    route lives in the tags API.
   - Selector/confirmation: public MCP schema is `tag_id` only on the tag side.
     If the user gives a `tag_name`, first resolve it with `get_tag`; then call
     with `tag_id`, matching `confirm_tag_id`, `confirm_tag_name`, and
@@ -825,8 +761,8 @@ Node state-changing tool TODO list:
   - Collector API: `DELETE /tags/<tag_id>/services/<svc_id>`.
   - Classification: destructive relation update, not deletion of the tag or
     service object.
-  - RBAC matches `attach_tag_to_service`: `write:tags` (`TagManager` or
-    `Manager`) because the Collector route lives in the tags API.
+  - Effect tag matches `attach_tag_to_service`: `write:tags`, because the
+    Collector route lives in the tags API.
   - Selector/confirmation: public MCP schema is `tag_id` only on the tag side.
     If the user gives a `tag_name`, first resolve it with `get_tag`; then call
     with `tag_id`, matching `confirm_tag_id`, `confirm_tag_name`, and
@@ -841,7 +777,7 @@ Node state-changing tool TODO list:
   - MCP first checks exact `nodename` absence with `/nodes` before calling
     `POST /nodes`, because Collector otherwise behaves like an upsert. Collector
     remains the final authority for defaults and payload validation.
-  - RBAC: `write:nodes`.
+  - Effect tag: `write:nodes`; Collector authorizes the endpoint.
   - Confirmation: `request.confirmation.phrase` only; no delete-style
     `confirm_*` fields.
   - Request model: explicit `nodename`, optional `properties`; MCP refuses
@@ -853,9 +789,9 @@ Node state-changing tool TODO list:
   - Defer to the compliance domain unless there is a strong node UX reason.
     These relations influence what the OpenSVC agent checks/fixes later, so
     treat them as more sensitive than simple inventory metadata.
-  - Likely RBAC: `write:compliance` or a dedicated compliance relation policy,
-    not plain `write:nodes`, but confirm against Collector privilege checks
-    before implementation.
+  - Likely effect tag: `write:compliance`, not plain `write:nodes`; confirm the
+    route domain before implementation. Collector remains the authorization
+    authority.
 - [ ] Node-only `/actions` tools
   - Collector API: `PUT /actions` with `node_id=<node_id>` and one action.
   - Completed node action tools are not kept in this TODO list. Current completed
@@ -868,7 +804,7 @@ Node state-changing tool TODO list:
     `rotate_node_root_password`, `wake_node_on_lan`.
   - Use the existing core helper `_enqueue_confirmed_node_action()` for simple
     node-only `exec:nodes` actions unless the action requires extra payload or a
-    different RBAC domain.
+    different effect domain.
   - Shared rule: each tool must be narrow and named after one Collector action,
     expose `node_id` only in the public MCP schema, require `confirm_node_id`,
     `confirm_nodename`, and `confirmation.phrase`, and enqueue with the resolved
@@ -892,7 +828,7 @@ Node state-changing tool TODO list:
 
   Checkpoint before high-impact actions:
   - [ ] Re-read Collector `api_action_queue.py` and
-    `action_menu/action_menu.py` for exact privilege checks and command effects.
+    `action_menu/action_menu.py` for exact request behavior and command effects.
   - [ ] Decide if high-impact tools need stronger UX than a simple confirmation
     phrase, for example an explicit danger summary or dedicated confirmation
     wording.
@@ -911,8 +847,9 @@ Node state-changing tool TODO list:
   - Collector API: `PUT /actions` with `node_id=<node_id>`, action
     `compliance_check` or `compliance_fix`, and `module`, `moduleset`, or
     `ruleset`.
-  - Classification: `exec:compliance` (`CompExec` or `Manager`), not plain
-    `exec:nodes`, because `do_node_comp_action()` checks `CompExec`.
+  - Classification: `exec:compliance`, not plain `exec:nodes`, because the
+    operation belongs to the compliance execution domain. Collector authorizes
+    the endpoint.
   - Defer to the compliance domain unless there is a strong node UX reason.
 
 Generic node filters:

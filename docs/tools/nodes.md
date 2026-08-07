@@ -11,8 +11,9 @@ MCP tool definitions live in `src/opensvc_collector_mcp/tools/nodes.py`.
 ### `create_node`
 
 Submits one OpenSVC Collector node through `POST /nodes`. This is a write tool
-and requires `write:nodes`, authorized for Collector `NodeManager` or `Manager`
-users by MCP RBAC. The MCP `create` tag is descriptive for discovery only.
+and uses the `write:nodes` effect tag. Collector authorizes the request using
+the authenticated Basic Auth credentials. The MCP `create` tag is descriptive
+for discovery only.
 
 The Collector API documentation describes `POST /nodes` as both creating a new
 node and updating nodes matching the specified query. To keep `create_node` a
@@ -78,9 +79,9 @@ meta
 
 Deletes one existing OpenSVC Collector node through `DELETE /nodes/<node_id>`.
 Collector cascades this deletion to related service instances, dashboard, checks,
-packages, and patches entries. This is a destructive write tool and requires
-`delete:nodes`, authorized for Collector `NodeManager` or `Manager` users by MCP
-RBAC.
+packages, and patches entries. This is a destructive write tool and uses the
+`delete:nodes` effect tag. Collector authorizes the request using the
+authenticated Basic Auth credentials.
 
 `delete_node` is intentionally `node_id` only at execution time. It does not
 accept `nodename` as an execution selector. If the user provides only a nodename,
@@ -149,8 +150,9 @@ meta
 
 Enqueues a freeze action for one OpenSVC Collector node through `PUT /actions`
 with `node_id=<node_id>` and `action=freeze`. This is an execution tool and
-requires `exec:nodes`, authorized for Collector `NodeExec` or `Manager` users by
-MCP RBAC. The action is queued for OpenSVC agents by Collector. MCP annotations
+uses the `exec:nodes` effect tag. Collector authorizes the request using the
+authenticated Basic Auth credentials. The action is queued for OpenSVC agents
+by Collector. MCP annotations
 mark it as destructive because it changes operational node behavior.
 
 The request is `node_id` only. If the user provides a `nodename`, first call
@@ -206,10 +208,10 @@ meta
 
 Enqueues a thaw/unfreeze action for one OpenSVC Collector node through
 `PUT /actions` with `node_id=<node_id>` and `action=thaw`. This is an
-execution tool and requires `exec:nodes`, authorized for Collector `NodeExec`
-or `Manager` users by MCP RBAC. The action is queued for OpenSVC agents by
-Collector. MCP annotations mark it as destructive because it changes
-operational node behavior.
+execution tool and uses the `exec:nodes` effect tag. Collector authorizes the
+request using the authenticated Basic Auth credentials. The action is queued
+for OpenSVC agents by Collector. MCP annotations mark it as destructive because
+it changes operational node behavior.
 
 The request is `node_id` only. If the user provides a `nodename`, first call
 `get_node` to resolve exactly one node and read its `node_id` and `nodename`.
@@ -264,8 +266,9 @@ meta
 
 Enqueues a checks action for one OpenSVC Collector node through `PUT /actions`
 with `node_id=<node_id>` and `action=checks`. This is an execution tool and
-requires `exec:nodes`, authorized for Collector `NodeExec` or `Manager` users by
-MCP RBAC. The action is queued for OpenSVC agents by Collector. MCP annotations
+uses the `exec:nodes` effect tag. Collector authorizes the request using the
+authenticated Basic Auth credentials. The action is queued for OpenSVC agents
+by Collector. MCP annotations
 mark it as non-destructive because it runs checks rather than changing runtime
 service or node state, but it is still a state-changing tool because it enqueues
 work in Collector.
@@ -323,11 +326,12 @@ meta
 
 Enqueues a sysreport collection action for one OpenSVC Collector node through
 `PUT /actions` with `node_id=<node_id>` and `action=sysreport`. This is an
-execution tool and requires `exec:nodes`, authorized for Collector `NodeExec` or
-`Manager` users by MCP RBAC. The action is queued for OpenSVC agents by
-Collector. MCP annotations mark it as non-destructive because it collects a
-sysreport rather than changing runtime service or node state, but it is still a
-state-changing tool because it enqueues work in Collector.
+execution tool and uses the `exec:nodes` effect tag. Collector authorizes the
+request using the authenticated Basic Auth credentials. The action is queued
+for OpenSVC agents by Collector. MCP annotations mark it as non-destructive
+because it collects a sysreport rather than changing runtime service or node
+state, but it is still a state-changing tool because it enqueues work in
+Collector.
 
 The request is `node_id` only. If the user provides a `nodename`, first call
 `get_node` to resolve exactly one node and read its `node_id` and `nodename`.
@@ -1211,9 +1215,9 @@ meta
 
 Snoozes notifications on one OpenSVC Collector node through
 `POST /nodes/<node_id>/snooze` with a `duration` field. This is a reversible
-state-changing write tool and requires `write:nodes`, authorized for Collector
-`NodeManager` or `Manager` users by MCP RBAC. MCP annotations mark it as
-non-destructive.
+state-changing write tool and uses the `write:nodes` effect tag. Collector
+authorizes the request using the authenticated Basic Auth credentials. MCP
+annotations mark it as non-destructive.
 
 The request is `node_id` only. If the user provides a `nodename`, first call
 `get_node` to resolve exactly one node and read its `node_id` and `nodename`.
@@ -1271,8 +1275,8 @@ Unsnoozes notifications on one OpenSVC Collector node through
 `POST /nodes/<node_id>/snooze` without a `duration` field. It is intentionally a
 separate tool from `snooze_node_notifications`, so an omitted duration cannot
 silently invert the operation. This is a reversible state-changing write tool and
-requires `write:nodes`, authorized for Collector `NodeManager` or `Manager` users
-by MCP RBAC. MCP annotations mark it as non-destructive.
+uses the `write:nodes` effect tag. Collector authorizes the request using the
+authenticated Basic Auth credentials. MCP annotations mark it as non-destructive.
 
 The request is `node_id` only. If the user provides a `nodename`, first call
 `get_node` to resolve exactly one node and read its `node_id` and `nodename`.
@@ -1319,9 +1323,9 @@ meta
 
 Enqueues a root password rotation action for one OpenSVC Collector node through
 `PUT /actions` with `node_id=<node_id>` and `action=rotate_root_pw`. This is a
-high-impact sensitive execution tool and requires `exec:nodes`, authorized for
-Collector `NodeExec` or `Manager` users by MCP RBAC. MCP annotations mark it as
-destructive.
+high-impact sensitive execution tool and uses the `exec:nodes` effect tag.
+Collector authorizes the request using the authenticated Basic Auth credentials.
+MCP annotations mark it as destructive.
 
 The request is `node_id` only. If the user provides a `nodename`, first call
 `get_node` to resolve exactly one node and read its `node_id` and `nodename`.
@@ -1377,9 +1381,10 @@ meta
 
 Enqueues a Wake-on-LAN action for one OpenSVC Collector node through
 `PUT /actions` with `node_id=<node_id>` and `action=wol`. This is an execution
-tool and requires `exec:nodes`, authorized for Collector `NodeExec` or `Manager`
-users by MCP RBAC. MCP annotations mark it as non-destructive, but it still
-changes runtime state by enqueuing work in Collector.
+tool and uses the `exec:nodes` effect tag. Collector authorizes the request using
+the authenticated Basic Auth credentials. MCP annotations mark it as
+non-destructive, but it still changes runtime state by enqueuing work in
+Collector.
 
 The request is `node_id` only. If the user provides a `nodename`, first call
 `get_node` to resolve exactly one node and read its `node_id` and `nodename`.
@@ -1434,11 +1439,11 @@ meta
 ### `update_node_properties`
 
 Updates Collector-writable properties on one existing OpenSVC Collector node
-through `POST /nodes/<nodename>`. This is a write tool and requires
-`write:nodes`, authorized for Collector `NodeManager` or `Manager` users by MCP
-RBAC. The MCP `update` tag is descriptive for discovery only. MCP annotations
-mark the tool as a destructive write because it updates an existing Collector
-node and can overwrite previous property values.
+through `POST /nodes/<nodename>`. This is a write tool and uses the
+`write:nodes` effect tag. Collector authorizes the request using the
+authenticated Basic Auth credentials. The MCP `update` tag is descriptive for
+discovery only. MCP annotations mark the tool as a destructive write because it
+updates an existing Collector node and can overwrite previous property values.
 
 The request is `node_id` only. If the user provides a `nodename`, first call
 `get_node` to resolve exactly one node and read its `node_id` and `nodename`.

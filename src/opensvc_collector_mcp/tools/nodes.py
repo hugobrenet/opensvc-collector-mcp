@@ -135,8 +135,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "Collector remains the final authority for defaults such as "
             "team_responsible and payload validation. Before calling, ask "
             "the user to repeat an exact confirmation phrase and include it in "
-            "request.confirmation.phrase. Requires Collector NodeManager or "
-            "Manager privileges through MCP RBAC."
+            "request.confirmation.phrase. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"nodes", "create", "write:nodes"},
         annotations={
@@ -173,8 +174,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "contains that phrase, call delete_node with node_id, confirm_node_id, "
             "confirm_nodename, and request.confirmation.phrase. Do not pass "
             "nodename as an execution selector; use confirm_nodename only for "
-            "correlation. Requires Collector NodeManager or Manager privileges "
-            "through MCP RBAC."
+            "correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"nodes", "delete", "delete:nodes"},
         annotations={
@@ -214,8 +216,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "message contains that phrase, call freeze_node with node_id, "
             "confirm_node_id, confirm_nodename, and request.confirmation.phrase. "
             "Do not pass nodename as an execution selector; use confirm_nodename "
-            "only for correlation. Requires Collector NodeExec or Manager "
-            "privileges through MCP RBAC."
+            "only for correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"nodes", "freeze", "exec:nodes"},
         annotations={
@@ -255,8 +258,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "message contains that phrase, call thaw_node with node_id, "
             "confirm_node_id, confirm_nodename, and request.confirmation.phrase. "
             "Do not pass nodename as an execution selector; use confirm_nodename "
-            "only for correlation. Requires Collector NodeExec or Manager "
-            "privileges through MCP RBAC."
+            "only for correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"nodes", "thaw", "exec:nodes"},
         annotations={
@@ -296,8 +300,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "message contains that phrase, call run_node_checks with node_id, "
             "confirm_node_id, confirm_nodename, and request.confirmation.phrase. "
             "Do not pass nodename as an execution selector; use confirm_nodename "
-            "only for correlation. Requires Collector NodeExec or Manager "
-            "privileges through MCP RBAC."
+            "only for correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"nodes", "checks", "exec:nodes"},
         annotations={
@@ -338,8 +343,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "collect_node_sysreport with node_id, confirm_node_id, "
             "confirm_nodename, and request.confirmation.phrase. Do not pass "
             "nodename as an execution selector; use confirm_nodename only for "
-            "correlation. Requires Collector NodeExec or Manager privileges "
-            "through MCP RBAC."
+            "correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"nodes", "sysreport", "exec:nodes"},
         annotations={
@@ -383,8 +389,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "message contains that phrase, call push_node_asset with node_id, "
             "confirm_node_id, confirm_nodename, and request.confirmation.phrase. "
             "Do not pass nodename as an execution selector; use confirm_nodename "
-            "only for correlation. Requires Collector NodeExec or Manager "
-            "privileges through MCP RBAC."
+            "only for correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"nodes", "asset", "exec:nodes"},
         annotations={
@@ -427,8 +434,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "phrase, call push_node_disks with node_id, confirm_node_id, "
             "confirm_nodename, and request.confirmation.phrase. Do not pass "
             "nodename as an execution selector; use confirm_nodename only for "
-            "correlation. Requires Collector NodeExec or Manager privileges "
-            "through MCP RBAC."
+            "correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"nodes", "disks", "exec:nodes"},
         annotations={
@@ -471,8 +479,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "user message contains that phrase, call push_node_packages with "
             "node_id, confirm_node_id, confirm_nodename, and "
             "request.confirmation.phrase. Do not pass nodename as an execution "
-            "selector; use confirm_nodename only for correlation. Requires "
-            "Collector NodeExec or Manager privileges through MCP RBAC."
+            "selector; use confirm_nodename only for correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"nodes", "packages", "exec:nodes"},
         annotations={
@@ -515,8 +524,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "user message contains that phrase, call push_node_patches with "
             "node_id, confirm_node_id, confirm_nodename, and "
             "request.confirmation.phrase. Do not pass nodename as an execution "
-            "selector; use confirm_nodename only for correlation. Requires "
-            "Collector NodeExec or Manager privileges through MCP RBAC."
+            "selector; use confirm_nodename only for correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"nodes", "patches", "exec:nodes"},
         annotations={
@@ -558,8 +568,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "latest user message contains that phrase, call push_node_stats with "
             "node_id, confirm_node_id, confirm_nodename, and "
             "request.confirmation.phrase. Do not pass nodename as an execution "
-            "selector; use confirm_nodename only for correlation. Requires "
-            "Collector NodeExec or Manager privileges through MCP RBAC."
+            "selector; use confirm_nodename only for correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"nodes", "stats", "exec:nodes"},
         annotations={
@@ -602,8 +613,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "user message contains that phrase, call pull_node_config with "
             "node_id, confirm_node_id, confirm_nodename, and "
             "request.confirmation.phrase. Do not pass nodename as an execution "
-            "selector; use confirm_nodename only for correlation. Requires "
-            "Collector NodeExec or Manager privileges through MCP RBAC."
+            "selector; use confirm_nodename only for correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"nodes", "config", "pull", "exec:nodes"},
         annotations={
@@ -646,8 +658,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "user message contains that phrase, call push_node_config with "
             "node_id, confirm_node_id, confirm_nodename, and "
             "request.confirmation.phrase. Do not pass nodename as an execution "
-            "selector; use confirm_nodename only for correlation. Requires "
-            "Collector NodeExec or Manager privileges through MCP RBAC."
+            "selector; use confirm_nodename only for correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"nodes", "config", "push", "exec:nodes"},
         annotations={
@@ -691,8 +704,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "update_node_compliance_modules with node_id, confirm_node_id, "
             "confirm_nodename, and request.confirmation.phrase. Do not pass "
             "nodename as an execution selector; use confirm_nodename only for "
-            "correlation. Requires Collector NodeExec or Manager privileges "
-            "through MCP RBAC."
+            "correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"nodes", "compliance", "exec:nodes"},
         annotations={
@@ -741,8 +755,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "update_node_opensvc_agent with node_id, confirm_node_id, "
             "confirm_nodename, and request.confirmation.phrase. Do not pass "
             "nodename as an execution selector; use confirm_nodename only for "
-            "correlation. Requires Collector NodeExec or Manager privileges "
-            "through MCP RBAC."
+            "correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"nodes", "agent", "exec:nodes"},
         annotations={
@@ -787,8 +802,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "message contains that phrase, call scan_node_scsi with node_id, "
             "confirm_node_id, confirm_nodename, and request.confirmation.phrase. "
             "Do not pass nodename as an execution selector; use confirm_nodename "
-            "only for correlation. Requires Collector NodeExec or Manager "
-            "privileges through MCP RBAC."
+            "only for correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"nodes", "scsi", "disks", "exec:nodes"},
         annotations={
@@ -832,8 +848,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "message contains that phrase, call reboot_node with node_id, "
             "confirm_node_id, confirm_nodename, and request.confirmation.phrase. "
             "Do not pass nodename as an execution selector; use confirm_nodename "
-            "only for correlation. Requires Collector NodeExec or Manager "
-            "privileges through MCP RBAC."
+            "only for correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"nodes", "reboot", "exec:nodes"},
         annotations={
@@ -876,8 +893,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "phrase, call shutdown_node with node_id, confirm_node_id, "
             "confirm_nodename, and request.confirmation.phrase. Do not pass "
             "nodename as an execution selector; use confirm_nodename only for "
-            "correlation. Requires Collector NodeExec or Manager privileges "
-            "through MCP RBAC."
+            "correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"nodes", "shutdown", "exec:nodes"},
         annotations={
@@ -923,8 +941,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "call schedule_node_reboot with node_id, confirm_node_id, "
             "confirm_nodename, and request.confirmation.phrase. Do not pass "
             "nodename as an execution selector; use confirm_nodename only for "
-            "correlation. Requires Collector NodeExec or Manager privileges "
-            "through MCP RBAC."
+            "correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"nodes", "reboot", "exec:nodes"},
         annotations={
@@ -968,8 +987,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "that phrase, call unschedule_node_reboot with node_id, "
             "confirm_node_id, confirm_nodename, and request.confirmation.phrase. "
             "Do not pass nodename as an execution selector; use "
-            "confirm_nodename only for correlation. Requires Collector NodeExec "
-            "or Manager privileges through MCP RBAC."
+            "confirm_nodename only for correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"nodes", "reboot", "exec:nodes"},
         annotations={
@@ -1012,8 +1032,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "contains that phrase, call rotate_node_root_password with node_id, "
             "confirm_node_id, confirm_nodename, and request.confirmation.phrase. "
             "Do not pass nodename as an execution selector; use "
-            "confirm_nodename only for correlation. Requires Collector NodeExec "
-            "or Manager privileges through MCP RBAC."
+            "confirm_nodename only for correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"nodes", "password", "exec:nodes"},
         annotations={
@@ -1055,7 +1076,8 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "wake_node_on_lan with node_id, confirm_node_id, confirm_nodename, "
             "and request.confirmation.phrase. Do not pass nodename as an "
             "execution selector; use confirm_nodename only for correlation. "
-            "Requires Collector NodeExec or Manager privileges through MCP RBAC."
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"nodes", "wake", "wol", "exec:nodes"},
         annotations={
@@ -1096,8 +1118,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "confirm_nodename, properties, and request.confirmation.phrase. Do "
             "not pass nodename as an execution selector; use confirm_nodename "
             "only for correlation. Collector still applies the update through "
-            "POST /nodes/<resolved nodename>. Requires Collector NodeManager or "
-            "Manager privileges through MCP RBAC."
+            "POST /nodes/<resolved nodename>. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"nodes", "update", "write:nodes"},
         annotations={
@@ -1138,8 +1161,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "call snooze_node_notifications with node_id, confirm_node_id, "
             "confirm_nodename, duration, and request.confirmation.phrase. Do not "
             "pass nodename as an execution selector; use confirm_nodename only "
-            "for correlation. Requires Collector NodeManager or Manager "
-            "privileges through MCP RBAC."
+            "for correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"nodes", "snooze", "write:nodes"},
         annotations={
@@ -1180,8 +1204,9 @@ def register_nodes_tools(mcp: FastMCP) -> None:
             "unsnooze_node_notifications with node_id, confirm_node_id, "
             "confirm_nodename, and request.confirmation.phrase. Do not pass "
             "nodename as an execution selector; use confirm_nodename only for "
-            "correlation. Requires Collector NodeManager or Manager privileges "
-            "through MCP RBAC."
+            "correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"nodes", "unsnooze", "write:nodes"},
         annotations={

@@ -56,8 +56,9 @@ def register_tags_tools(mcp: FastMCP) -> None:
         description=(
             "Create one OpenSVC Collector tag. Before calling, ask the user "
             "to repeat an exact confirmation phrase and include it in "
-            "request.confirmation.phrase. Requires Collector TagManager or "
-            "Manager privileges through MCP RBAC."
+            "request.confirmation.phrase. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"tags", "create", "write:tags"},
         annotations={
@@ -96,8 +97,9 @@ def register_tags_tools(mcp: FastMCP) -> None:
             "contains that phrase, call delete_tag with tag_id, confirm_tag_id, "
             "confirm_tag_name, and request.confirmation.phrase. Do not pass "
             "tag_name as an execution selector; use confirm_tag_name only for "
-            "correlation. Requires Collector TagManager or Manager privileges "
-            "through MCP RBAC."
+            "correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"tags", "delete", "delete:tags"},
         annotations={
@@ -138,8 +140,9 @@ def register_tags_tools(mcp: FastMCP) -> None:
             "attach_tag_to_node with tag_id, confirm_tag_id, confirm_tag_name, "
             "node selector fields, and request.confirmation.phrase. Do not pass "
             "tag_name as an execution selector; use confirm_tag_name only for "
-            "correlation. Requires Collector TagManager or Manager privileges "
-            "through MCP RBAC."
+            "correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"tags", "nodes", "attach", "write:tags"},
         annotations={
@@ -183,8 +186,9 @@ def register_tags_tools(mcp: FastMCP) -> None:
             "attach_tag_to_service with tag_id, confirm_tag_id, confirm_tag_name, "
             "service selector fields, and request.confirmation.phrase. Do not "
             "pass tag_name as an execution selector; use confirm_tag_name only "
-            "for correlation. Requires Collector TagManager or Manager privileges "
-            "through MCP RBAC."
+            "for correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"tags", "services", "attach", "write:tags"},
         annotations={
@@ -230,8 +234,9 @@ def register_tags_tools(mcp: FastMCP) -> None:
             "that phrase, call detach_tag_from_node with tag_id, confirm_tag_id, "
             "confirm_tag_name, node selector fields, and request.confirmation."
             "phrase. Do not pass tag_name as an execution selector; use "
-            "confirm_tag_name only for correlation. Requires Collector TagManager "
-            "or Manager privileges through MCP RBAC."
+            "confirm_tag_name only for correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"tags", "nodes", "detach", "write:tags"},
         annotations={
@@ -275,8 +280,9 @@ def register_tags_tools(mcp: FastMCP) -> None:
             "that phrase, call detach_tag_from_service with tag_id, "
             "confirm_tag_id, confirm_tag_name, service selector fields, and "
             "request.confirmation.phrase. Do not pass tag_name as an execution "
-            "selector; use confirm_tag_name only for correlation. Requires "
-            "Collector TagManager or Manager privileges through MCP RBAC."
+            "selector; use confirm_tag_name only for correlation. "
+            "Collector authorizes this request using the authenticated "
+            "caller's Basic Auth credentials."
         ),
         tags={"tags", "services", "detach", "write:tags"},
         annotations={

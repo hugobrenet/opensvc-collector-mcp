@@ -64,139 +64,81 @@ async def test_internal_validation_error_is_not_reported_as_invalid_tool_argumen
     assert "value" in message
 
 
-async def test_read_tool_authorization_allows_read_tagged_tool(caplog):
-    caplog.set_level(logging.INFO, logger=AUDIT_LOGGER_NAME)
-    server = FastMCP("read-authorization-test")
+async def test_tool_middleware_does_not_authorize_from_effect_tags():
+    server = FastMCP("collector-authorization-test")
 
     @server.tool(name="read_tool", tags={"read"})
     async def read_tool() -> dict[str, str]:
-        return {"status": "ok"}
+        return {"status": "read"}
 
-    server.add_middleware(
-        CollectorToolAuthorizationMiddleware(
-            server,
-            group_roles_loader=lambda: async_group_roles({"Everybody"}),
-        )
-    )
+    @server.tool(name="write_tool", tags={"write:nodes"})
+    async def write_tool() -> dict[str, str]:
+        return {"status": "written"}
+
+    @server.tool(name="untagged_tool")
+    async def untagged_tool() -> dict[str, str]:
+        return {"status": "untagged"}
+
+    @server.tool(name="mixed_tag_tool", tags={"read", "write:nodes"})
+    async def mixed_tag_tool() -> dict[str, str]:
+        return {"status": "mixed"}
+
+    server.add_middleware(CollectorToolAuthorizationMiddleware(server))
 
     async with Client(server) as client:
-        result = await client.call_tool("read_tool", {})
+        read_result = await client.call_tool("read_tool", {})
+        write_result = await client.call_tool("write_tool", {})
+        untagged_result = await client.call_tool("untagged_tool", {})
+        mixed_result = await client.call_tool("mixed_tag_tool", {})
 
-    assert result.structured_content == {"status": "ok"}
+    assert read_result.structured_content == {"status": "read"}
+    assert write_result.structured_content == {"status": "written"}
+    assert untagged_result.structured_content == {"status": "untagged"}
+    assert mixed_result.structured_content == {"status": "mixed"}
+
+
+async def test_tool_middleware_audits_direct_call_without_rbac_fields(caplog):
+    caplog.set_level(logging.INFO, logger=AUDIT_LOGGER_NAME)
+    server = FastMCP("tool-audit-test")
+
+    @server.tool(name="write_tool", tags={"nodes", "write:nodes"})
+    async def write_tool() -> dict[str, str]:
+        return {"status": "changed"}
+
+    server.add_middleware(CollectorToolAuthorizationMiddleware(server))
+
+    async with Client(server) as client:
+        result = await client.call_tool("write_tool", {})
+
+    assert result.structured_content == {"status": "changed"}
     event = _single_audit_event(caplog)
     _assert_strict_tool_call_event(event)
     assert event["event"] == "mcp.tool_call"
     assert event["request_id"] is None
     assert event["user"] is None
-    assert event["client_tool"] == "read_tool"
-    assert event["target_tool"] == "read_tool"
+    assert event["client_tool"] == "write_tool"
+    assert event["target_tool"] == "write_tool"
     assert event["decision"] == "allowed"
-    assert event["reason"] is None
+    assert event["reason"] == "authorization_delegated_to_collector"
     assert isinstance(event["duration_ms"], int)
     assert event["status"] == "success"
     assert event["error_type"] is None
     assert event["error_message"] is None
-    assert event["required_tag"] == "read"
-    assert event["required_groups"] == ["Everybody", "Manager"]
-    assert event["user_groups"] == ["Everybody"]
-    assert event["tool_tags"] == ["read"]
+    assert event["required_tag"] is None
+    assert event["required_groups"] == []
+    assert event["user_groups"] is None
+    assert event["tool_tags"] == ["nodes", "write:nodes"]
 
 
-async def test_tool_authorization_denies_write_tool_without_required_group():
-    server = FastMCP("read-authorization-test")
-
-    @server.tool(name="write_tool", tags={"write:nodes"})
-    async def write_tool() -> dict[str, str]:
-        return {"status": "changed"}
-
-    server.add_middleware(
-        CollectorToolAuthorizationMiddleware(
-            server,
-            group_roles_loader=lambda: async_group_roles({"Everybody"}),
-        )
-    )
-
-    async with Client(server) as client:
-        try:
-            await client.call_tool("write_tool", {})
-        except Exception as exc:
-            message = str(exc)
-        else:
-            raise AssertionError("expected unauthorized write tool to be denied")
-
-    assert "Unauthorized tool" in message
-    assert "write_tool" in message
-    assert "required_tag" in message
-    assert "write:nodes" in message
-    assert "NodeManager" in message
-
-
-async def test_tool_authorization_allows_write_tool_with_required_group(caplog):
+async def test_tool_middleware_audits_tool_execution_error(caplog):
     caplog.set_level(logging.INFO, logger=AUDIT_LOGGER_NAME)
-    server = FastMCP("tool-authorization-test")
-
-    @server.tool(name="write_tool", tags={"write:nodes"})
-    async def write_tool() -> dict[str, str]:
-        return {"status": "changed"}
-
-    server.add_middleware(
-        CollectorToolAuthorizationMiddleware(
-            server,
-            group_roles_loader=lambda: async_group_roles({"NodeManager"}),
-        )
-    )
-
-    async with Client(server) as client:
-        result = await client.call_tool("write_tool", {})
-
-    assert result.structured_content == {"status": "changed"}
-    event = _single_audit_event(caplog)
-    _assert_strict_tool_call_event(event)
-    assert event["client_tool"] == "write_tool"
-    assert event["target_tool"] == "write_tool"
-    assert event["decision"] == "allowed"
-    assert event["reason"] is None
-    assert event["status"] == "success"
-    assert event["required_tag"] == "write:nodes"
-    assert event["required_groups"] == ["Manager", "NodeManager"]
-    assert event["user_groups"] == ["NodeManager"]
-    assert event["tool_tags"] == ["write:nodes"]
-
-
-async def test_tool_authorization_allows_write_tool_with_manager_override():
-    server = FastMCP("tool-authorization-test")
-
-    @server.tool(name="write_tool", tags={"write:nodes"})
-    async def write_tool() -> dict[str, str]:
-        return {"status": "changed"}
-
-    server.add_middleware(
-        CollectorToolAuthorizationMiddleware(
-            server,
-            group_roles_loader=lambda: async_group_roles({"Manager"}),
-        )
-    )
-
-    async with Client(server) as client:
-        result = await client.call_tool("write_tool", {})
-
-    assert result.structured_content == {"status": "changed"}
-
-
-async def test_read_tool_authorization_audits_tool_execution_error(caplog):
-    caplog.set_level(logging.INFO, logger=AUDIT_LOGGER_NAME)
-    server = FastMCP("read-authorization-test")
+    server = FastMCP("tool-audit-test")
 
     @server.tool(name="read_tool", tags={"read"})
     async def read_tool() -> dict[str, str]:
         raise RuntimeError("tool failed")
 
-    server.add_middleware(
-        CollectorToolAuthorizationMiddleware(
-            server,
-            group_roles_loader=lambda: async_group_roles({"Everybody"}),
-        )
-    )
+    server.add_middleware(CollectorToolAuthorizationMiddleware(server))
 
     async with Client(server) as client:
         try:
@@ -212,77 +154,25 @@ async def test_read_tool_authorization_audits_tool_execution_error(caplog):
     assert event["client_tool"] == "read_tool"
     assert event["target_tool"] == "read_tool"
     assert event["decision"] == "allowed"
-    assert event["reason"] is None
-    assert isinstance(event["duration_ms"], int)
+    assert event["reason"] == "authorization_delegated_to_collector"
     assert event["status"] == "error"
     assert event["error_type"] == "RuntimeError"
     assert event["error_message"] == "tool failed"
-    assert event["user_groups"] == ["Everybody"]
+    assert event["required_tag"] is None
+    assert event["required_groups"] == []
+    assert event["user_groups"] is None
     assert event["tool_tags"] == ["read"]
 
 
-async def test_read_tool_authorization_denies_read_tool_without_required_group(caplog):
+async def test_tool_middleware_audits_public_search_tool(caplog):
     caplog.set_level(logging.INFO, logger=AUDIT_LOGGER_NAME)
-    server = FastMCP("read-authorization-test")
-
-    @server.tool(name="read_tool", tags={"read"})
-    async def read_tool() -> dict[str, str]:
-        return {"status": "ok"}
-
-    server.add_middleware(
-        CollectorToolAuthorizationMiddleware(
-            server,
-            group_roles_loader=lambda: async_group_roles({"TeamA"}),
-        )
-    )
-
-    async with Client(server) as client:
-        try:
-            await client.call_tool("read_tool", {})
-        except Exception as exc:
-            message = str(exc)
-        else:
-            raise AssertionError("expected read tool to be denied without group")
-
-    assert "Unauthorized tool" in message
-    assert "read_tool" in message
-    assert "required_groups" in message
-    assert "Everybody" in message
-    assert "Manager" in message
-    assert "TeamA" in message
-    event = _single_audit_event(caplog)
-    _assert_strict_tool_call_event(event)
-    assert event["event"] == "mcp.tool_call"
-    assert event["request_id"] is None
-    assert event["user"] is None
-    assert event["client_tool"] == "read_tool"
-    assert event["target_tool"] == "read_tool"
-    assert event["decision"] == "denied"
-    assert event["reason"] == "missing_required_group"
-    assert isinstance(event["duration_ms"], int)
-    assert event["status"] == "denied"
-    assert event["error_type"] is None
-    assert event["error_message"] is None
-    assert event["required_tag"] == "read"
-    assert event["required_groups"] == ["Everybody", "Manager"]
-    assert event["user_groups"] == ["TeamA"]
-    assert event["tool_tags"] == ["read"]
-
-
-async def test_read_tool_authorization_audits_public_search_tool(caplog):
-    caplog.set_level(logging.INFO, logger=AUDIT_LOGGER_NAME)
-    server = FastMCP("read-authorization-test")
+    server = FastMCP("tool-audit-test")
 
     @server.tool(name="search_tools")
     async def search_tools(query: str) -> dict[str, str]:
         return {"query": query}
 
-    server.add_middleware(
-        CollectorToolAuthorizationMiddleware(
-            server,
-            group_roles_loader=lambda: async_group_roles(set()),
-        )
-    )
+    server.add_middleware(CollectorToolAuthorizationMiddleware(server))
 
     async with Client(server) as client:
         result = await client.call_tool("search_tools", {"query": "node detail"})
@@ -290,41 +180,30 @@ async def test_read_tool_authorization_audits_public_search_tool(caplog):
     assert result.structured_content == {"query": "node detail"}
     event = _single_audit_event(caplog)
     _assert_strict_tool_call_event(event)
-    assert event["event"] == "mcp.tool_call"
-    assert event["request_id"] is None
-    assert event["user"] is None
     assert event["client_tool"] == "search_tools"
     assert event["target_tool"] is None
     assert event["decision"] == "allowed"
     assert event["reason"] == "public_tool"
-    assert isinstance(event["duration_ms"], int)
     assert event["status"] == "success"
-    assert event["error_type"] is None
-    assert event["error_message"] is None
-    assert event["required_tag"] == "read"
-    assert event["required_groups"] == ["Everybody", "Manager"]
+    assert event["required_tag"] is None
+    assert event["required_groups"] == []
     assert event["user_groups"] is None
     assert event["tool_tags"] is None
 
 
-async def test_read_tool_authorization_includes_ai_request_id(monkeypatch, caplog):
+async def test_tool_middleware_includes_ai_request_id(monkeypatch, caplog):
     caplog.set_level(logging.INFO, logger=AUDIT_LOGGER_NAME)
     monkeypatch.setattr(
         "opensvc_collector_mcp.auth.middleware.get_http_headers",
         lambda include=None: {"x-opensvc-ai-request-id": "ai_test"},
     )
-    server = FastMCP("read-authorization-test")
+    server = FastMCP("tool-audit-test")
 
     @server.tool(name="search_tools")
     async def search_tools(query: str) -> dict[str, str]:
         return {"query": query}
 
-    server.add_middleware(
-        CollectorToolAuthorizationMiddleware(
-            server,
-            group_roles_loader=lambda: async_group_roles(set()),
-        )
-    )
+    server.add_middleware(CollectorToolAuthorizationMiddleware(server))
 
     async with Client(server) as client:
         result = await client.call_tool("search_tools", {"query": "node detail"})
@@ -332,59 +211,14 @@ async def test_read_tool_authorization_includes_ai_request_id(monkeypatch, caplo
     assert result.structured_content == {"query": "node detail"}
     event = _single_audit_event(caplog)
     _assert_strict_tool_call_event(event)
-    assert event["client_tool"] == "search_tools"
     assert event["request_id"] == "ai_test"
 
 
-async def test_read_tool_authorization_audits_call_tool_target(caplog):
+async def test_tool_middleware_audits_call_tool_target_without_authorizing(caplog):
     caplog.set_level(logging.INFO, logger=AUDIT_LOGGER_NAME)
-    server = FastMCP("read-authorization-test")
+    server = FastMCP("tool-audit-test")
 
-    @server.tool(name="read_tool", tags={"read"})
-    async def read_tool() -> dict[str, str]:
-        return {"status": "ok"}
-
-    @server.tool(name="call_tool")
-    async def call_tool(name: str, arguments: dict) -> dict[str, str]:
-        return {"target": name, "status": "called"}
-
-    server.add_middleware(
-        CollectorToolAuthorizationMiddleware(
-            server,
-            group_roles_loader=lambda: async_group_roles({"Manager"}),
-        )
-    )
-
-    async with Client(server) as client:
-        result = await client.call_tool(
-            "call_tool",
-            {"name": "read_tool", "arguments": {}},
-        )
-
-    assert result.structured_content == {"target": "read_tool", "status": "called"}
-    event = _single_audit_event(caplog)
-    _assert_strict_tool_call_event(event)
-    assert event["event"] == "mcp.tool_call"
-    assert event["request_id"] is None
-    assert event["user"] is None
-    assert event["client_tool"] == "call_tool"
-    assert event["target_tool"] == "read_tool"
-    assert event["decision"] == "allowed"
-    assert event["reason"] is None
-    assert isinstance(event["duration_ms"], int)
-    assert event["status"] == "success"
-    assert event["error_type"] is None
-    assert event["error_message"] is None
-    assert event["required_tag"] == "read"
-    assert event["required_groups"] == ["Everybody", "Manager"]
-    assert event["user_groups"] == ["Manager"]
-    assert event["tool_tags"] == ["read"]
-
-
-async def test_read_tool_authorization_checks_call_tool_target():
-    server = FastMCP("read-authorization-test")
-
-    @server.tool(name="write_tool", tags={"write:nodes"})
+    @server.tool(name="write_tool", tags={"nodes", "write:nodes"})
     async def write_tool() -> dict[str, str]:
         return {"status": "changed"}
 
@@ -392,30 +226,26 @@ async def test_read_tool_authorization_checks_call_tool_target():
     async def call_tool(name: str, arguments: dict) -> dict[str, str]:
         return {"target": name, "status": "called"}
 
-    server.add_middleware(
-        CollectorToolAuthorizationMiddleware(
-            server,
-            group_roles_loader=lambda: async_group_roles({"Everybody"}),
-        )
-    )
+    server.add_middleware(CollectorToolAuthorizationMiddleware(server))
 
     async with Client(server) as client:
-        try:
-            await client.call_tool(
-                "call_tool",
-                {"name": "write_tool", "arguments": {}},
-            )
-        except Exception as exc:
-            message = str(exc)
-        else:
-            raise AssertionError("expected unauthorized proxy target to be denied")
+        result = await client.call_tool(
+            "call_tool",
+            {"name": "write_tool", "arguments": {}},
+        )
 
-    assert "Unauthorized tool" in message
-    assert "write_tool" in message
-
-
-async def async_group_roles(group_roles: set[str]) -> set[str]:
-    return group_roles
+    assert result.structured_content == {"target": "write_tool", "status": "called"}
+    event = _single_audit_event(caplog)
+    _assert_strict_tool_call_event(event)
+    assert event["client_tool"] == "call_tool"
+    assert event["target_tool"] == "write_tool"
+    assert event["decision"] == "allowed"
+    assert event["reason"] == "authorization_delegated_to_collector"
+    assert event["status"] == "success"
+    assert event["required_tag"] is None
+    assert event["required_groups"] == []
+    assert event["user_groups"] is None
+    assert event["tool_tags"] == ["nodes", "write:nodes"]
 
 
 def _single_audit_event(caplog) -> dict:
