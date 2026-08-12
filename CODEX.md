@@ -101,7 +101,8 @@ Current package layout:
   tag-domain business logic split into inventory, mutations, node relations,
   service relations, and selector helpers
 - `src/opensvc_collector_mcp/core/apps/`
-  app-domain business logic
+  app-domain business logic split into inventory, responsibility checks,
+  nodes, services, group relations, and storage quotas
 - `src/opensvc_collector_mcp/core/arrays/`
   array-domain business logic split into inventory, diskgroups, diskgroup
   quotas, and proxy/target relations
