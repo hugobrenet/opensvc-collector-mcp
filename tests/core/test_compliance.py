@@ -1,3 +1,4 @@
+from opensvc_collector_mcp.core.compliance import _runs as runs
 from opensvc_collector_mcp.core.compliance import status
 
 
@@ -35,7 +36,7 @@ async def test_compliance_status_returns_one_compact_page(
             }
         ]
     )
-    monkeypatch.setattr(status, "collector_get_page", collector.get)
+    monkeypatch.setattr(runs, "collector_get_page", collector.get)
 
     response = await status.get_compliance_status(
         run_status=1,

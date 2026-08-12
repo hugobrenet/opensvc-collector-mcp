@@ -89,7 +89,9 @@ Current package layout:
 - `src/opensvc_collector_mcp/core/clusters/`
   cluster-domain business logic
 - `src/opensvc_collector_mcp/core/compliance/`
-  global compliance-domain business logic
+  global compliance-domain business logic split into modulesets, definitions,
+  moduleset relations, rulesets, variables, ruleset relations, run status,
+  scoped logs, and run details
 - `src/opensvc_collector_mcp/core/disks/`
   global disk-domain business logic
 - `src/opensvc_collector_mcp/core/users/`
