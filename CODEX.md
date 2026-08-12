@@ -103,7 +103,8 @@ Current package layout:
 - `src/opensvc_collector_mcp/core/apps/`
   app-domain business logic
 - `src/opensvc_collector_mcp/core/arrays/`
-  array-domain business logic
+  array-domain business logic split into inventory, diskgroups, diskgroup
+  quotas, and proxy/target relations
 - `src/opensvc_collector_mcp/models/services/`
   service-domain Pydantic contracts split with the same concern boundaries
 - `src/opensvc_collector_mcp/models/nodes/`
