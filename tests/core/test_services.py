@@ -1,8 +1,10 @@
 from opensvc_collector_mcp.core.services import (
+    _compliance as compliance_common,
     actions,
     compliance,
-    health,
     inventory,
+    instances,
+    status_history,
     storage,
 )
 
@@ -86,9 +88,9 @@ async def test_get_service_nodes_uses_service_nodes_endpoint(monkeypatch, collec
             }
         ]
     )
-    monkeypatch.setattr(inventory, "collector_get_page", collector.get)
+    monkeypatch.setattr(instances, "collector_get_page", collector.get)
 
-    response = await inventory.get_service_nodes(
+    response = await instances.get_service_nodes(
         "svc-a",
         filters={"nodes.status": "up"},
         props="nodes.nodename:nodename",
@@ -218,7 +220,7 @@ async def test_service_compliance_status_returns_page_and_page_summary(
         return {"NODE-ID": "node-a"}
 
     monkeypatch.setattr(compliance, "collector_get_page", page.get)
-    monkeypatch.setattr(compliance, "get_nodenames_by_node_ids", nodenames)
+    monkeypatch.setattr(compliance_common, "get_nodenames_by_node_ids", nodenames)
 
     response = await compliance.get_service_compliance_status(
         "svc-a",
@@ -280,10 +282,10 @@ async def test_service_status_history_uses_direct_pages(
             },
         ]
     )
-    monkeypatch.setattr(health, "get_service_identity", identity)
-    monkeypatch.setattr(health, "collector_get_page", pages.get)
+    monkeypatch.setattr(status_history, "get_service_identity", identity)
+    monkeypatch.setattr(status_history, "collector_get_page", pages.get)
 
-    response = await health.get_service_status_history(
+    response = await status_history.get_service_status_history(
         "svc-a",
         limit=2,
         offset=2,

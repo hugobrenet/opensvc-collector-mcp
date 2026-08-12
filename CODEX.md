@@ -79,8 +79,9 @@ Current package layout:
   business logic, Collector request handling, and shared core helpers such as
   node id to nodename resolution
 - `src/opensvc_collector_mcp/core/services/`
-  service-domain business logic split by concern: inventory, resources,
-  compliance, actions, tags, health, and storage
+  service-domain business logic split by concern: inventory, configuration,
+  instances, resources, compliance status and logs, actions, tags, checks,
+  alerts, status histories, frozen services, health interpretation, and storage
 - `src/opensvc_collector_mcp/core/nodes/`
   node-domain business logic split by concern: inventory, tags, location,
   organization, hardware, OS, cluster, network, compliance, checks, storage,

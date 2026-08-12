@@ -4,10 +4,16 @@ from .inventory import (
     list_services,
     count_services,
     get_service,
+    list_service_props,
+)
+
+from .config import (
     get_service_config,
+)
+
+from .instances import (
     get_service_instances,
     get_service_nodes,
-    list_service_props,
 )
 
 from .resources import (
@@ -17,6 +23,9 @@ from .resources import (
 
 from .compliance import (
     get_service_compliance_status,
+)
+
+from .compliance_logs import (
     get_service_compliance_logs,
 )
 
@@ -35,12 +44,27 @@ from .actions import (
     get_service_unacknowledged_errors,
 )
 
-from .health import (
+from .checks import (
     get_service_checks,
+)
+
+from .alerts import (
     get_service_alerts,
+)
+
+from .status_history import (
     get_service_status_history,
+)
+
+from .instance_history import (
     get_service_instance_status_history,
+)
+
+from .frozen import (
     search_frozen_services,
+)
+
+from .health import (
     get_service_health,
 )
 
