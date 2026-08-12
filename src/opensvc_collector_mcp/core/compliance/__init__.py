@@ -2,7 +2,6 @@
 
 from .modulesets import (
     get_compliance_moduleset,
-    get_compliance_moduleset_module,
     get_compliance_moduleset_usage,
     list_compliance_modulesets,
 )
@@ -44,7 +43,6 @@ __all__ = [
     "get_compliance_moduleset_candidate_nodes",
     "get_compliance_moduleset_definition",
     "get_compliance_moduleset_items",
-    "get_compliance_moduleset_module",
     "get_compliance_moduleset_modules",
     "get_compliance_moduleset_nodes",
     "get_compliance_moduleset_publications",

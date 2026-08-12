@@ -4,7 +4,6 @@ from ._common import (
     NodeIdRequest,
     NodeNameRequest,
     NodeRelationRequest,
-    NodeSelector,
 )
 
 from .inventory import (
@@ -208,7 +207,6 @@ __all__ = [
     'NodeMemoryHardware',
     'NodeNameRequest',
     'NodeRelationRequest',
-    'NodeSelector',
     'NodeNetworkEntry',
     'NodeNetworkResponse',
     'NodeOperatingSystem',

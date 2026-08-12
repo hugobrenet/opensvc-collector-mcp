@@ -80,27 +80,6 @@ async def get_compliance_moduleset(
     return data
 
 
-async def get_compliance_moduleset_module(
-    moduleset_id: int | str,
-    module_id: int | str,
-    props: str | None = None,
-) -> dict[str, Any]:
-    selected_props = props or MODULE_PROPS
-    path = (
-        f"/compliance/modulesets/{quote_path_id(moduleset_id)}"
-        f"/modules/{quote_path_id(module_id)}"
-    )
-    response = await get_object(path, props=selected_props)
-    data = object_response(
-        response,
-        "compliance_moduleset_module",
-        module_id,
-        selected_props,
-    )
-    data["moduleset_id"] = str(moduleset_id)
-    return data
-
-
 async def get_compliance_moduleset_usage(
     moduleset_id: int | str | None = None,
     modset_name: str | None = None,

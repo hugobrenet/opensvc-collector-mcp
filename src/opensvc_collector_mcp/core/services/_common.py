@@ -5,7 +5,6 @@ from opensvc_collector_mcp.client import collector_get
 from opensvc_collector_mcp.core.prechecks import (
     clean_value,
     require_at_least_one_selector,
-    require_exactly_one_selector,
     require_identity,
     require_match,
     require_single_row,
@@ -32,34 +31,6 @@ async def get_service_identity(svcname: str) -> dict[str, Any]:
         "svc_id": service.get("svc_id"),
         "service": service,
     }
-
-
-async def resolve_single_service_selector(
-    *,
-    svc_id: str | None = None,
-    svcname: str | None = None,
-    props: str = DEFAULT_SERVICE_SELECTOR_PROPS,
-    operation: str = "service operation",
-) -> dict[str, Any]:
-    selectors = require_exactly_one_selector(
-        operation,
-        {"svc_id": svc_id, "svcname": svcname},
-        selector_kind="service",
-    )
-    service = await _resolve_service_by_preferred_selector(
-        svc_id=selectors["svc_id"],
-        svcname=selectors["svcname"],
-        props=props,
-        operation=operation,
-    )
-    require_identity(
-        service,
-        operation=operation,
-        target="service",
-        id_field="svc_id",
-        name_field="svcname",
-    )
-    return service
 
 
 async def resolve_service_reference(
