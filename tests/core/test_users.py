@@ -1,4 +1,4 @@
-from opensvc_collector_mcp.core.users import inventory
+from opensvc_collector_mcp.core.users import _relations, groups, inventory, primary_groups
 
 
 async def test_list_users_builds_collection_params(monkeypatch, collector_mock_factory):
@@ -66,6 +66,7 @@ async def test_get_user_resolves_username_and_includes_relations(monkeypatch, co
         {"meta": {}, "data": [{"id": 2, "role": "GROUP"}]},
     ])
     monkeypatch.setattr(inventory, "collector_get", collector.get)
+    monkeypatch.setattr(_relations, "collector_get", collector.get)
 
     response = await inventory.get_user(
         "user-a",
@@ -123,10 +124,10 @@ async def test_search_users_by_group_scans_users_and_matches_group(monkeypatch, 
         {"meta": {}, "data": [{"role": "GROUP-A"}]},
         {"meta": {}, "data": [{"role": "GROUP-B"}]},
     ])
-    monkeypatch.setattr(inventory, "collector_get_all", fake_get_all)
-    monkeypatch.setattr(inventory, "collector_get", collector.get)
+    monkeypatch.setattr(_relations, "collector_get_all", fake_get_all)
+    monkeypatch.setattr(_relations, "collector_get", collector.get)
 
-    response = await inventory.search_users_by_group(
+    response = await groups.search_users_by_group(
         "GROUP-A",
         filters={"lock_filter": "False"},
         props="id,username",
@@ -141,3 +142,40 @@ async def test_search_users_by_group_scans_users_and_matches_group(monkeypatch, 
     assert get_all_calls[0]["max_items"] == 10
     assert collector.calls[0].path == "/users/1/groups"
     assert collector.calls[1].path == "/users/2/groups"
+
+
+async def test_search_users_by_primary_group_scans_primary_group_relations(
+    monkeypatch,
+    collector_mock_factory,
+):
+    async def fake_get_all(path, params=None, page_size=1000, max_items=5000):
+        return {
+            "meta": {"complete": True, "total": 2},
+            "data": [
+                {"id": 1, "username": "user-a"},
+                {"id": 2, "username": "user-b"},
+            ],
+        }
+
+    collector = collector_mock_factory(
+        [
+            {"meta": {}, "data": [{"role": "PRIMARY-A"}]},
+            {"meta": {}, "data": [{"role": "PRIMARY-B"}]},
+        ]
+    )
+    monkeypatch.setattr(_relations, "collector_get_all", fake_get_all)
+    monkeypatch.setattr(_relations, "collector_get", collector.get)
+
+    response = await primary_groups.search_users_by_primary_group("PRIMARY-A")
+
+    assert response["meta"]["primary_group"] == "PRIMARY-A"
+    assert response["meta"]["matched_users"] == 1
+    assert response["data"] == [
+        {
+            "id": 1,
+            "username": "user-a",
+            "primary_group": {"role": "PRIMARY-A"},
+        }
+    ]
+    assert collector.calls[0].path == "/users/1/primary_group"
+    assert collector.calls[1].path == "/users/2/primary_group"

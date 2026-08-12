@@ -95,7 +95,8 @@ Current package layout:
 - `src/opensvc_collector_mcp/core/disks/`
   global disk-domain business logic
 - `src/opensvc_collector_mcp/core/users/`
-  user-domain business logic
+  user-domain business logic split into inventory, group membership searches,
+  primary-group searches, and shared relation helpers
 - `src/opensvc_collector_mcp/core/tags/`
   tag-domain business logic split into inventory, mutations, node relations,
   service relations, and selector helpers
