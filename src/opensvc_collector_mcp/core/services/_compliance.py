@@ -1,6 +1,6 @@
 from typing import Any
 
-from opensvc_collector_mcp.core.utils import (
+from opensvc_collector_mcp.core.enrichment import (
     enrich_rows_with_nodenames,
     get_nodenames_by_node_ids,
 )

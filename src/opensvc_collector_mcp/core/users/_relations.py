@@ -3,7 +3,7 @@ from typing import Any
 from urllib.parse import quote
 
 from opensvc_collector_mcp.client import collector_get, collector_get_all
-from opensvc_collector_mcp.core.utils import collection_params
+from opensvc_collector_mcp.core.collection import collection_params
 
 from ._common import props_with_required, user_search_filters
 

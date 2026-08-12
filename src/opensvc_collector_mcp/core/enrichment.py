@@ -5,7 +5,7 @@ from typing import Any
 from opensvc_collector_mcp.client import collector_get
 
 
-async def get_nodename_by_node_id(node_id: str) -> str | None:
+async def _get_nodename_by_node_id(node_id: str) -> str | None:
     node_id = node_id.strip()
     if not node_id:
         return None
@@ -34,7 +34,7 @@ async def get_nodenames_by_node_ids(node_ids: Iterable[str]) -> dict[str, str]:
         return {}
 
     results = await asyncio.gather(
-        *(get_nodename_by_node_id(node_id) for node_id in unique_node_ids),
+        *(_get_nodename_by_node_id(node_id) for node_id in unique_node_ids),
     )
     return {
         node_id: nodename
@@ -58,7 +58,7 @@ def enrich_rows_with_nodenames(
     return enriched
 
 
-async def get_svcname_by_svc_id(svc_id: str) -> str | None:
+async def _get_svcname_by_svc_id(svc_id: str) -> str | None:
     svc_id = svc_id.strip()
     if not svc_id:
         return None
@@ -87,7 +87,7 @@ async def get_svcnames_by_svc_ids(svc_ids: Iterable[str]) -> dict[str, str]:
         return {}
 
     results = await asyncio.gather(
-        *(get_svcname_by_svc_id(svc_id) for svc_id in unique_svc_ids),
+        *(_get_svcname_by_svc_id(svc_id) for svc_id in unique_svc_ids),
     )
     return {
         svc_id: svcname
@@ -109,75 +109,3 @@ def enrich_rows_with_svcnames(
             item["svcname"] = svcname
         enriched.append(item)
     return enriched
-
-
-def parse_collector_filters(raw_filters: dict[str, str] | str | None) -> list[tuple[str, str]]:
-    if not raw_filters:
-        return []
-    if isinstance(raw_filters, dict):
-        return [
-            (field.strip(), value.strip())
-            for field, value in raw_filters.items()
-            if field.strip() and value.strip()
-        ]
-
-    filters: list[tuple[str, str]] = []
-    for item in raw_filters.split(","):
-        item = item.strip()
-        if not item:
-            continue
-        if "=" not in item:
-            raise ValueError("filters must use the format 'prop=value,prop=value'")
-        field, value = item.split("=", 1)
-        field = field.strip()
-        value = value.strip()
-        if not field or not value:
-            raise ValueError("filters must not contain empty props or values")
-        filters.append((field, value))
-    return filters
-
-
-def collection_params(
-    *,
-    filters: list[tuple[str, str]] | None = None,
-    props: str | None = None,
-    orderby: str | None = None,
-    search: str | None = None,
-    limit: int = 20,
-    offset: int = 0,
-) -> list[tuple[str, Any]]:
-    limit = max(1, min(limit, 1000))
-    offset = max(0, offset)
-    params: list[tuple[str, Any]] = [("limit", limit), ("offset", offset)]
-    if props:
-        params.append(("props", props))
-    if orderby:
-        params.append(("orderby", orderby))
-    if search:
-        params.append(("search", search))
-    for field, value in filters or []:
-        params.append(("filters", f"{field}={value}"))
-    return params
-
-
-def collection_meta(
-    response: dict[str, Any],
-    *,
-    source: str,
-    filters: list[tuple[str, str]] | None = None,
-    props: str | None = None,
-    extra: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-    rows = response.get("data", [])
-    meta = dict(response.get("meta", {}))
-    meta.update(
-        {
-            "source": source,
-            "filter": {field: value for field, value in filters or []},
-            "included_props": props.split(",") if props else meta.get("included_props", []),
-            "output_count": len(rows),
-        }
-    )
-    if extra:
-        meta.update(extra)
-    return meta

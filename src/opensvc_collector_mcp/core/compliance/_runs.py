@@ -1,7 +1,7 @@
 from typing import Any, Literal
 
 from opensvc_collector_mcp.client import collector_get_page
-from opensvc_collector_mcp.core.utils import (
+from opensvc_collector_mcp.core.enrichment import (
     enrich_rows_with_nodenames,
     enrich_rows_with_svcnames,
     get_nodenames_by_node_ids,

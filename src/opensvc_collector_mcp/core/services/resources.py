@@ -2,8 +2,8 @@ from typing import Any
 from urllib.parse import quote
 
 from opensvc_collector_mcp.client import collector_get_all, collector_get_page
-from opensvc_collector_mcp.core.utils import (
-    collection_params,
+from opensvc_collector_mcp.core.collection import collection_params
+from opensvc_collector_mcp.core.enrichment import (
     enrich_rows_with_nodenames,
     get_nodenames_by_node_ids,
 )

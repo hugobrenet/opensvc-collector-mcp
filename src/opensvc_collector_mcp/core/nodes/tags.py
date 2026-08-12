@@ -2,7 +2,7 @@ from typing import Any
 from urllib.parse import quote
 
 from opensvc_collector_mcp.client import collector_get_page
-from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
+from opensvc_collector_mcp.core.collection import collection_params, parse_collector_filters
 
 
 async def get_node_tags(

@@ -10,7 +10,7 @@ from opensvc_collector_mcp.client import (
 )
 from opensvc_collector_mcp.core.prechecks import clean_value, require_single_row
 from opensvc_collector_mcp.core.services._common import resolve_service_reference
-from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
+from opensvc_collector_mcp.core.collection import collection_params, parse_collector_filters
 
 from ._common import resolve_tag_reference
 from ._read import dedupe_rows_by_key, ensure_props_include, resolve_tag_selector

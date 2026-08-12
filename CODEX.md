@@ -76,8 +76,11 @@ Current package layout:
 - `src/opensvc_collector_mcp/tools/`
   FastMCP tool definitions
 - `src/opensvc_collector_mcp/core/`
-  business logic, Collector request handling, and shared core helpers such as
-  node id to nodename resolution
+  business logic and Collector request handling
+- `src/opensvc_collector_mcp/core/collection.py`
+  shared Collector filter parsing and collection parameter construction
+- `src/opensvc_collector_mcp/core/enrichment.py`
+  shared node and service identity enrichment helpers
 - `src/opensvc_collector_mcp/core/services/`
   service-domain business logic split by concern: inventory, configuration,
   instances, resources, compliance status and logs, actions, tags, checks,

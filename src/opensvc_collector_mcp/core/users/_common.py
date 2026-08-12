@@ -1,4 +1,4 @@
-from opensvc_collector_mcp.core.utils import parse_collector_filters
+from opensvc_collector_mcp.core.collection import parse_collector_filters
 
 
 def props_with_required(props: str, *required_props: str) -> str:

@@ -1,7 +1,7 @@
 from typing import Any
 
 from opensvc_collector_mcp.client import collector_get, collector_get_page
-from opensvc_collector_mcp.core.utils import collection_params, parse_collector_filters
+from opensvc_collector_mcp.core.collection import collection_params, parse_collector_filters
 
 from ._common import quote_selector, require_selector
 

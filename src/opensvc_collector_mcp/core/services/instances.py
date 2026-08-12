@@ -2,7 +2,7 @@ from typing import Any
 from urllib.parse import quote
 
 from opensvc_collector_mcp.client import collector_get_page
-from opensvc_collector_mcp.core.utils import collection_params
+from opensvc_collector_mcp.core.collection import collection_params
 
 from ._common import _parse_service_filters
 

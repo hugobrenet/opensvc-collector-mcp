@@ -1,7 +1,7 @@
 from typing import Any
 
 from opensvc_collector_mcp.client import collector_get
-from opensvc_collector_mcp.core.utils import collection_params
+from opensvc_collector_mcp.core.collection import collection_params
 
 
 async def resolve_tag_selector(

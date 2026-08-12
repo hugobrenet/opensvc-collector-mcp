@@ -10,7 +10,7 @@ from opensvc_collector_mcp.core.prechecks import (
     require_match,
     require_single_row,
 )
-from opensvc_collector_mcp.core.utils import collection_params
+from opensvc_collector_mcp.core.collection import collection_params
 
 
 def _first_node_row(response: dict[str, Any], nodename: str) -> dict[str, Any]:
