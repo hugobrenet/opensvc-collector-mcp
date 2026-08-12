@@ -4,10 +4,16 @@ from .inventory import (
     list_nodes,
     list_node_props,
     count_nodes,
-    create_node,
     get_node,
+)
+
+from .mutations import (
+    create_node,
     update_node_properties,
     delete_node,
+)
+
+from .actions import (
     freeze_node,
     thaw_node,
     run_node_checks,
@@ -28,6 +34,9 @@ from .inventory import (
     unschedule_node_reboot,
     rotate_node_root_password,
     wake_node_on_lan,
+)
+
+from .notifications import (
     snooze_node_notifications,
     unsnooze_node_notifications,
 )

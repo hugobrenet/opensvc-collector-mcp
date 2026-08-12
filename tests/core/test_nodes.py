@@ -1,6 +1,13 @@
 import pytest
 
-from opensvc_collector_mcp.core.nodes import inventory, services, storage
+from opensvc_collector_mcp.core.nodes import (
+    actions,
+    inventory,
+    mutations,
+    notifications,
+    services,
+    storage,
+)
 from opensvc_collector_mcp.core.nodes import _common as node_common
 from opensvc_collector_mcp.models.nodes.storage import NodeDisksResponse
 
@@ -67,9 +74,9 @@ async def test_delete_node_snapshots_and_deletes_by_node_id(
     )
     delete_recorder = CollectorDeleteRecorder({"info": "node deleted"})
     monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+    monkeypatch.setattr(mutations, "collector_delete", delete_recorder)
 
-    response = await inventory.delete_node(
+    response = await mutations.delete_node(
         node_id=" node/id ",
     )
 
@@ -80,7 +87,7 @@ async def test_delete_node_snapshots_and_deletes_by_node_id(
     assert response["collector_response"] == {"info": "node deleted"}
     assert collector.calls[0].path == "/nodes/node%2Fid"
     assert collector.calls[0].params == {
-        "props": inventory.DEFAULT_NODE_DELETE_SNAPSHOT_PROPS
+        "props": mutations.DEFAULT_NODE_DELETE_SNAPSHOT_PROPS
     }
     assert delete_recorder.calls == [
         {"path": "/nodes/node%2Fid", "data": None, "params": None}
@@ -107,9 +114,9 @@ async def test_delete_node_resolves_nodename_and_deletes_by_node_id(
     )
     delete_recorder = CollectorDeleteRecorder({"info": "node deleted"})
     monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+    monkeypatch.setattr(mutations, "collector_delete", delete_recorder)
 
-    response = await inventory.delete_node(
+    response = await mutations.delete_node(
         nodename=" node-a ",
     )
 
@@ -118,7 +125,10 @@ async def test_delete_node_resolves_nodename_and_deletes_by_node_id(
     assert response["nodename"] == "node-a"
     assert response["meta"]["selector"] == "nodename"
     assert collector.calls[0].path == "/nodes"
-    assert collector.calls[0].single_param("props") == inventory.DEFAULT_NODE_DELETE_SNAPSHOT_PROPS
+    assert (
+        collector.calls[0].single_param("props")
+        == mutations.DEFAULT_NODE_DELETE_SNAPSHOT_PROPS
+    )
     assert collector.calls[0].single_param("limit") == 2
     assert collector.calls[0].param_values("filters") == ["nodename=node-a"]
     assert delete_recorder.calls == [
@@ -143,10 +153,10 @@ async def test_delete_node_rejects_ambiguous_node_id_snapshot(
     )
     delete_recorder = CollectorDeleteRecorder({"info": "node deleted"})
     monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+    monkeypatch.setattr(mutations, "collector_delete", delete_recorder)
 
     with pytest.raises(ValueError, match="node_id resolved to multiple nodes"):
-        await inventory.delete_node(
+        await mutations.delete_node(
             node_id="node-a-id",
         )
 
@@ -170,10 +180,10 @@ async def test_delete_node_rejects_ambiguous_nodename_before_delete(
     )
     delete_recorder = CollectorDeleteRecorder({"info": "node deleted"})
     monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+    monkeypatch.setattr(mutations, "collector_delete", delete_recorder)
 
     with pytest.raises(ValueError, match="nodename is ambiguous: node-a"):
-        await inventory.delete_node(
+        await mutations.delete_node(
             nodename="node-a",
         )
 
@@ -199,10 +209,10 @@ async def test_delete_node_rejects_nodename_passed_as_node_id(
     )
     delete_recorder = CollectorDeleteRecorder({"info": "node deleted"})
     monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+    monkeypatch.setattr(mutations, "collector_delete", delete_recorder)
 
     with pytest.raises(ValueError, match="node_id selector did not resolve to the exact node_id"):
-        await inventory.delete_node(
+        await mutations.delete_node(
             node_id="node-a",
         )
 
@@ -231,9 +241,9 @@ async def test_freeze_node_resolves_nodename_and_enqueues_action(
     )
     put_recorder = CollectorPutRecorder({"info": "action queued"})
     monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_put", put_recorder)
+    monkeypatch.setattr(actions, "collector_put", put_recorder)
 
-    response = await inventory.freeze_node(
+    response = await actions.freeze_node(
         nodename=" node-a ",
     )
 
@@ -243,7 +253,10 @@ async def test_freeze_node_resolves_nodename_and_enqueues_action(
     assert response["nodename"] == "node-a"
     assert response["meta"]["exec_tag"] == "exec:nodes"
     assert collector.calls[0].path == "/nodes"
-    assert collector.calls[0].single_param("props") == inventory.DEFAULT_NODE_ACTION_SNAPSHOT_PROPS
+    assert (
+        collector.calls[0].single_param("props")
+        == actions.DEFAULT_NODE_ACTION_SNAPSHOT_PROPS
+    )
     assert collector.calls[0].single_param("limit") == 2
     assert collector.calls[0].param_values("filters") == ["nodename=node-a"]
     assert put_recorder.calls == [
@@ -275,9 +288,9 @@ async def test_freeze_node_resolves_node_id_and_enqueues_action(
     )
     put_recorder = CollectorPutRecorder({"info": "action queued"})
     monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_put", put_recorder)
+    monkeypatch.setattr(actions, "collector_put", put_recorder)
 
-    response = await inventory.freeze_node(
+    response = await actions.freeze_node(
         node_id=" node/id ",
     )
 
@@ -300,10 +313,10 @@ async def test_freeze_node_requires_exactly_one_selector(
     collector = collector_mock_factory([])
     put_recorder = CollectorPutRecorder({"info": "action queued"})
     monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_put", put_recorder)
+    monkeypatch.setattr(actions, "collector_put", put_recorder)
 
     with pytest.raises(ValueError, match="requires exactly one node selector"):
-        await inventory.freeze_node(
+        await actions.freeze_node(
             node_id="node-a-id",
             nodename="node-a",
         )
@@ -333,9 +346,9 @@ async def test_thaw_node_resolves_nodename_and_enqueues_action(
     )
     put_recorder = CollectorPutRecorder({"info": "action queued"})
     monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_put", put_recorder)
+    monkeypatch.setattr(actions, "collector_put", put_recorder)
 
-    response = await inventory.thaw_node(
+    response = await actions.thaw_node(
         nodename=" node-a ",
     )
 
@@ -345,7 +358,10 @@ async def test_thaw_node_resolves_nodename_and_enqueues_action(
     assert response["nodename"] == "node-a"
     assert response["meta"]["exec_tag"] == "exec:nodes"
     assert collector.calls[0].path == "/nodes"
-    assert collector.calls[0].single_param("props") == inventory.DEFAULT_NODE_ACTION_SNAPSHOT_PROPS
+    assert (
+        collector.calls[0].single_param("props")
+        == actions.DEFAULT_NODE_ACTION_SNAPSHOT_PROPS
+    )
     assert collector.calls[0].single_param("limit") == 2
     assert collector.calls[0].param_values("filters") == ["nodename=node-a"]
     assert put_recorder.calls == [
@@ -364,10 +380,10 @@ async def test_thaw_node_requires_exactly_one_selector(
     collector = collector_mock_factory([])
     put_recorder = CollectorPutRecorder({"info": "action queued"})
     monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_put", put_recorder)
+    monkeypatch.setattr(actions, "collector_put", put_recorder)
 
     with pytest.raises(ValueError, match="requires exactly one node selector"):
-        await inventory.thaw_node(
+        await actions.thaw_node(
             node_id="node-a-id",
             nodename="node-a",
         )
@@ -422,9 +438,9 @@ async def test_node_exec_action_resolves_nodename_and_enqueues_action(
     )
     put_recorder = CollectorPutRecorder({"info": "action queued"})
     monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_put", put_recorder)
+    monkeypatch.setattr(actions, "collector_put", put_recorder)
 
-    function = getattr(inventory, function_name)
+    function = getattr(actions, function_name)
     response = await function(
         nodename=" node-a ",
     )
@@ -435,7 +451,10 @@ async def test_node_exec_action_resolves_nodename_and_enqueues_action(
     assert response["nodename"] == "node-a"
     assert response["meta"]["exec_tag"] == "exec:nodes"
     assert collector.calls[0].path == "/nodes"
-    assert collector.calls[0].single_param("props") == inventory.DEFAULT_NODE_ACTION_SNAPSHOT_PROPS
+    assert (
+        collector.calls[0].single_param("props")
+        == actions.DEFAULT_NODE_ACTION_SNAPSHOT_PROPS
+    )
     assert collector.calls[0].single_param("limit") == 2
     assert collector.calls[0].param_values("filters") == ["nodename=node-a"]
     assert put_recorder.calls == [
@@ -454,10 +473,10 @@ async def test_run_node_checks_requires_exactly_one_selector(
     collector = collector_mock_factory([])
     put_recorder = CollectorPutRecorder({"info": "action queued"})
     monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_put", put_recorder)
+    monkeypatch.setattr(actions, "collector_put", put_recorder)
 
     with pytest.raises(ValueError, match="requires exactly one node selector"):
-        await inventory.run_node_checks(
+        await actions.run_node_checks(
             node_id="node-a-id",
             nodename="node-a",
         )
@@ -487,9 +506,9 @@ async def test_snooze_node_notifications_resolves_nodename_then_posts_node_id(
     )
     recorder = CollectorPostRecorder({"info": "snoozed"})
     monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_post", recorder)
+    monkeypatch.setattr(notifications, "collector_post", recorder)
 
-    response = await inventory.snooze_node_notifications(
+    response = await notifications.snooze_node_notifications(
         nodename=" node-a ",
         duration=" 1h ",
     )
@@ -499,7 +518,10 @@ async def test_snooze_node_notifications_resolves_nodename_then_posts_node_id(
     assert response["duration"] == "1h"
     assert response["snoozed"] is True
     assert collector.calls[0].path == "/nodes"
-    assert collector.calls[0].single_param("props") == inventory.DEFAULT_NODE_SNOOZE_SNAPSHOT_PROPS
+    assert (
+        collector.calls[0].single_param("props")
+        == notifications.DEFAULT_NODE_SNOOZE_SNAPSHOT_PROPS
+    )
     assert collector.calls[0].single_param("limit") == 2
     assert collector.calls[0].param_values("filters") == ["nodename=node-a"]
     assert recorder.calls == [
@@ -532,15 +554,17 @@ async def test_unsnooze_node_notifications_resolves_node_id_then_posts_without_d
     )
     recorder = CollectorPostRecorder({"info": "unsnoozed"})
     monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_post", recorder)
+    monkeypatch.setattr(notifications, "collector_post", recorder)
 
-    response = await inventory.unsnooze_node_notifications(node_id=" node/id ")
+    response = await notifications.unsnooze_node_notifications(node_id=" node/id ")
 
     assert response["node_id"] == "node/id"
     assert response["nodename"] == "node-a"
     assert response["unsnoozed"] is True
     assert collector.calls[0].path == "/nodes/node%2Fid"
-    assert collector.calls[0].params == {"props": inventory.DEFAULT_NODE_SNOOZE_SNAPSHOT_PROPS}
+    assert collector.calls[0].params == {
+        "props": notifications.DEFAULT_NODE_SNOOZE_SNAPSHOT_PROPS
+    }
     assert recorder.calls == [
         {"path": "/nodes/node%2Fid/snooze", "data": None, "params": None}
     ]
@@ -563,10 +587,10 @@ async def test_snooze_node_notifications_rejects_ambiguous_nodename(
     )
     recorder = CollectorPostRecorder({"info": "snoozed"})
     monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_post", recorder)
+    monkeypatch.setattr(notifications, "collector_post", recorder)
 
     with pytest.raises(ValueError, match="nodename is ambiguous: node-a"):
-        await inventory.snooze_node_notifications(
+        await notifications.snooze_node_notifications(
             nodename="node-a",
             duration="1h",
         )
@@ -589,10 +613,10 @@ async def test_snooze_node_notifications_requires_exactly_one_selector(
     collector = collector_mock_factory([])
     recorder = CollectorPostRecorder({"info": "snoozed"})
     monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_post", recorder)
+    monkeypatch.setattr(notifications, "collector_post", recorder)
 
     with pytest.raises(ValueError, match="requires exactly one node selector"):
-        await inventory.snooze_node_notifications(
+        await notifications.snooze_node_notifications(
             duration="1h",
             **kwargs,
         )
@@ -608,9 +632,9 @@ async def test_create_node_prechecks_nodename_then_posts_payload(
     collector = collector_mock_factory([{"meta": {"total": 0}, "data": []}])
     recorder = CollectorPostRecorder({"info": "node submitted"})
     monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_post", recorder)
+    monkeypatch.setattr(mutations, "collector_post", recorder)
 
-    response = await inventory.create_node(
+    response = await mutations.create_node(
         " node/a ",
         {
             " loc_city ": "Lab City",
@@ -650,9 +674,9 @@ async def test_create_node_lets_collector_validate_non_delete_errors(
     collector = collector_mock_factory([{"meta": {"total": 0}, "data": []}])
     recorder = CollectorPostRecorder({"info": "node submitted"})
     monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_post", recorder)
+    monkeypatch.setattr(mutations, "collector_post", recorder)
 
-    response = await inventory.create_node("node-a", {"node_env": "PPR"})
+    response = await mutations.create_node("node-a", {"node_env": "PPR"})
 
     assert response["submitted_properties"] == {"node_env": "PPR", "nodename": "node-a"}
     assert recorder.calls == [
@@ -683,10 +707,10 @@ async def test_create_node_rejects_existing_nodename_before_post(
     )
     recorder = CollectorPostRecorder({"info": "node submitted"})
     monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_post", recorder)
+    monkeypatch.setattr(mutations, "collector_post", recorder)
 
     with pytest.raises(ValueError, match="node nodename already exists: node-a"):
-        await inventory.create_node("node-a", {"role": "test-role"})
+        await mutations.create_node("node-a", {"role": "test-role"})
 
     assert collector.calls[0].path == "/nodes"
     assert collector.calls[0].param_values("filters") == ["nodename=node-a"]
@@ -702,13 +726,13 @@ async def test_create_node_rejects_reserved_properties_before_post(
     collector = collector_mock_factory([{"meta": {"total": 0}, "data": []}])
     recorder = CollectorPostRecorder({"info": "node submitted"})
     monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_post", recorder)
+    monkeypatch.setattr(mutations, "collector_post", recorder)
 
     with pytest.raises(
         ValueError,
         match=f"create_node properties must not include reserved fields: {reserved}",
     ):
-        await inventory.create_node("node-a", {f" {reserved} ": "reserved-value"})
+        await mutations.create_node("node-a", {f" {reserved} ": "reserved-value"})
 
     assert collector.calls[0].path == "/nodes"
     assert recorder.calls == []
@@ -734,9 +758,9 @@ async def test_update_node_properties_resolves_nodename_and_posts_allowlisted_fi
     )
     recorder = CollectorPostRecorder({"info": "node updated"})
     monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_post", recorder)
+    monkeypatch.setattr(mutations, "collector_post", recorder)
 
-    response = await inventory.update_node_properties(
+    response = await mutations.update_node_properties(
         " node/a ",
         {
             " loc_city ": "Lab City",
@@ -755,7 +779,7 @@ async def test_update_node_properties_resolves_nodename_and_posts_allowlisted_fi
     assert collector.calls[0].path == "/nodes"
     assert (
         collector.calls[0].single_param("props")
-        == inventory.DEFAULT_NODE_UPDATE_SNAPSHOT_PROPS
+        == mutations.DEFAULT_NODE_UPDATE_SNAPSHOT_PROPS
     )
     assert collector.calls[0].single_param("limit") == 2
     assert collector.calls[0].param_values("filters") == ["nodename=node/a"]
@@ -788,9 +812,9 @@ async def test_update_node_properties_resolves_node_id_then_posts_to_nodename(
     )
     recorder = CollectorPostRecorder({"info": "node updated"})
     monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_post", recorder)
+    monkeypatch.setattr(mutations, "collector_post", recorder)
 
-    response = await inventory.update_node_properties(
+    response = await mutations.update_node_properties(
         node_id=" node/id ",
         properties={" loc_city ": "Lab City"},
     )
@@ -801,7 +825,7 @@ async def test_update_node_properties_resolves_node_id_then_posts_to_nodename(
     assert response["meta"]["resolved_node_id"] == "node/id"
     assert (
         collector.calls[0].single_param("props")
-        == inventory.DEFAULT_NODE_UPDATE_SNAPSHOT_PROPS
+        == mutations.DEFAULT_NODE_UPDATE_SNAPSHOT_PROPS
     )
     assert recorder.calls == [
         {
@@ -821,10 +845,10 @@ async def test_update_node_properties_rejects_empty_payload(
     )
     recorder = CollectorPostRecorder({"info": "node updated"})
     monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_post", recorder)
+    monkeypatch.setattr(mutations, "collector_post", recorder)
 
     with pytest.raises(ValueError, match="properties must not be empty"):
-        await inventory.update_node_properties(
+        await mutations.update_node_properties(
             "node-a",
             {},
         )
@@ -842,9 +866,9 @@ async def test_update_node_properties_accepts_writable_nodename(
     )
     recorder = CollectorPostRecorder({"info": "node updated"})
     monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_post", recorder)
+    monkeypatch.setattr(mutations, "collector_post", recorder)
 
-    response = await inventory.update_node_properties(
+    response = await mutations.update_node_properties(
         "node-a",
         {"nodename": "node-b"},
     )
@@ -864,10 +888,10 @@ async def test_update_node_properties_rejects_readonly_fields(
     )
     recorder = CollectorPostRecorder({"info": "node updated"})
     monkeypatch.setattr(node_common, "collector_get", collector.get)
-    monkeypatch.setattr(inventory, "collector_post", recorder)
+    monkeypatch.setattr(mutations, "collector_post", recorder)
 
     with pytest.raises(ValueError, match="unsupported node writable properties: node_env"):
-        await inventory.update_node_properties(
+        await mutations.update_node_properties(
             "node-a",
             {"node_env": "PPR"},
         )
