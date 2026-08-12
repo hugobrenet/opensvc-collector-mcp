@@ -95,7 +95,8 @@ Current package layout:
 - `src/opensvc_collector_mcp/core/users/`
   user-domain business logic
 - `src/opensvc_collector_mcp/core/tags/`
-  tag-domain business logic
+  tag-domain business logic split into inventory, mutations, node relations,
+  service relations, and selector helpers
 - `src/opensvc_collector_mcp/core/apps/`
   app-domain business logic
 - `src/opensvc_collector_mcp/core/arrays/`

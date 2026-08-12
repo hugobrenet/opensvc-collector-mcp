@@ -2,7 +2,7 @@ import pytest
 
 from opensvc_collector_mcp.core.nodes import _common as node_common
 from opensvc_collector_mcp.core.services import _common as service_common
-from opensvc_collector_mcp.core.tags import inventory
+from opensvc_collector_mcp.core.tags import mutations, node_relations, service_relations
 from opensvc_collector_mcp.core.tags import _common as tag_common
 
 
@@ -53,9 +53,9 @@ async def test_create_tag_posts_writable_tag_fields(monkeypatch):
             ],
         }
     )
-    monkeypatch.setattr(inventory, "collector_post", recorder)
+    monkeypatch.setattr(mutations, "collector_post", recorder)
 
-    response = await inventory.create_tag(
+    response = await mutations.create_tag(
         tag_name=" mcp-test-tag ",
         tag_data="created by test",
     )
@@ -72,10 +72,10 @@ async def test_create_tag_posts_writable_tag_fields(monkeypatch):
 
 async def test_create_tag_rejects_empty_tag_name(monkeypatch):
     recorder = CollectorPostRecorder({"meta": {}, "data": []})
-    monkeypatch.setattr(inventory, "collector_post", recorder)
+    monkeypatch.setattr(mutations, "collector_post", recorder)
 
     with pytest.raises(ValueError, match="tag_name must not be empty"):
-        await inventory.create_tag(tag_name="   ")
+        await mutations.create_tag(tag_name="   ")
 
     assert recorder.calls == []
 
@@ -96,9 +96,9 @@ async def test_delete_tag_snapshots_and_deletes_by_tag_id(monkeypatch):
     )
     delete_recorder = CollectorDeleteRecorder({"meta": {"count": 1}, "data": []})
     monkeypatch.setattr(tag_common, "collector_get", get_recorder)
-    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+    monkeypatch.setattr(mutations, "collector_delete", delete_recorder)
 
-    response = await inventory.delete_tag(
+    response = await mutations.delete_tag(
         tag_id=" tag-1 ",
     )
 
@@ -134,9 +134,9 @@ async def test_delete_tag_resolves_tag_name_and_deletes_by_tag_id(monkeypatch):
     )
     delete_recorder = CollectorDeleteRecorder({"meta": {"count": 1}, "data": []})
     monkeypatch.setattr(tag_common, "collector_get", get_recorder)
-    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+    monkeypatch.setattr(mutations, "collector_delete", delete_recorder)
 
-    response = await inventory.delete_tag(
+    response = await mutations.delete_tag(
         tag_name=" mcp-test-tag ",
     )
 
@@ -163,9 +163,9 @@ async def test_delete_tag_quotes_tag_id_path(monkeypatch):
     )
     delete_recorder = CollectorDeleteRecorder({"meta": {"count": 1}, "data": []})
     monkeypatch.setattr(tag_common, "collector_get", get_recorder)
-    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+    monkeypatch.setattr(mutations, "collector_delete", delete_recorder)
 
-    response = await inventory.delete_tag(
+    response = await mutations.delete_tag(
         tag_id=" tag/1 ",
     )
 
@@ -194,10 +194,10 @@ async def test_delete_tag_rejects_ambiguous_tag_id_snapshot(monkeypatch):
     )
     delete_recorder = CollectorDeleteRecorder({"meta": {}, "data": []})
     monkeypatch.setattr(tag_common, "collector_get", get_recorder)
-    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+    monkeypatch.setattr(mutations, "collector_delete", delete_recorder)
 
     with pytest.raises(ValueError, match="tag_id resolved to multiple tags"):
-        await inventory.delete_tag(
+        await mutations.delete_tag(
             tag_id="tag-1",
         )
 
@@ -217,10 +217,10 @@ async def test_delete_tag_rejects_ambiguous_tag_name_before_delete(monkeypatch):
     )
     delete_recorder = CollectorDeleteRecorder({"meta": {}, "data": []})
     monkeypatch.setattr(tag_common, "collector_get", get_recorder)
-    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+    monkeypatch.setattr(mutations, "collector_delete", delete_recorder)
 
     with pytest.raises(ValueError, match="tag_name is ambiguous: mcp-test-tag"):
-        await inventory.delete_tag(
+        await mutations.delete_tag(
             tag_name="mcp-test-tag",
         )
 
@@ -237,10 +237,10 @@ async def test_delete_tag_rejects_tag_name_passed_as_tag_id(monkeypatch):
     )
     delete_recorder = CollectorDeleteRecorder({"meta": {}, "data": []})
     monkeypatch.setattr(tag_common, "collector_get", get_recorder)
-    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+    monkeypatch.setattr(mutations, "collector_delete", delete_recorder)
 
     with pytest.raises(ValueError, match="tag_id selector did not resolve to the exact tag_id"):
-        await inventory.delete_tag(
+        await mutations.delete_tag(
             tag_id="mcp-test-tag",
         )
 
@@ -276,9 +276,9 @@ async def test_attach_tag_to_node_resolves_names_and_posts_ids(monkeypatch):
     post_recorder = CollectorPostRecorder({"info": "tag attached"})
     monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
     monkeypatch.setattr(node_common, "collector_get", node_get_recorder)
-    monkeypatch.setattr(inventory, "collector_post", post_recorder)
+    monkeypatch.setattr(node_relations, "collector_post", post_recorder)
 
-    response = await inventory.attach_tag_to_node(
+    response = await node_relations.attach_tag_to_node(
         tag_name=" mcp-test-tag ",
         nodename=" lab-node-01 ",
         tag_attach_data="scope=lab",
@@ -323,9 +323,11 @@ async def test_attach_tag_to_node_quotes_ids_in_post_path(monkeypatch):
     post_recorder = CollectorPostRecorder({"info": "tag attached"})
     monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
     monkeypatch.setattr(node_common, "collector_get", node_get_recorder)
-    monkeypatch.setattr(inventory, "collector_post", post_recorder)
+    monkeypatch.setattr(node_relations, "collector_post", post_recorder)
 
-    response = await inventory.attach_tag_to_node(tag_id=" tag/1 ", node_id=" node/1 ")
+    response = await node_relations.attach_tag_to_node(
+        tag_id=" tag/1 ", node_id=" node/1 "
+    )
 
     assert response["tag_id"] == "tag/1"
     assert response["node_id"] == "node/1"
@@ -352,9 +354,9 @@ async def test_attach_tag_to_node_accepts_correlated_ids_and_names(monkeypatch):
     post_recorder = CollectorPostRecorder({"info": "tag attached"})
     monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
     monkeypatch.setattr(node_common, "collector_get", node_get_recorder)
-    monkeypatch.setattr(inventory, "collector_post", post_recorder)
+    monkeypatch.setattr(node_relations, "collector_post", post_recorder)
 
-    response = await inventory.attach_tag_to_node(
+    response = await node_relations.attach_tag_to_node(
         tag_id="tag-1",
         tag_name="mcp-test-tag",
         node_id="node-1",
@@ -402,10 +404,10 @@ async def test_attach_tag_to_node_rejects_correlated_name_mismatch(monkeypatch):
     post_recorder = CollectorPostRecorder({"info": "tag attached"})
     monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
     monkeypatch.setattr(node_common, "collector_get", node_get_recorder)
-    monkeypatch.setattr(inventory, "collector_post", post_recorder)
+    monkeypatch.setattr(node_relations, "collector_post", post_recorder)
 
     with pytest.raises(ValueError, match="tag_name must match the resolved tag_id"):
-        await inventory.attach_tag_to_node(
+        await node_relations.attach_tag_to_node(
             tag_id="tag-1",
             tag_name="other-tag",
             node_id="node-1",
@@ -436,10 +438,12 @@ async def test_attach_tag_to_node_rejects_ambiguous_nodename_before_post(monkeyp
     post_recorder = CollectorPostRecorder({"info": "tag attached"})
     monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
     monkeypatch.setattr(node_common, "collector_get", node_get_recorder)
-    monkeypatch.setattr(inventory, "collector_post", post_recorder)
+    monkeypatch.setattr(node_relations, "collector_post", post_recorder)
 
     with pytest.raises(ValueError, match="nodename is ambiguous: lab-node-01"):
-        await inventory.attach_tag_to_node(tag_id="tag-1", nodename="lab-node-01")
+        await node_relations.attach_tag_to_node(
+            tag_id="tag-1", nodename="lab-node-01"
+        )
 
     assert post_recorder.calls == []
 
@@ -473,9 +477,9 @@ async def test_attach_tag_to_service_resolves_names_and_posts_ids(monkeypatch):
     post_recorder = CollectorPostRecorder({"info": "tag attached"})
     monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
     monkeypatch.setattr(service_common, "collector_get", service_get_recorder)
-    monkeypatch.setattr(inventory, "collector_post", post_recorder)
+    monkeypatch.setattr(service_relations, "collector_post", post_recorder)
 
-    response = await inventory.attach_tag_to_service(
+    response = await service_relations.attach_tag_to_service(
         tag_name=" mcp-test-tag ",
         svcname=" svc/app/test ",
     )
@@ -515,9 +519,9 @@ async def test_attach_tag_to_service_quotes_ids_in_post_path(monkeypatch):
     post_recorder = CollectorPostRecorder({"info": "tag attached"})
     monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
     monkeypatch.setattr(service_common, "collector_get", service_get_recorder)
-    monkeypatch.setattr(inventory, "collector_post", post_recorder)
+    monkeypatch.setattr(service_relations, "collector_post", post_recorder)
 
-    response = await inventory.attach_tag_to_service(
+    response = await service_relations.attach_tag_to_service(
         tag_id=" tag/1 ",
         svc_id=" svc/1 ",
     )
@@ -547,9 +551,9 @@ async def test_attach_tag_to_service_accepts_correlated_ids_and_names(monkeypatc
     post_recorder = CollectorPostRecorder({"info": "tag attached"})
     monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
     monkeypatch.setattr(service_common, "collector_get", service_get_recorder)
-    monkeypatch.setattr(inventory, "collector_post", post_recorder)
+    monkeypatch.setattr(service_relations, "collector_post", post_recorder)
 
-    response = await inventory.attach_tag_to_service(
+    response = await service_relations.attach_tag_to_service(
         tag_id="tag-1",
         tag_name="mcp-test-tag",
         svc_id="svc-1",
@@ -597,10 +601,10 @@ async def test_attach_tag_to_service_rejects_correlated_name_mismatch(monkeypatc
     post_recorder = CollectorPostRecorder({"info": "tag attached"})
     monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
     monkeypatch.setattr(service_common, "collector_get", service_get_recorder)
-    monkeypatch.setattr(inventory, "collector_post", post_recorder)
+    monkeypatch.setattr(service_relations, "collector_post", post_recorder)
 
     with pytest.raises(ValueError, match="svcname must match the resolved svc_id"):
-        await inventory.attach_tag_to_service(
+        await service_relations.attach_tag_to_service(
             tag_id="tag-1",
             tag_name="mcp-test-tag",
             svc_id="svc-1",
@@ -633,10 +637,12 @@ async def test_attach_tag_to_service_rejects_ambiguous_svcname_before_post(
     post_recorder = CollectorPostRecorder({"info": "tag attached"})
     monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
     monkeypatch.setattr(service_common, "collector_get", service_get_recorder)
-    monkeypatch.setattr(inventory, "collector_post", post_recorder)
+    monkeypatch.setattr(service_relations, "collector_post", post_recorder)
 
     with pytest.raises(ValueError, match="svcname is ambiguous: svc/app/test"):
-        await inventory.attach_tag_to_service(tag_id="tag-1", svcname="svc/app/test")
+        await service_relations.attach_tag_to_service(
+            tag_id="tag-1", svcname="svc/app/test"
+        )
 
     assert post_recorder.calls == []
 
@@ -682,10 +688,10 @@ async def test_detach_tag_from_service_resolves_relation_and_deletes_ids(monkeyp
     delete_recorder = CollectorDeleteRecorder({"info": "tag detached"})
     monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
     monkeypatch.setattr(service_common, "collector_get", service_get_recorder)
-    monkeypatch.setattr(inventory, "collector_get", relation_get_recorder)
-    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+    monkeypatch.setattr(service_relations, "collector_get", relation_get_recorder)
+    monkeypatch.setattr(service_relations, "collector_delete", delete_recorder)
 
-    response = await inventory.detach_tag_from_service(
+    response = await service_relations.detach_tag_from_service(
         tag_name=" mcp-test-tag ",
         svcname=" svc/app/test ",
     )
@@ -728,10 +734,10 @@ async def test_detach_tag_from_service_quotes_ids_in_delete_path(monkeypatch):
     delete_recorder = CollectorDeleteRecorder({"info": "tag detached"})
     monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
     monkeypatch.setattr(service_common, "collector_get", service_get_recorder)
-    monkeypatch.setattr(inventory, "collector_get", relation_get_recorder)
-    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+    monkeypatch.setattr(service_relations, "collector_get", relation_get_recorder)
+    monkeypatch.setattr(service_relations, "collector_delete", delete_recorder)
 
-    response = await inventory.detach_tag_from_service(
+    response = await service_relations.detach_tag_from_service(
         tag_id=" tag/1 ",
         svc_id=" svc/1 ",
     )
@@ -766,11 +772,13 @@ async def test_detach_tag_from_service_rejects_missing_relation_before_delete(
     delete_recorder = CollectorDeleteRecorder({"info": "tag detached"})
     monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
     monkeypatch.setattr(service_common, "collector_get", service_get_recorder)
-    monkeypatch.setattr(inventory, "collector_get", relation_get_recorder)
-    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+    monkeypatch.setattr(service_relations, "collector_get", relation_get_recorder)
+    monkeypatch.setattr(service_relations, "collector_delete", delete_recorder)
 
     with pytest.raises(ValueError, match="relation not found"):
-        await inventory.detach_tag_from_service(tag_id="tag-1", svc_id="svc-1")
+        await service_relations.detach_tag_from_service(
+            tag_id="tag-1", svc_id="svc-1"
+        )
 
     assert delete_recorder.calls == []
 
@@ -816,10 +824,10 @@ async def test_detach_tag_from_node_resolves_relation_and_deletes_ids(monkeypatc
     delete_recorder = CollectorDeleteRecorder({"info": "tag detached"})
     monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
     monkeypatch.setattr(node_common, "collector_get", node_get_recorder)
-    monkeypatch.setattr(inventory, "collector_get", relation_get_recorder)
-    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+    monkeypatch.setattr(node_relations, "collector_get", relation_get_recorder)
+    monkeypatch.setattr(node_relations, "collector_delete", delete_recorder)
 
-    response = await inventory.detach_tag_from_node(
+    response = await node_relations.detach_tag_from_node(
         tag_name=" mcp-test-tag ",
         nodename=" lab-node-01 ",
     )
@@ -862,10 +870,12 @@ async def test_detach_tag_from_node_quotes_ids_in_delete_path(monkeypatch):
     delete_recorder = CollectorDeleteRecorder({"info": "tag detached"})
     monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
     monkeypatch.setattr(node_common, "collector_get", node_get_recorder)
-    monkeypatch.setattr(inventory, "collector_get", relation_get_recorder)
-    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+    monkeypatch.setattr(node_relations, "collector_get", relation_get_recorder)
+    monkeypatch.setattr(node_relations, "collector_delete", delete_recorder)
 
-    response = await inventory.detach_tag_from_node(tag_id=" tag/1 ", node_id=" node/1 ")
+    response = await node_relations.detach_tag_from_node(
+        tag_id=" tag/1 ", node_id=" node/1 "
+    )
 
     assert response["tag_id"] == "tag/1"
     assert response["node_id"] == "node/1"
@@ -895,10 +905,10 @@ async def test_detach_tag_from_node_rejects_missing_relation_before_delete(monke
     delete_recorder = CollectorDeleteRecorder({"info": "tag detached"})
     monkeypatch.setattr(tag_common, "collector_get", tag_get_recorder)
     monkeypatch.setattr(node_common, "collector_get", node_get_recorder)
-    monkeypatch.setattr(inventory, "collector_get", relation_get_recorder)
-    monkeypatch.setattr(inventory, "collector_delete", delete_recorder)
+    monkeypatch.setattr(node_relations, "collector_get", relation_get_recorder)
+    monkeypatch.setattr(node_relations, "collector_delete", delete_recorder)
 
     with pytest.raises(ValueError, match="relation not found"):
-        await inventory.detach_tag_from_node(tag_id="tag-1", node_id="node-1")
+        await node_relations.detach_tag_from_node(tag_id="tag-1", node_id="node-1")
 
     assert delete_recorder.calls == []
