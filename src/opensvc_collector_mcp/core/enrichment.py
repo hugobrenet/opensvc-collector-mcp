@@ -1,8 +1,8 @@
-import asyncio
 from collections.abc import Iterable
 from typing import Any
 
 from opensvc_collector_mcp.client import collector_get
+from opensvc_collector_mcp.core.concurrency import bounded_map
 
 
 async def _get_nodename_by_node_id(node_id: str) -> str | None:
@@ -33,9 +33,7 @@ async def get_nodenames_by_node_ids(node_ids: Iterable[str]) -> dict[str, str]:
     if not unique_node_ids:
         return {}
 
-    results = await asyncio.gather(
-        *(_get_nodename_by_node_id(node_id) for node_id in unique_node_ids),
-    )
+    results = await bounded_map(unique_node_ids, _get_nodename_by_node_id)
     return {
         node_id: nodename
         for node_id, nodename in zip(unique_node_ids, results, strict=True)
@@ -86,9 +84,7 @@ async def get_svcnames_by_svc_ids(svc_ids: Iterable[str]) -> dict[str, str]:
     if not unique_svc_ids:
         return {}
 
-    results = await asyncio.gather(
-        *(_get_svcname_by_svc_id(svc_id) for svc_id in unique_svc_ids),
-    )
+    results = await bounded_map(unique_svc_ids, _get_svcname_by_svc_id)
     return {
         svc_id: svcname
         for svc_id, svcname in zip(unique_svc_ids, results, strict=True)

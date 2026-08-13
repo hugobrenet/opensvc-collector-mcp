@@ -1,9 +1,9 @@
-import asyncio
 from typing import Any
 from urllib.parse import quote
 
 from opensvc_collector_mcp.client import collector_get, collector_get_all
 from opensvc_collector_mcp.core.collection import collection_params
+from opensvc_collector_mcp.core.concurrency import bounded_map
 
 from ._common import props_with_required, user_search_filters
 
@@ -96,19 +96,16 @@ async def _get_relations_for_users(
     *,
     relation: str,
 ) -> dict[str, list[dict[str, Any]]]:
-    semaphore = asyncio.Semaphore(20)
-
     async def get_one(user: dict[str, Any]) -> tuple[str, list[dict[str, Any]]]:
         user_id = str(user.get("id") or "").strip()
         if not user_id:
             return "", []
-        async with semaphore:
-            rows = await get_user_relation(
-                selector=user_id,
-                relation=relation,
-                props=DEFAULT_USER_GROUP_PROPS,
-            )
+        rows = await get_user_relation(
+            selector=user_id,
+            relation=relation,
+            props=DEFAULT_USER_GROUP_PROPS,
+        )
         return user_id, rows
 
-    results = await asyncio.gather(*(get_one(user) for user in users))
+    results = await bounded_map(users, get_one)
     return {user_id: rows for user_id, rows in results if user_id}

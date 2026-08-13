@@ -411,9 +411,10 @@ Async implementation standard:
 - Collector HTTP calls should go through the async `collector_get()` helper in
   `client.py`.
 - Do not introduce blocking HTTP clients like `requests` in new tool paths.
-- If a future tool needs multiple Collector calls, keep the implementation
-  awaitable and consider concurrent calls with `asyncio.gather()` when the calls
-  are independent.
+- Use `core/concurrency.py::bounded_map()` for data-dependent fan-out so each
+  operation has a shared concurrency bound and does not create one task per
+  collection item. Reserve direct `asyncio.gather()` for a small, statically
+  bounded set of independent calls.
 
 Pydantic model standard:
 
